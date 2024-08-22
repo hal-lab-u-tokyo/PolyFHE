@@ -62,4 +62,9 @@ void Evaluator::Add(const PhantomContext &context, PhantomCiphertext &result,
     }
 }
 
+void Evaluator::MultAndRelin(const PhantomContext &context, PhantomCiphertext &result,
+                    const PhantomCiphertext &ct0,
+                    const PhantomCiphertext &ct1) {
+}
+
 } // namespace hifive

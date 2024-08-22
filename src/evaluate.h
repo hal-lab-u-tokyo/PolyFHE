@@ -14,6 +14,9 @@ public:
 
     void Add(const PhantomContext &context, PhantomCiphertext &result,
              const PhantomCiphertext &ct0, const PhantomCiphertext &ct1);
+    
+    void MultAndRelin(const PhantomContext &context, PhantomCiphertext &result,
+             const PhantomCiphertext &ct0, const PhantomCiphertext &ct1);
 
 private:
     std::unique_ptr<GPUContext> gpu_context_;

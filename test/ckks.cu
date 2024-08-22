@@ -81,8 +81,10 @@ TEST(CKKS, Encrypt) {
         size_t y_size = slot_count;
         x_msg.reserve(x_size);
         for (size_t i = 0; i < x_size; i++) {
-            rand_real = (double) rand() / RAND_MAX;
-            rand_imag = (double) rand() / RAND_MAX;
+            //rand_real = (double) rand() / RAND_MAX;
+            //rand_imag = (double) rand() / RAND_MAX;
+            rand_real = i * 1.0;
+            rand_imag = i * 1.0;
             x_msg.push_back(make_cuDoubleComplex(rand_real, rand_imag));
         }
         std::cout << "Message vector of X: " << std::endl;
@@ -90,8 +92,10 @@ TEST(CKKS, Encrypt) {
 
         y_msg.reserve(y_size);
         for (size_t i = 0; i < y_size; i++) {
-            rand_real = (double) rand() / RAND_MAX;
-            rand_imag = (double) rand() / RAND_MAX;
+            //rand_real = (double) rand() / RAND_MAX;
+            //rand_imag = (double) rand() / RAND_MAX;
+            rand_real = i * 1.0;
+            rand_imag = i * 1.0;
             y_msg.push_back(make_cuDoubleComplex(rand_real, rand_imag));
         }
         std::cout << "Message vector of Y: " << std::endl;
@@ -113,7 +117,7 @@ TEST(CKKS, Encrypt) {
 
         // Evaluate
         hifive::Evaluator evaluator(context);
-        evaluator.Add(context, x_cipher, x_cipher, y_cipher);
+        evaluator.MultAndRelin(context, x_cipher, x_cipher, y_cipher);
 
         // Decrypt
         std::cout << "Result vector: " << std::endl;
