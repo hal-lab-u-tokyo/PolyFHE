@@ -9,18 +9,17 @@ namespace hifive {
 
 class Evaluator {
 public:
-    Evaluator(PhantomContext &phantom);
+    Evaluator();
     ~Evaluator() = default;
 
     void Add(const PhantomContext &context, PhantomCiphertext &result,
              const PhantomCiphertext &ct0, const PhantomCiphertext &ct1);
-    
-    void MultAndRelin(const PhantomContext &context, PhantomCiphertext &result,
-             const PhantomCiphertext &ct0, const PhantomCiphertext &ct1);
+
+    void Mult(const PhantomContext &context, PhantomCiphertext &result,
+              const PhantomCiphertext &ct0, const PhantomCiphertext &ct1);
 
 private:
     std::unique_ptr<GPUContext> gpu_context_;
-    // std::unique_ptr<PhantomContext> phantom_context_;
 };
 
 } // namespace hifive
