@@ -108,5 +108,13 @@ TEST(CKKS, Encrypt){
         public_key.encrypt_asymmetric(context, x_plain, x_cipher);
         public_key.encrypt_asymmetric(context, y_plain, y_cipher);
         std::cout << "x_cipher size: " << x_cipher.size() << std::endl;
+
+        // Evaluate
+
+        // Decrypt
+        std::cout << "Result vector: " << std::endl;
+        PhantomPlaintext x_plain_result = secret_key.decrypt(context, x_cipher);
+        auto result = encoder.decode<cuDoubleComplex>(context, x_plain_result);
+        print_vector(result, 3, 7);
     }
 }
