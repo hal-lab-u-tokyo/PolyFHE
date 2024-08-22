@@ -12,6 +12,10 @@ __global__ void poly_add(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b,
 }
 namespace hifive {
 
+Evaluator::Evaluator(PhantomContext &phantom) {
+    gpu_context_ = std::make_unique<GPUContext>();
+}
+
 void Evaluator::Add(const PhantomContext &context, PhantomCiphertext &result,
                     const PhantomCiphertext &ct0,
                     const PhantomCiphertext &ct1) {
@@ -42,9 +46,10 @@ void Evaluator::Add(const PhantomContext &context, PhantomCiphertext &result,
     uint64_t *ct0_bx = ct0.data() + rns_coeff_count;
     uint64_t *ct1_ax = ct1.data();
     uint64_t *ct1_bx = ct1.data() + rns_coeff_count;
+    uint64_t max_threads = gpu_context_->max_threads_per_block_;
 
-    dim3 blockSize(1024, 1, 1);
-    dim3 gridSize(poly_degree / 1024, 1, 1);
+    dim3 blockSize(max_threads, 1, 1);
+    dim3 gridSize(poly_degree / max_threads, 1, 1);
     for (int i = 0; i < coeff_modulus_size; i++) {
         uint64_t *ct0_axi = ct0_ax + i * poly_degree;
         uint64_t *ct1_axi = ct1_ax + i * poly_degree;
