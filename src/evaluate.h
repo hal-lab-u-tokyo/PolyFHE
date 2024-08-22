@@ -9,7 +9,7 @@ public:
   Evaluator(PhantomContext &phantom){};
   ~Evaluator() = default;
 
-  void Add(PhantomCiphertext &result, const PhantomCiphertext &op0, const PhantomCiphertext &op1);
+  void Add(const PhantomContext &context, PhantomCiphertext &result, const PhantomCiphertext &ct0, const PhantomCiphertext &ct1);
 };
 
 } // namespace hifive

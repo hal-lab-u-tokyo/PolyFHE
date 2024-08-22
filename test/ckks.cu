@@ -113,7 +113,7 @@ TEST(CKKS, Encrypt){
 
         // Evaluate
         hifive::Evaluator evaluator(context);
-        evaluator.Add(x_cipher, x_cipher, y_cipher);
+        evaluator.Add(context, x_cipher, x_cipher, y_cipher);
 
         // Decrypt
         std::cout << "Result vector: " << std::endl;
