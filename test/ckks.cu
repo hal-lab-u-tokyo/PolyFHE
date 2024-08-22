@@ -5,6 +5,8 @@
 #include "phantom.h"
 #include "example.h"
 
+#include "evaluate.h"
+
 TEST(GPUContextTest, GetGPUInfo) {
     EXPECT_EQ(1, 1);    
 }
@@ -83,7 +85,7 @@ TEST(CKKS, Encrypt){
             rand_imag = (double) rand() / RAND_MAX;
             x_msg.push_back(make_cuDoubleComplex(rand_real, rand_imag));
         }
-        std::cout << "Message vector: " << std::endl;
+        std::cout << "Message vector of X: " << std::endl;
         print_vector(x_msg, 3, 7);
 
         y_msg.reserve(y_size);
@@ -92,7 +94,7 @@ TEST(CKKS, Encrypt){
             rand_imag = (double) rand() / RAND_MAX;
             y_msg.push_back(make_cuDoubleComplex(rand_real, rand_imag));
         }
-        std::cout << "Message vector: " << std::endl;
+        std::cout << "Message vector of Y: " << std::endl;
         print_vector(y_msg, 3, 7);
 
         PhantomPlaintext x_plain;
@@ -110,6 +112,8 @@ TEST(CKKS, Encrypt){
         std::cout << "x_cipher size: " << x_cipher.size() << std::endl;
 
         // Evaluate
+        hifive::Evaluator evaluator(context);
+        evaluator.Add(x_cipher, x_cipher, y_cipher);
 
         // Decrypt
         std::cout << "Result vector: " << std::endl;

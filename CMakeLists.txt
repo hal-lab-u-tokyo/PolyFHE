@@ -12,6 +12,7 @@ set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 # CUDA separable compilation
 set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 
+add_subdirectory(src)
 add_subdirectory(test)
 
 # Phantom
