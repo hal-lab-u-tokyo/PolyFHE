@@ -11,7 +11,8 @@ TEST(GPUContextTest, GetGPUInfo) {
 
 
 TEST(CKKS, Encrypt){
-    std::vector v_alpha = {1, 2, 3, 4, 15};
+    //std::vector v_alpha = {1, 2, 3, 4, 15};
+    std::vector v_alpha = {3};
     for (auto alpha: v_alpha){
         std::cout << "alpha: " << alpha << std::endl;
         phantom::EncryptionParameters parms(phantom::scheme_type::ckks);
@@ -60,6 +61,60 @@ TEST(CKKS, Encrypt){
         }
         PhantomContext context(parms);
         print_parameters(context);
-    }
+        
+        // KeyGen
+        PhantomSecretKey secret_key(context);
+        PhantomPublicKey public_key = secret_key.gen_publickey(context);
+        PhantomRelinKey relin_keys = secret_key.gen_relinkey(context);
 
+        // Encoder
+        PhantomCKKSEncoder encoder(context);
+        size_t slot_count = encoder.slot_count();
+        std::cout << "Number of slots: " << slot_count << std::endl;
+
+        std::vector<cuDoubleComplex> x_msg, y_msg;
+        double rand_real, rand_imag;
+
+        size_t x_size = slot_count;
+        size_t y_size = slot_count;
+        x_msg.reserve(x_size);
+        for (size_t i = 0; i < x_size; i++) {
+            rand_real = (double) rand() / RAND_MAX;
+            rand_imag = (double) rand() / RAND_MAX;
+            x_msg.push_back(make_cuDoubleComplex(rand_real, rand_imag));
+        }
+        std::cout << "Message vector: " << std::endl;
+        print_vector(x_msg, 3, 7);
+
+        y_msg.reserve(y_size);
+        for (size_t i = 0; i < y_size; i++) {
+            rand_real = (double) rand() / RAND_MAX;
+            rand_imag = (double) rand() / RAND_MAX;
+            y_msg.push_back(make_cuDoubleComplex(rand_real, rand_imag));
+        }
+        std::cout << "Message vector: " << std::endl;
+        print_vector(y_msg, 3, 7);
+
+        PhantomPlaintext x_plain;
+        PhantomPlaintext y_plain;
+        PhantomPlaintext xy_plain;
+
+        encoder.encode(context, x_msg, scale, x_plain);
+        encoder.encode(context, y_msg, scale, y_plain);
+
+        // Encrypt
+        PhantomCiphertext x_cipher;
+        PhantomCiphertext y_cipher;
+        public_key.encrypt_asymmetric(context, x_plain, x_cipher);
+        public_key.encrypt_asymmetric(context, y_plain, y_cipher);
+        std::cout << "x_cipher size: " << x_cipher.size() << std::endl;
+
+        // Evaluate
+
+        // Decrypt
+        std::cout << "Result vector: " << std::endl;
+        PhantomPlaintext x_plain_result = secret_key.decrypt(context, x_cipher);
+        auto result = encoder.decode<cuDoubleComplex>(context, x_plain_result);
+        print_vector(result, 3, 7);
+    }
 }
