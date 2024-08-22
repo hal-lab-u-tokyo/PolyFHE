@@ -1,12 +1,3 @@
-add_executable(test_hifive
-    phantom.cu
-)
-
-target_include_directories(test_hifive PUBLIC /usr/local/cuda/include)
-
-target_link_libraries(test_hifive Phantom)
-target_include_directories(test_hifive PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/include)
-
 include(FetchContent)
 FetchContent_Declare(
   googletest
@@ -15,4 +6,12 @@ FetchContent_Declare(
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 enable_testing()
-target_link_libraries(test_hifive GTest::gtest_main)
+
+add_executable(test_ckks
+    ckks.cu
+)
+target_link_libraries(test_ckks GTest::gtest_main)
+target_link_libraries(test_ckks Phantom)
+target_include_directories(test_ckks PUBLIC /usr/local/include)
+target_include_directories(test_ckks PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/include)
+target_include_directories(test_ckks PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/examples)
