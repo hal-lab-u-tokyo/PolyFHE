@@ -17,3 +17,11 @@ target_include_directories(test_ckks PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_include_directories(test_ckks PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/include)
 target_include_directories(test_ckks PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/examples)
 target_include_directories(test_ckks PUBLIC /usr/local/include)
+
+add_executable(ref_phantom
+    phantom.cu
+)
+target_link_libraries(ref_phantom Phantom)
+target_include_directories(ref_phantom PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(ref_phantom PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/include)
+target_include_directories(ref_phantom PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/examples)
