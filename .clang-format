@@ -1,0 +1,27 @@
+# .clang-format
+
+BasedOnStyle: Google
+IndentWidth: 4
+UseTab: Never
+AccessModifierOffset: -4
+ColumnLimit: 80
+
+PointerAlignment: Left
+
+IndentCaseLabels: false
+IndentFunctionDeclarationAfterType: false
+IndentWrappedFunctionNames: false
+
+SpacesBeforeTrailingComments: 1
+SpaceAfterCStyleCast: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+
+BreakBeforeBinaryOperators: None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+SortIncludes: true
+IncludeBlocks: Regroup
+
+MaxEmptyLinesToKeep: 1
