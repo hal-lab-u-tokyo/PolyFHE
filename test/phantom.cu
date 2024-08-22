@@ -77,8 +77,10 @@ int main() {
         size_t y_size = slot_count;
         x_msg.reserve(x_size);
         for (size_t i = 0; i < x_size; i++) {
-            rand_real = (double) rand() / RAND_MAX;
-            rand_imag = (double) rand() / RAND_MAX;
+            // rand_real = (double) rand() / RAND_MAX;
+            // rand_imag = (double) rand() / RAND_MAX;
+            rand_real = i * 1.0;
+            rand_imag = 0.0;
             x_msg.push_back(make_cuDoubleComplex(rand_real, rand_imag));
         }
         std::cout << "Message vector of X: " << std::endl;
@@ -86,8 +88,10 @@ int main() {
 
         y_msg.reserve(y_size);
         for (size_t i = 0; i < y_size; i++) {
-            rand_real = (double) rand() / RAND_MAX;
-            rand_imag = (double) rand() / RAND_MAX;
+            // rand_real = (double) rand() / RAND_MAX;
+            // rand_imag = (double) rand() / RAND_MAX;
+            rand_real = i * 1.0;
+            rand_imag = 0.0;
             y_msg.push_back(make_cuDoubleComplex(rand_real, rand_imag));
         }
         std::cout << "Message vector of Y: " << std::endl;
@@ -108,11 +112,15 @@ int main() {
         std::cout << "x_cipher size: " << x_cipher.size() << std::endl;
 
         // Evaluate
-        phantom::add_inplace(context, x_cipher, y_cipher);
+        PhantomCiphertext xy_cipher =
+            phantom::multiply(context, x_cipher, y_cipher);
+        // phantom::relinearize_inplace(context, xy_cipher, relin_keys);
+        //  phantom::rescale_to_next_inplace(context, xy_cipher);
 
         // Decrypt
         std::cout << "Result vector: " << std::endl;
-        PhantomPlaintext x_plain_result = secret_key.decrypt(context, x_cipher);
+        PhantomPlaintext x_plain_result =
+            secret_key.decrypt(context, xy_cipher);
         auto result = encoder.decode<cuDoubleComplex>(context, x_plain_result);
         print_vector(result, 3, 7);
     }

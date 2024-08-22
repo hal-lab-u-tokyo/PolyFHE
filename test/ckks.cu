@@ -81,8 +81,10 @@ TEST(CKKS, Encrypt) {
         size_t y_size = slot_count;
         x_msg.reserve(x_size);
         for (size_t i = 0; i < x_size; i++) {
-            rand_real = (double) rand() / RAND_MAX;
-            rand_imag = (double) rand() / RAND_MAX;
+            // rand_real = (double) rand() / RAND_MAX;
+            // rand_imag = (double) rand() / RAND_MAX;
+            rand_real = i * 1.0;
+            rand_imag = 0.0;
             x_msg.push_back(make_cuDoubleComplex(rand_real, rand_imag));
         }
         std::cout << "Message vector of X: " << std::endl;
@@ -90,8 +92,10 @@ TEST(CKKS, Encrypt) {
 
         y_msg.reserve(y_size);
         for (size_t i = 0; i < y_size; i++) {
-            rand_real = (double) rand() / RAND_MAX;
-            rand_imag = (double) rand() / RAND_MAX;
+            // rand_real = (double) rand() / RAND_MAX;
+            // rand_imag = (double) rand() / RAND_MAX;
+            rand_real = i * 1.0;
+            rand_imag = 0.0;
             y_msg.push_back(make_cuDoubleComplex(rand_real, rand_imag));
         }
         std::cout << "Message vector of Y: " << std::endl;
@@ -107,13 +111,14 @@ TEST(CKKS, Encrypt) {
         // Encrypt
         PhantomCiphertext x_cipher;
         PhantomCiphertext y_cipher;
+        PhantomCiphertext xy_cipher;
         public_key.encrypt_asymmetric(context, x_plain, x_cipher);
         public_key.encrypt_asymmetric(context, y_plain, y_cipher);
         std::cout << "x_cipher size: " << x_cipher.size() << std::endl;
 
         // Evaluate
-        hifive::Evaluator evaluator(context);
-        evaluator.Add(context, x_cipher, x_cipher, y_cipher);
+        hifive::Evaluator evaluator;
+        evaluator.Mult(context, xy_cipher, x_cipher, y_cipher);
 
         // Decrypt
         std::cout << "Result vector: " << std::endl;
