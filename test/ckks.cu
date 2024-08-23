@@ -117,19 +117,17 @@ TEST(CKKS, Encrypt) {
 
         // Evaluate
         hifive::Evaluator evaluator;
-        //PhantomCiphertext xy_cipher =
-        //    phantom::multiply(context, x_cipher, y_cipher);
-        //phantom::relinearize_inplace(context, xy_cipher, relin_keys);
         PhantomCiphertext xy_cipher;
         evaluator.Mult(context, xy_cipher, x_cipher, y_cipher);
-        evaluator.Relin(context, xy_cipher, relin_keys);
-        phantom::rescale_to_next_inplace(context, xy_cipher);
-       
-        //evaluator.Rescale(context, xy_cipher);
+        // evaluator.Relin(context, xy_cipher, relin_keys);
+        // evaluator.Rescale(context, xy_cipher);
+        // phantom::relinearize_inplace(context, xy_cipher, relin_keys);
+        // phantom::rescale_to_next_inplace(context, xy_cipher);
 
         // Decrypt
         std::cout << "Result vector: " << std::endl;
-        PhantomPlaintext x_plain_result = secret_key.decrypt(context, xy_cipher);
+        PhantomPlaintext x_plain_result =
+            secret_key.decrypt(context, xy_cipher);
         auto result = encoder.decode<cuDoubleComplex>(context, x_plain_result);
         print_vector(result, 3, 7);
     }

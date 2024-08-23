@@ -4,6 +4,8 @@
 #include "evaluate.h"
 #include "polynomial.h"
 
+extern __global__ void tensor_square_2x2_rns_poly();
+
 namespace hifive {
 
 Evaluator::Evaluator() { gpu_context_ = std::make_unique<GPUContext>(); }
@@ -92,15 +94,18 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
     std::cout << "\tct1_size: " << ct1_size << std::endl;
     std::cout << "\tdest_size: " << dest_size << std::endl;
 
-    uint64_t gridDimGlb = poly_degree * coeff_modulus_size / phantom::util::blockDimGlb.x;
-    tensor_prod_2x2_rns_poly<<<gridDimGlb, phantom::util::blockDimGlb, 0, stream>>>(
-                        ct0.data(), ct1.data(), base_rns, result.data(), poly_degree, coeff_modulus_size);
+    uint64_t gridDimGlb =
+        poly_degree * coeff_modulus_size / phantom::util::blockDimGlb.x;
+    tensor_prod_2x2_rns_poly<<<gridDimGlb, phantom::util::blockDimGlb, 0,
+                               stream>>>(ct0.data(), ct1.data(), base_rns,
+                                         result.data(), poly_degree,
+                                         coeff_modulus_size);
 
-    result.set_scale(ct0.scale() * ct1.scale());
     /*
     // d0 = ct0_ax * ct1_ax
     // d2 = ct0_bx * ct1_bx
     // d1 = ct0_ax * ct1_bx + ct0_bx * ct1_ax
+    size_t rns_coeff_count = poly_degree * coeff_modulus_size;
     uint64_t *ct0_ax = ct0.data();
     uint64_t *ct0_bx = ct0.data() + rns_coeff_count;
     uint64_t *ct1_ax = ct1.data();
@@ -129,6 +134,8 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
                                                  base_rns, i);
     }
     */
+
+    result.set_scale(ct0.scale() * ct1.scale());
 }
 
 void Evaluator::Relin(const PhantomContext &context, PhantomCiphertext &ct,
@@ -167,7 +174,8 @@ void Evaluator::Relin(const PhantomContext &context, PhantomCiphertext &ct,
                    phantom::scheme_type::ckks, stream);
 
     // KeySwitch
-    auto cx = phantom::util::make_cuda_auto_ptr<uint64_t>(2 * size_QlP_n, stream);
+    auto cx =
+        phantom::util::make_cuda_auto_ptr<uint64_t>(2 * size_QlP_n, stream);
     auto reduction_threshold =
         (1 << (phantom::arith::bits_per_uint64 -
                static_cast<uint64_t>(log2(key_modulus.front().value())) - 1)) -
