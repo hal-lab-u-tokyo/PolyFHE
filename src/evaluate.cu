@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <iostream>
 
 #include "evaluate.h"
@@ -125,24 +126,38 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
 void Evaluator::Relin(const PhantomContext &context, PhantomCiphertext &ct,
                       const PhantomRelinKey &rk) {
     // Extract encryption parameters.
-    auto &context_data = context.get_context_data(ct.chain_index());
-    auto &parms = context_data.parms();
-    auto base_rns = context.gpu_rns_tables().modulus();
-    size_t coeff_modulus_size = parms.coeff_modulus().size();
-    size_t poly_degree = parms.poly_modulus_degree();
-    auto rns_coeff_count = poly_degree * coeff_modulus_size;
+    const auto s = cudaStreamPerThread;
+    auto &key_context_data = context.get_context_data(0);
+    auto &key_parms = key_context_data.parms();
+    auto scheme = key_parms.scheme();
+    auto n = key_parms.poly_modulus_degree();
+    auto mul_tech = key_parms.mul_tech();
+    auto &key_modulus = key_parms.coeff_modulus();
+    size_t size_P = key_parms.special_modulus_size();
+    size_t size_QP = key_modulus.size();
 
-    if (!ct.is_ntt_form()) {
-        throw std::invalid_argument("input ciphertext is not in NTT form");
-    }
-
+    // HPS and HPSOverQ does not drop modulus
+    uint32_t levelsDropped = ct.chain_index() - 1;
+    phantom::DRNSTool &rns_tool =
+        context.get_context_data(1 + levelsDropped).gpu_rns_tool();
+    auto modulus_QP = context.gpu_rns_tables().modulus();
+    size_t size_Ql = rns_tool.base_Ql().size();
+    size_t size_Q = size_QP - size_P;
+    size_t size_QlP = size_Ql + size_P;
+    auto size_Ql_n = size_Ql * n;
+    auto size_QlP_n = size_QlP * n;
+    std::cout << "\tsize_Ql: " << size_Ql << std::endl;
+    std::cout << "\tsize_Q: " << size_Q << std::endl;
+    std::cout << "\tsize_QlP: " << size_QlP << std::endl;
     uint64_t *d0 = ct.data();
-    uint64_t *d1 = ct.data() + rns_coeff_count;
-    uint64_t *d2 = ct.data() + 2 * rns_coeff_count;
+    uint64_t *d1 = ct.data() + size_Ql_n;
+    uint64_t *d2 = ct.data() + 2 * size_Ql_n;
 
-    // iNTT
-
-    // ModUp
+    // iNTT + ModUp
+    size_t beta = rns_tool.v_base_part_Ql_to_compl_part_QlP_conv().size();
+    auto t_mod_up =
+        phantom::util::make_cuda_auto_ptr<uint64_t>(beta * size_QlP_n, s);
+    ModUp(t_mod_up.get(), d2, context.gpu_rns_tables(), rns_tool);
 
     // NTT
 
@@ -157,6 +172,32 @@ void Evaluator::Relin(const PhantomContext &context, PhantomCiphertext &ct,
     // Add d2 to d0, d1
 
     ct.resize(context, ct.chain_index(), 2, cudaStreamPerThread);
+}
+
+void Evaluator::ModUp(uint64_t *dst, const uint64_t *in,
+                      const DNTTTable &ntt_tables,
+                      phantom::DRNSTool &rns_tool) {
+    const auto stream = cudaStreamPerThread;
+    size_t n = rns_tool.n();
+    size_t size_Ql = rns_tool.base_Ql().size();
+    size_t size_P = rns_tool.size_P();
+    size_t size_QlP = size_Ql + size_P;
+    size_t size_QP = rns_tool.size_QP();
+
+    auto size_Ql_n = size_Ql * n;
+    auto size_QlP_n = size_QlP * n;
+
+    size_t alpha = size_P;
+    size_t beta = rns_tool.v_base_part_Ql_to_compl_part_QlP_conv().size();
+
+    auto t_cks = phantom::util::make_cuda_auto_ptr<uint64_t>(size_Ql_n, stream);
+
+    std::cout << "\t\talpha: " << alpha << std::endl;
+    std::cout << "\t\tbeta: " << beta << std::endl;
+
+    // iNTT
+
+    // ModUp
 }
 
 } // namespace hifive

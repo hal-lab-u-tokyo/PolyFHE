@@ -22,6 +22,9 @@ public:
                const PhantomRelinKey &rk);
 
 private:
+    void ModUp(uint64_t *dst, const uint64_t *in, const DNTTTable &ntt_tables,
+               phantom::DRNSTool &rns_tool);
+
     std::unique_ptr<GPUContext> gpu_context_;
 };
 
