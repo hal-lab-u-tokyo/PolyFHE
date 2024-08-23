@@ -119,8 +119,8 @@ TEST(CKKS, Encrypt) {
         hifive::Evaluator evaluator;
         PhantomCiphertext xy_cipher;
         evaluator.Mult(context, xy_cipher, x_cipher, y_cipher);
-        // evaluator.Relin(context, xy_cipher, relin_keys);
-        // evaluator.Rescale(context, xy_cipher);
+        evaluator.Relin(context, xy_cipher, relin_keys);
+        evaluator.Rescale(context, xy_cipher);
         // phantom::relinearize_inplace(context, xy_cipher, relin_keys);
         // phantom::rescale_to_next_inplace(context, xy_cipher);
 
