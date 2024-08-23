@@ -120,10 +120,11 @@ TEST(CKKS, Encrypt) {
         hifive::Evaluator evaluator;
         evaluator.Mult(context, xy_cipher, x_cipher, y_cipher);
         evaluator.Relin(context, xy_cipher, relin_keys);
+        evaluator.Rescale(context, xy_cipher);
 
         // Decrypt
         std::cout << "Result vector: " << std::endl;
-        PhantomPlaintext x_plain_result = secret_key.decrypt(context, x_cipher);
+        PhantomPlaintext x_plain_result = secret_key.decrypt(context, xy_cipher);
         auto result = encoder.decode<cuDoubleComplex>(context, x_plain_result);
         print_vector(result, 3, 7);
     }

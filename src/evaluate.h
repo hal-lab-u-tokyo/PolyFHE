@@ -21,6 +21,8 @@ public:
     void Relin(const PhantomContext &context, PhantomCiphertext &ct,
                const PhantomRelinKey &rk);
 
+    void Rescale(const PhantomContext &context, PhantomCiphertext &ct);
+
 private:
     void ModUp(uint64_t *dst, const uint64_t *in, const DNTTTable &ntt_tables,
                phantom::DRNSTool &rns_tool);

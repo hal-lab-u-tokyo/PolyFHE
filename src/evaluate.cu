@@ -124,7 +124,7 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
 }
 
 void Evaluator::Relin(const PhantomContext &context, PhantomCiphertext &ct,
-                      const PhantomRelinKey &rk) {
+                      const PhantomRelinKey &relin_keys) {
     // Extract encryption parameters.
     const auto s = cudaStreamPerThread;
     auto &key_context_data = context.get_context_data(0);
@@ -153,51 +153,81 @@ void Evaluator::Relin(const PhantomContext &context, PhantomCiphertext &ct,
     uint64_t *d1 = ct.data() + size_Ql_n;
     uint64_t *d2 = ct.data() + 2 * size_Ql_n;
 
-    // iNTT + ModUp
+    // iNTT + ModUp + NTT
     size_t beta = rns_tool.v_base_part_Ql_to_compl_part_QlP_conv().size();
     auto t_mod_up =
         phantom::util::make_cuda_auto_ptr<uint64_t>(beta * size_QlP_n, s);
-    ModUp(t_mod_up.get(), d2, context.gpu_rns_tables(), rns_tool);
-
-    // NTT
+    rns_tool.modup(t_mod_up.get(), d2, context.gpu_rns_tables(),
+                   phantom::scheme_type::ckks, s);
 
     // KeySwitch
+    auto cx = phantom::util::make_cuda_auto_ptr<uint64_t>(2 * size_QlP_n, s);
+    auto reduction_threshold =
+        (1 << (phantom::arith::bits_per_uint64 -
+               static_cast<uint64_t>(log2(key_modulus.front().value())) - 1)) -
+        1;
+    key_switch_inner_prod(cx.get(), t_mod_up.get(),
+                          relin_keys.public_keys_ptr(), rns_tool, modulus_QP,
+                          reduction_threshold, s);
 
-    // iNTT
-
-    // ModDown
-
-    // NTT
+    // iNTT + ModDown + NTT
+    for (size_t i = 0; i < 2; i++) {
+        auto cx_i = cx.get() + i * size_QlP_n;
+        rns_tool.moddown_from_NTT(cx_i, cx_i, context.gpu_rns_tables(),
+                                  phantom::scheme_type::ckks, s);
+    }
 
     // Add d2 to d0, d1
+    for (size_t i = 0; i < 2; i++) {
+        auto cx_i = cx.get() + i * size_QlP_n;
+
+        auto ct_i = ct.data() + i * size_Ql_n;
+        add_to_ct_kernel<<<size_Ql_n / phantom::util::blockDimGlb.x,
+                           phantom::util::blockDimGlb, 0, s>>>(
+            ct_i, cx_i, rns_tool.base_Ql().base(), n, size_Ql);
+    }
 
     ct.resize(context, ct.chain_index(), 2, cudaStreamPerThread);
 }
 
-void Evaluator::ModUp(uint64_t *dst, const uint64_t *in,
-                      const DNTTTable &ntt_tables,
-                      phantom::DRNSTool &rns_tool) {
-    const auto stream = cudaStreamPerThread;
-    size_t n = rns_tool.n();
-    size_t size_Ql = rns_tool.base_Ql().size();
-    size_t size_P = rns_tool.size_P();
-    size_t size_QlP = size_Ql + size_P;
-    size_t size_QP = rns_tool.size_QP();
+void Evaluator::Rescale(const PhantomContext &context, PhantomCiphertext &ct) {
+    const auto &stream = cudaStreamPerThread;
 
-    auto size_Ql_n = size_Ql * n;
-    auto size_QlP_n = size_QlP * n;
+    auto &context_data = context.get_context_data(context.get_first_index());
+    auto &parms = context_data.parms();
+    auto max_chain_index = parms.coeff_modulus().size();
 
-    size_t alpha = size_P;
-    size_t beta = rns_tool.v_base_part_Ql_to_compl_part_QlP_conv().size();
+    // Verify parameters.
+    if (ct.chain_index() == max_chain_index) {
+        throw std::invalid_argument("end of modulus switching chain reached");
+    }
 
-    auto t_cks = phantom::util::make_cuda_auto_ptr<uint64_t>(size_Ql_n, stream);
+    // Modulus switching with scaling
+    auto &rns_tool = context_data.gpu_rns_tool();
+    size_t coeff_mod_size = parms.coeff_modulus().size();
+    size_t poly_degree = parms.poly_modulus_degree();
+    size_t encrypted_size = ct.size();
 
-    std::cout << "\t\talpha: " << alpha << std::endl;
-    std::cout << "\t\tbeta: " << beta << std::endl;
+    auto next_index_id = context.get_next_index(ct.chain_index());
+    auto &next_context_data = context.get_context_data(next_index_id);
+    auto &next_parms = next_context_data.parms();
 
-    // iNTT
+    auto ct_copy = phantom::util::make_cuda_auto_ptr<uint64_t>(
+        encrypted_size * coeff_mod_size * poly_degree, stream);
+    cudaMemcpyAsync(
+        ct_copy.get(), ct.data(),
+        encrypted_size * coeff_mod_size * poly_degree * sizeof(uint64_t),
+        cudaMemcpyDeviceToDevice, stream);
 
-    // ModUp
+    // resize and empty the data array
+    ct.resize(context, next_index_id, encrypted_size, stream);
+
+    rns_tool.divide_and_round_q_last_ntt(ct_copy.get(), encrypted_size,
+                                         context.gpu_rns_tables(), ct.data(),
+                                         stream);
+
+    ct.set_ntt_form(ct.is_ntt_form());
+    ct.set_scale(ct.scale() /
+                 static_cast<double>(parms.coeff_modulus().back().value()));
 }
-
 } // namespace hifive
