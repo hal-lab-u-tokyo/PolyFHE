@@ -94,14 +94,15 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
     std::cout << "\tct1_size: " << ct1_size << std::endl;
     std::cout << "\tdest_size: " << dest_size << std::endl;
 
+    /*
     uint64_t gridDimGlb =
         poly_degree * coeff_modulus_size / phantom::util::blockDimGlb.x;
     tensor_prod_2x2_rns_poly<<<gridDimGlb, phantom::util::blockDimGlb, 0,
                                stream>>>(ct0.data(), ct1.data(), base_rns,
                                          result.data(), poly_degree,
                                          coeff_modulus_size);
+    */
 
-    /*
     // d0 = ct0_ax * ct1_ax
     // d2 = ct0_bx * ct1_bx
     // d1 = ct0_ax * ct1_bx + ct0_bx * ct1_ax
@@ -133,7 +134,6 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
         poly_mult_accum<<<blockSize, gridSize>>>(result_d1i, ct0_bxi, ct1_axi,
                                                  base_rns, i);
     }
-    */
 
     result.set_scale(ct0.scale() * ct1.scale());
 }
