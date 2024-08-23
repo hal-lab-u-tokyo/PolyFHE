@@ -1,42 +1,8 @@
 #include <iostream>
 
 #include "evaluate.h"
+#include "polynomial.h"
 
-__global__ void poly_add(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b,
-                         DModulus *modulus, int limb) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    uint64_t v0 = d_a[idx];
-    uint64_t v1 = d_b[idx];
-    uint64_t mod = modulus[limb].value();
-    d_out[idx] = (v0 + v1) > mod ? (v0 + v1 - mod) : (v0 + v1);
-}
-
-__global__ void poly_mult(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b,
-                          DModulus *modulus, int limb) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    uint64_t v0 = d_a[idx];
-    uint64_t v1 = d_b[idx];
-    uint64_t mod = modulus[limb].value();
-    d_out[idx] = (v0 * v1) % mod;
-    if (idx == 0 && limb == 0) {
-        printf("v0: %lu, v1: %lu, mod: %lu, d_out: %lu\n", v0, v1, mod,
-               d_out[idx]);
-    }
-}
-
-__global__ void poly_mult_accum(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b,
-                                DModulus *modulus, int limb) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    uint64_t v0 = d_a[idx];
-    uint64_t v1 = d_b[idx];
-    uint64_t mod = modulus[limb].value();
-    d_out[idx] += ((v0 * v1) % mod);
-    d_out[idx] %= mod;
-    if (idx == 0 && limb == 0) {
-        printf("v0: %lu, v1: %lu, mod: %lu, d_out: %lu\n", v0, v1, mod,
-               d_out[idx]);
-    }
-}
 namespace hifive {
 
 Evaluator::Evaluator() { gpu_context_ = std::make_unique<GPUContext>(); }
@@ -154,6 +120,43 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
                                                  base_rns, i);
     }
     result.set_scale(ct0.scale() * ct1.scale());
+}
+
+void Evaluator::Relin(const PhantomContext &context, PhantomCiphertext &ct,
+                      const PhantomRelinKey &rk) {
+    // Extract encryption parameters.
+    auto &context_data = context.get_context_data(ct.chain_index());
+    auto &parms = context_data.parms();
+    auto base_rns = context.gpu_rns_tables().modulus();
+    size_t coeff_modulus_size = parms.coeff_modulus().size();
+    size_t poly_degree = parms.poly_modulus_degree();
+    auto rns_coeff_count = poly_degree * coeff_modulus_size;
+
+    if (!ct.is_ntt_form()) {
+        throw std::invalid_argument("input ciphertext is not in NTT form");
+    }
+
+    uint64_t *d0 = ct.data();
+    uint64_t *d1 = ct.data() + rns_coeff_count;
+    uint64_t *d2 = ct.data() + 2 * rns_coeff_count;
+
+    // iNTT
+
+    // ModUp
+
+    // NTT
+
+    // KeySwitch
+
+    // iNTT
+
+    // ModDown
+
+    // NTT
+
+    // Add d2 to d0, d1
+
+    ct.resize(context, ct.chain_index(), 2, cudaStreamPerThread);
 }
 
 } // namespace hifive

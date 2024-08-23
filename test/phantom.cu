@@ -114,7 +114,7 @@ int main() {
         // Evaluate
         PhantomCiphertext xy_cipher =
             phantom::multiply(context, x_cipher, y_cipher);
-        // phantom::relinearize_inplace(context, xy_cipher, relin_keys);
+        phantom::relinearize_inplace(context, xy_cipher, relin_keys);
         //  phantom::rescale_to_next_inplace(context, xy_cipher);
 
         // Decrypt

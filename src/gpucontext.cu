@@ -1,10 +1,6 @@
-#include <cuda.h>
-#include <cuda_runtime.h>
-
 #include <iostream>
 
 #include "gpucontext.h"
-
 namespace hifive {
 
 GPUContext::GPUContext() {

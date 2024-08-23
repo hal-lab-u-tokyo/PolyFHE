@@ -119,6 +119,7 @@ TEST(CKKS, Encrypt) {
         // Evaluate
         hifive::Evaluator evaluator;
         evaluator.Mult(context, xy_cipher, x_cipher, y_cipher);
+        evaluator.Relin(context, xy_cipher, relin_keys);
 
         // Decrypt
         std::cout << "Result vector: " << std::endl;
