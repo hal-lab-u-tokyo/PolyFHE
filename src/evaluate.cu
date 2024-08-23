@@ -1,42 +1,11 @@
+#include <cstdint>
 #include <iostream>
 
 #include "evaluate.h"
+#include "polynomial.h"
 
-__global__ void poly_add(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b,
-                         DModulus *modulus, int limb) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    uint64_t v0 = d_a[idx];
-    uint64_t v1 = d_b[idx];
-    uint64_t mod = modulus[limb].value();
-    d_out[idx] = (v0 + v1) > mod ? (v0 + v1 - mod) : (v0 + v1);
-}
+extern __global__ void tensor_square_2x2_rns_poly();
 
-__global__ void poly_mult(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b,
-                          DModulus *modulus, int limb) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    uint64_t v0 = d_a[idx];
-    uint64_t v1 = d_b[idx];
-    uint64_t mod = modulus[limb].value();
-    d_out[idx] = (v0 * v1) % mod;
-    if (idx == 0 && limb == 0) {
-        printf("v0: %lu, v1: %lu, mod: %lu, d_out: %lu\n", v0, v1, mod,
-               d_out[idx]);
-    }
-}
-
-__global__ void poly_mult_accum(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b,
-                                DModulus *modulus, int limb) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    uint64_t v0 = d_a[idx];
-    uint64_t v1 = d_b[idx];
-    uint64_t mod = modulus[limb].value();
-    d_out[idx] += ((v0 * v1) % mod);
-    d_out[idx] %= mod;
-    if (idx == 0 && limb == 0) {
-        printf("v0: %lu, v1: %lu, mod: %lu, d_out: %lu\n", v0, v1, mod,
-               d_out[idx]);
-    }
-}
 namespace hifive {
 
 Evaluator::Evaluator() { gpu_context_ = std::make_unique<GPUContext>(); }
@@ -94,6 +63,7 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
                      const PhantomCiphertext &ct1) {
     // TODO: Support the case `result` = (`ct0` or `ct1`)
     // Currently, we override `result`
+    const auto &stream = cudaStreamPerThread;
     if (ct0.parms_id() != ct1.parms_id()) {
         throw std::invalid_argument("ct0 and ct1 parameter mismatch");
     }
@@ -109,7 +79,6 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
     if (ct0.size() != ct1.size()) {
         throw std::invalid_argument("poly number mismatch");
     }
-
     // Extract encryption parameters.
     auto &context_data = context.get_context_data(ct0.chain_index());
     auto &parms = context_data.parms();
@@ -118,14 +87,25 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
     size_t poly_degree = parms.poly_modulus_degree();
     uint32_t ct0_size = ct0.size();
     uint32_t ct1_size = ct1.size();
-    auto rns_coeff_count = poly_degree * coeff_modulus_size;
 
     uint32_t dest_size = ct0_size + ct1_size - 1;
-    result.resize(context, ct0.chain_index(), dest_size, cudaStreamPerThread);
+    result.resize(context, ct0.chain_index(), dest_size, stream);
+    std::cout << "\tct0_size: " << ct0_size << std::endl;
+    std::cout << "\tct1_size: " << ct1_size << std::endl;
+    std::cout << "\tdest_size: " << dest_size << std::endl;
 
+    uint64_t gridDimGlb =
+        poly_degree * coeff_modulus_size / phantom::util::blockDimGlb.x;
+    tensor_prod_2x2_rns_poly<<<gridDimGlb, phantom::util::blockDimGlb, 0,
+                               stream>>>(ct0.data(), ct1.data(), base_rns,
+                                         result.data(), poly_degree,
+                                         coeff_modulus_size);
+
+    /*
     // d0 = ct0_ax * ct1_ax
     // d2 = ct0_bx * ct1_bx
     // d1 = ct0_ax * ct1_bx + ct0_bx * ct1_ax
+    size_t rns_coeff_count = poly_degree * coeff_modulus_size;
     uint64_t *ct0_ax = ct0.data();
     uint64_t *ct0_bx = ct0.data() + rns_coeff_count;
     uint64_t *ct1_ax = ct1.data();
@@ -153,7 +133,115 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
         poly_mult_accum<<<blockSize, gridSize>>>(result_d1i, ct0_bxi, ct1_axi,
                                                  base_rns, i);
     }
+    */
+
     result.set_scale(ct0.scale() * ct1.scale());
 }
 
+void Evaluator::Relin(const PhantomContext &context, PhantomCiphertext &ct,
+                      const PhantomRelinKey &relin_keys) {
+    // Extract encryption parameters.
+    const auto &stream = cudaStreamPerThread;
+    auto &key_context_data = context.get_context_data(0);
+    auto &key_parms = key_context_data.parms();
+    auto scheme = key_parms.scheme();
+    auto n = key_parms.poly_modulus_degree();
+    auto mul_tech = key_parms.mul_tech();
+    auto &key_modulus = key_parms.coeff_modulus();
+    size_t size_P = key_parms.special_modulus_size();
+    size_t size_QP = key_modulus.size();
+
+    // HPS and HPSOverQ does not drop modulus
+    uint32_t levelsDropped = ct.chain_index() - 1;
+    phantom::DRNSTool &rns_tool =
+        context.get_context_data(1 + levelsDropped).gpu_rns_tool();
+    auto modulus_QP = context.gpu_rns_tables().modulus();
+    size_t size_Ql = rns_tool.base_Ql().size();
+    size_t size_Q = size_QP - size_P;
+    size_t size_QlP = size_Ql + size_P;
+    auto size_Ql_n = size_Ql * n;
+    auto size_QlP_n = size_QlP * n;
+    std::cout << "\tsize_Ql: " << size_Ql << std::endl;
+    std::cout << "\tsize_Q: " << size_Q << std::endl;
+    std::cout << "\tsize_QlP: " << size_QlP << std::endl;
+    uint64_t *d2 = ct.data() + 2 * size_Ql_n;
+
+    // iNTT + ModUp + NTT
+    size_t beta = rns_tool.v_base_part_Ql_to_compl_part_QlP_conv().size();
+    auto t_mod_up =
+        phantom::util::make_cuda_auto_ptr<uint64_t>(beta * size_QlP_n, stream);
+    rns_tool.modup(t_mod_up.get(), d2, context.gpu_rns_tables(),
+                   phantom::scheme_type::ckks, stream);
+
+    // KeySwitch
+    auto cx =
+        phantom::util::make_cuda_auto_ptr<uint64_t>(2 * size_QlP_n, stream);
+    auto reduction_threshold =
+        (1 << (phantom::arith::bits_per_uint64 -
+               static_cast<uint64_t>(log2(key_modulus.front().value())) - 1)) -
+        1;
+    key_switch_inner_prod(cx.get(), t_mod_up.get(),
+                          relin_keys.public_keys_ptr(), rns_tool, modulus_QP,
+                          reduction_threshold, stream);
+
+    // iNTT + ModDown + NTT
+    for (size_t i = 0; i < 2; i++) {
+        auto cx_i = cx.get() + i * size_QlP_n;
+        rns_tool.moddown_from_NTT(cx_i, cx_i, context.gpu_rns_tables(),
+                                  phantom::scheme_type::ckks, stream);
+    }
+
+    // Add d2 to d0, d1
+    for (size_t i = 0; i < 2; i++) {
+        auto cx_i = cx.get() + i * size_QlP_n;
+
+        auto ct_i = ct.data() + i * size_Ql_n;
+        add_to_ct_kernel<<<size_Ql_n / phantom::util::blockDimGlb.x,
+                           phantom::util::blockDimGlb, 0, stream>>>(
+            ct_i, cx_i, rns_tool.base_Ql().base(), n, size_Ql);
+    }
+
+    ct.resize(context, ct.chain_index(), 2, stream);
+}
+
+void Evaluator::Rescale(const PhantomContext &context, PhantomCiphertext &ct) {
+    const auto &stream = cudaStreamPerThread;
+
+    auto &context_data = context.get_context_data(context.get_first_index());
+    auto &parms = context_data.parms();
+    auto max_chain_index = parms.coeff_modulus().size();
+
+    // Verify parameters.
+    if (ct.chain_index() == max_chain_index) {
+        throw std::invalid_argument("end of modulus switching chain reached");
+    }
+
+    // Modulus switching with scaling
+    auto &rns_tool = context_data.gpu_rns_tool();
+    size_t coeff_mod_size = parms.coeff_modulus().size();
+    size_t poly_degree = parms.poly_modulus_degree();
+    size_t encrypted_size = ct.size();
+
+    auto next_index_id = context.get_next_index(ct.chain_index());
+    auto &next_context_data = context.get_context_data(next_index_id);
+    auto &next_parms = next_context_data.parms();
+
+    auto ct_copy = phantom::util::make_cuda_auto_ptr<uint64_t>(
+        encrypted_size * coeff_mod_size * poly_degree, stream);
+    cudaMemcpyAsync(
+        ct_copy.get(), ct.data(),
+        encrypted_size * coeff_mod_size * poly_degree * sizeof(uint64_t),
+        cudaMemcpyDeviceToDevice, stream);
+
+    // resize and empty the data array
+    ct.resize(context, next_index_id, encrypted_size, stream);
+
+    rns_tool.divide_and_round_q_last_ntt(ct_copy.get(), encrypted_size,
+                                         context.gpu_rns_tables(), ct.data(),
+                                         stream);
+
+    ct.set_ntt_form(ct.is_ntt_form());
+    ct.set_scale(ct.scale() /
+                 static_cast<double>(parms.coeff_modulus().back().value()));
+}
 } // namespace hifive

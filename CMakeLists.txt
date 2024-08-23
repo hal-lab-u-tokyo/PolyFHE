@@ -16,7 +16,7 @@ add_subdirectory(src)
 add_subdirectory(test)
 
 # Phantom
-add_library(Phantom SHARED
+add_library(Phantom STATIC
         ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/src/context.cu
         ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/src/batchencoder.cu
         ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/src/prng.cu

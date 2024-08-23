@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 namespace hifive {
 
 class GPUContext {

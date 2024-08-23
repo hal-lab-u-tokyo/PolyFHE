@@ -111,18 +111,23 @@ TEST(CKKS, Encrypt) {
         // Encrypt
         PhantomCiphertext x_cipher;
         PhantomCiphertext y_cipher;
-        PhantomCiphertext xy_cipher;
         public_key.encrypt_asymmetric(context, x_plain, x_cipher);
         public_key.encrypt_asymmetric(context, y_plain, y_cipher);
         std::cout << "x_cipher size: " << x_cipher.size() << std::endl;
 
         // Evaluate
         hifive::Evaluator evaluator;
+        PhantomCiphertext xy_cipher;
         evaluator.Mult(context, xy_cipher, x_cipher, y_cipher);
+        evaluator.Relin(context, xy_cipher, relin_keys);
+        evaluator.Rescale(context, xy_cipher);
+        // phantom::relinearize_inplace(context, xy_cipher, relin_keys);
+        // phantom::rescale_to_next_inplace(context, xy_cipher);
 
         // Decrypt
         std::cout << "Result vector: " << std::endl;
-        PhantomPlaintext x_plain_result = secret_key.decrypt(context, x_cipher);
+        PhantomPlaintext x_plain_result =
+            secret_key.decrypt(context, xy_cipher);
         auto result = encoder.decode<cuDoubleComplex>(context, x_plain_result);
         print_vector(result, 3, 7);
     }
