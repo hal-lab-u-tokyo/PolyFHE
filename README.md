@@ -13,7 +13,7 @@ cmake --build build -j $(nproc)
 ## TODO
 - [x] Prepare Params
 - [x] En/Decrypt
-- [ ] Prepare DeviceVector
+- [x] Prepare DeviceVector
 - [ ] Impl HAdd
 - [ ] Impl NTT
 - [ ] Impl HMul

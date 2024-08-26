@@ -1,7 +1,20 @@
 #include <iostream>
 
-#include "gpucontext.h"
+#include "gpu_utils.h"
+
 namespace hifive {
+
+void __checkCudaErrors(cudaError_t err, const char *filename, int line) {
+    assert(filename);
+    if (cudaSuccess != err) {
+        const char *ename = cudaGetErrorName(err);
+        printf(
+            "CUDA API Error %04d: \"%s\" from file <%s>, "
+            "line %i.\n",
+            err, ((ename != NULL) ? ename : "Unknown"), filename, line);
+        exit(err);
+    }
+}
 
 GPUContext::GPUContext() {
     cudaFree(0);

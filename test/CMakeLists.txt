@@ -10,7 +10,7 @@ enable_testing()
 add_executable(test_ckks
     cuckks.cu
     cuckks-phantom.cu
-    gpucontext.cu
+    gpu_utils.cu
     phantom.cu
 )
 target_link_libraries(test_ckks HiFive)
