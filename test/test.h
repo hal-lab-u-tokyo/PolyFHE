@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
@@ -8,9 +9,11 @@
 #include "evaluate.h"
 #include "gpu_utils.h"
 #include "polynomial.h"
-using namespace hifive;
 
 // SEAL
 #include "seal/seal.h"
+
+// Phantom
+#include "phantom.h"
 
 __global__ void check_can_access(uint64_t *data, uint64_t idx);

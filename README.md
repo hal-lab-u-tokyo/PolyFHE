@@ -31,3 +31,6 @@ cmake --build build -j $(nproc)
 ```
 compute-sanitizer --tool memcheck ./build/test/test_ckks --gtest_filter="*GPU*"
 ```
+
+## License
+This software containes the modified code from [Phantom](https://github.com/encryptorion-lab/phantom-fhe), which is released under GPLv3 License.

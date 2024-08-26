@@ -7,10 +7,10 @@
 #include <cstdint>
 #include <iostream>
 
-namespace hifive {
-
 void __checkCudaErrors(cudaError_t err, const char *filename, int line);
 #define checkCudaErrors(err) __checkCudaErrors(err, __FILE__, __LINE__)
+
+namespace hifive {
 
 class GPUContext {
 public:
