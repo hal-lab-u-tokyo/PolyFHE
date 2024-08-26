@@ -4,6 +4,8 @@
 #include <cuda_runtime.h>
 
 #include <cassert>
+#include <cstdint>
+#include <iostream>
 
 namespace hifive {
 
@@ -19,34 +21,40 @@ public:
     int max_threads_per_block_;
 };
 
-template <typename T>
 class gpu_ptr {
 public:
-    gpu_ptr(T *d_ptr, uint64_t size) : d_ptr_(d_ptr), n_(size) {}
-    ~gpu_ptr() { cudaFree(d_ptr_); }
+    gpu_ptr() = default;
+    explicit gpu_ptr(uint64_t *d_ptr, uint64_t size)
+        : d_ptr_(d_ptr), n_(size) {}
+    ~gpu_ptr() = default;
 
-    T *get() const { return d_ptr_; }
+    // copy operator
+    gpu_ptr &operator=(const gpu_ptr &other) {
+        n_ = other.n_;
+        d_ptr_ = other.d_ptr_;
+        return *this;
+    }
+
+    // copy constructor
+    gpu_ptr(const gpu_ptr &obj) {
+        this->n_ = obj.n_;
+        this->d_ptr_ = obj.d_ptr_;
+    }
+
+    void copy_to_cpu(uint64_t *dst, uint64_t size) const {
+        assert(size <= size_);
+        checkCudaErrors(cudaMemcpy(dst, d_ptr_, size * sizeof(uint64_t),
+                                   cudaMemcpyDeviceToHost));
+    }
+
+    uint64_t *get() const { return d_ptr_; }
     uint64_t size() const { return n_; }
 
 private:
-    T *d_ptr_ = nullptr;
+    uint64_t *d_ptr_ = nullptr;
     uint64_t n_ = 0;
 };
 
-template <typename T>
-gpu_ptr<T> make_and_copy_gpu_ptr(T *src, uint64_t size) {
-    T *d_ptr;
-    checkCudaErrors(cudaMalloc(&d_ptr, size * sizeof(T)));
-    checkCudaErrors(
-        cudaMemcpy(d_ptr, src, size * sizeof(T), cudaMemcpyHostToDevice));
-    return gpu_ptr<T>(d_ptr, size);
-}
-
-template <typename T>
-gpu_ptr<T> make_gpu_ptr(uint64_t size) {
-    T *d_ptr;
-    checkCudaErrors(cudaMalloc(&d_ptr, size * sizeof(T)));
-    return gpu_ptr<T>(d_ptr, size);
-}
-
+gpu_ptr make_and_copy_gpu_ptr(uint64_t *src, uint64_t size);
+gpu_ptr make_gpu_ptr(uint64_t size);
 } // namespace hifive

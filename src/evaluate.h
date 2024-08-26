@@ -2,10 +2,19 @@
 
 #include <memory>
 
+#include "ciphertext.h"
 #include "gpu_utils.h"
+
+// Phantom
 #include "phantom.h"
 
+// SEAL
+#include "seal/seal.h"
+
 namespace hifive {
+
+void HAdd(const seal::SEALContext &context, Ciphertext &result,
+          const Ciphertext &ct0, const Ciphertext &ct1, const gpu_ptr &modulus);
 
 class Evaluator {
 public:

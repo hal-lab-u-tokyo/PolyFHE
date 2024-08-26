@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "gpu_utils.h"
-
 namespace hifive {
 
 void __checkCudaErrors(cudaError_t err, const char *filename, int line) {
@@ -69,6 +68,20 @@ void GPUContext::GetGPUInfo(bool verbose) {
         }
         max_threads_per_block_ = deviceProp.maxThreadsPerBlock;
     }
+}
+
+gpu_ptr make_and_copy_gpu_ptr(uint64_t *src, uint64_t size) {
+    uint64_t *d_ptr;
+    checkCudaErrors(cudaMalloc(&d_ptr, size * sizeof(uint64_t)));
+    checkCudaErrors(cudaMemcpy(d_ptr, src, size * sizeof(uint64_t),
+                               cudaMemcpyHostToDevice));
+    return gpu_ptr(d_ptr, size);
+}
+
+gpu_ptr make_gpu_ptr(uint64_t size) {
+    uint64_t *d_ptr;
+    checkCudaErrors(cudaMalloc(&d_ptr, size * sizeof(uint64_t)));
+    return gpu_ptr(d_ptr, size);
 }
 
 } // namespace hifive
