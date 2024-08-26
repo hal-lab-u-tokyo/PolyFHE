@@ -14,7 +14,9 @@ cmake --build build -j $(nproc)
 - [x] Prepare Params
 - [x] En/Decrypt
 - [x] Prepare DeviceVector
-- [ ] Impl HAdd
+- [x] Impl HAdd
+- [ ] Design how to fuse kernels
+- [ ] Prepare Precomputed Values
 - [ ] Impl NTT
 - [ ] Impl HMul
 - [ ] Understand Key-Decomposed ModUp
