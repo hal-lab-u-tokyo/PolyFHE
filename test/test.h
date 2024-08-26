@@ -8,10 +8,12 @@
 #include "ciphertext.h"
 #include "evaluate.h"
 #include "gpu_utils.h"
-#include "ntt.h"
 #include "polynomial.h"
 
 // SEAL
 #include "seal/seal.h"
+
+// Phantom
+#include "phantom.h"
 
 __global__ void check_can_access(uint64_t *data, uint64_t idx);

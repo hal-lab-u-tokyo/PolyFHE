@@ -2,7 +2,6 @@ add_library(HiFive
     ciphertext.cu
     evaluate.cu
     gpu_utils.cu
-    ntt.cu
     polynomial.cu
 )
 target_link_libraries(HiFive Phantom)
