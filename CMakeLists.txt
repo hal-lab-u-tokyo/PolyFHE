@@ -15,6 +15,9 @@ set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
 add_subdirectory(src)
 add_subdirectory(test)
 
+# SEAL
+add_subdirectory(thirdparty/SEAL)
+
 # Phantom
 add_library(Phantom STATIC
         ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/src/context.cu
