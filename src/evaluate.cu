@@ -90,18 +90,10 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
 
     uint32_t dest_size = ct0_size + ct1_size - 1;
     result.resize(context, ct0.chain_index(), dest_size, stream);
-    std::cout << "\tct0_size: " << ct0_size << std::endl;
-    std::cout << "\tct1_size: " << ct1_size << std::endl;
-    std::cout << "\tdest_size: " << dest_size << std::endl;
+    // std::cout << "\tct0_size: " << ct0_size << std::endl;
+    // std::cout << "\tct1_size: " << ct1_size << std::endl;
+    // std::cout << "\tdest_size: " << dest_size << std::endl;
 
-    uint64_t gridDimGlb =
-        poly_degree * coeff_modulus_size / phantom::util::blockDimGlb.x;
-    tensor_prod_2x2_rns_poly<<<gridDimGlb, phantom::util::blockDimGlb, 0,
-                               stream>>>(ct0.data(), ct1.data(), base_rns,
-                                         result.data(), poly_degree,
-                                         coeff_modulus_size);
-
-    /*
     // d0 = ct0_ax * ct1_ax
     // d2 = ct0_bx * ct1_bx
     // d1 = ct0_ax * ct1_bx + ct0_bx * ct1_ax
@@ -133,7 +125,6 @@ void Evaluator::Mult(const PhantomContext &context, PhantomCiphertext &result,
         poly_mult_accum<<<blockSize, gridSize>>>(result_d1i, ct0_bxi, ct1_axi,
                                                  base_rns, i);
     }
-    */
 
     result.set_scale(ct0.scale() * ct1.scale());
 }
@@ -156,14 +147,15 @@ void Evaluator::Relin(const PhantomContext &context, PhantomCiphertext &ct,
     phantom::DRNSTool &rns_tool =
         context.get_context_data(1 + levelsDropped).gpu_rns_tool();
     auto modulus_QP = context.gpu_rns_tables().modulus();
-    size_t size_Ql = rns_tool.base_Ql().size();
-    size_t size_Q = size_QP - size_P;
-    size_t size_QlP = size_Ql + size_P;
-    auto size_Ql_n = size_Ql * n;
-    auto size_QlP_n = size_QlP * n;
-    std::cout << "\tsize_Ql: " << size_Ql << std::endl;
-    std::cout << "\tsize_Q: " << size_Q << std::endl;
-    std::cout << "\tsize_QlP: " << size_QlP << std::endl;
+    const size_t size_Ql = rns_tool.base_Ql().size();
+    const size_t size_Q = size_QP - size_P;
+    const size_t size_QlP = size_Ql + size_P;
+    const auto size_Ql_n = size_Ql * n;
+    const auto size_QlP_n = size_QlP * n;
+    const auto size_QP_n = size_QP * n;
+    // std::cout << "\tsize_Ql: " << size_Ql << std::endl;
+    // std::cout << "\tsize_Q: " << size_Q << std::endl;
+    // std::cout << "\tsize_QlP: " << size_QlP << std::endl;
     uint64_t *d2 = ct.data() + 2 * size_Ql_n;
 
     // iNTT + ModUp + NTT
@@ -180,9 +172,11 @@ void Evaluator::Relin(const PhantomContext &context, PhantomCiphertext &ct,
         (1 << (phantom::arith::bits_per_uint64 -
                static_cast<uint64_t>(log2(key_modulus.front().value())) - 1)) -
         1;
-    key_switch_inner_prod(cx.get(), t_mod_up.get(),
-                          relin_keys.public_keys_ptr(), rns_tool, modulus_QP,
-                          reduction_threshold, stream);
+    phantom::key_switch_inner_prod_c2_and_evk<<<
+        size_QlP_n / phantom::util::blockDimGlb.x, phantom::util::blockDimGlb,
+        0, stream>>>(cx.get(), t_mod_up.get(), relin_keys.public_keys_ptr(),
+                     modulus_QP, n, size_QP, size_QP_n, size_QlP, size_QlP_n,
+                     size_Q, size_Ql, beta, reduction_threshold);
 
     // iNTT + ModDown + NTT
     for (size_t i = 0; i < 2; i++) {

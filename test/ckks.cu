@@ -3,12 +3,12 @@
 #include <vector>
 
 #include "evaluate.h"
+
+// Phantom
 #include "example.h"
 #include "phantom.h"
 
-TEST(GPUContextTest, GetGPUInfo) { EXPECT_EQ(1, 1); }
-
-TEST(CKKS, Encrypt) {
+TEST(CKKS, MultAndRelin) {
     // std::vector v_alpha = {1, 2, 3, 4, 15};
     std::vector v_alpha = {3};
     for (auto alpha : v_alpha) {
@@ -118,11 +118,15 @@ TEST(CKKS, Encrypt) {
         // Evaluate
         hifive::Evaluator evaluator;
         PhantomCiphertext xy_cipher;
+        auto start = std::chrono::high_resolution_clock::now();
         evaluator.Mult(context, xy_cipher, x_cipher, y_cipher);
         evaluator.Relin(context, xy_cipher, relin_keys);
         evaluator.Rescale(context, xy_cipher);
-        // phantom::relinearize_inplace(context, xy_cipher, relin_keys);
-        // phantom::rescale_to_next_inplace(context, xy_cipher);
+        cudaDeviceSynchronize();
+        auto stop = std::chrono::high_resolution_clock::now();
+        float npu_time =
+            std::chrono::duration_cast<std::chrono::microseconds>(stop - start)
+                .count();
 
         // Decrypt
         std::cout << "Result vector: " << std::endl;
@@ -130,5 +134,8 @@ TEST(CKKS, Encrypt) {
             secret_key.decrypt(context, xy_cipher);
         auto result = encoder.decode<cuDoubleComplex>(context, x_plain_result);
         print_vector(result, 3, 7);
+
+        std::cout << "Execution Time: " << npu_time << " micro sec"
+                  << std::endl;
     }
 }
