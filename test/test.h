@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
@@ -7,8 +8,8 @@
 #include "ciphertext.h"
 #include "evaluate.h"
 #include "gpu_utils.h"
+#include "ntt.h"
 #include "polynomial.h"
-using namespace hifive;
 
 // SEAL
 #include "seal/seal.h"

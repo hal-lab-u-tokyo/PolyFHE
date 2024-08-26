@@ -1,6 +1,10 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
+
+#include "gpu_utils.h"
+#include "seal/seal.h"
 
 namespace hifive {
 
@@ -53,15 +57,86 @@ class DNTTTable {
 public:
     DNTTTable() = default;
     ~DNTTTable() = default;
+
     uint64_t n() const { return n_; }
+    uint64_t size() const { return size_; }
+    DModulus *modulus() const { return modulus_; }
+    uint64_t *twiddle() const { return twiddle_.get(); }
+    uint64_t *twiddle_shoup() const { return twiddle_shoup_.get(); }
+    uint64_t *itwiddle() const { return itwiddle_.get(); }
+    uint64_t *itwiddle_shoup() const { return itwiddle_shoup_.get(); }
+    uint64_t *n_inv_mod_q() const { return n_inv_mod_q_.get(); }
+    uint64_t *n_inv_mod_q_shoup() const { return n_inv_mod_q_shoup_.get(); }
 
 private:
     uint64_t n_ = 0;
     uint64_t size_ = 0;
+    // TODO: wrap DMoulus in a gpu_ptr
+    DModulus *modulus_;         // modulus for this NWT
+    gpu_ptr twiddle_;           // forward NTT table
+    gpu_ptr twiddle_shoup_;     // forward NTT table
+    gpu_ptr itwiddle_;          // inverse NTT table
+    gpu_ptr itwiddle_shoup_;    // inverse NTT table
+    gpu_ptr n_inv_mod_q_;       // n^(-1) modulo q
+    gpu_ptr n_inv_mod_q_shoup_; // n^(-1) modulo q, shoup version
+};
+
+class NTTTable {
+public:
+    explicit NTTTable(int coeff_count_power, const seal::Modulus &modulus);
+
+    uint64_t get_root() const { return root_; }
+
+    auto &get_from_root_powers() const { return root_powers_; }
+
+    auto &get_from_root_powers_shoup() const { return root_powers_shoup_; }
+
+    auto &get_from_inv_root_powers() const { return inv_root_powers_; }
+
+    auto &get_from_inv_root_powers_shoup() const {
+        return inv_root_powers_shoup_;
+    }
+
+    const uint64_t &inv_degree_modulo() const { return inv_degree_modulo_; }
+
+    const uint64_t &inv_degree_modulo_shoup() const {
+        return inv_degree_modulo_shoup_;
+    }
+
+    const seal::Modulus &modulus() const { return modulus_; }
+
+    int coeff_count_power() const { return coeff_count_power_; }
+
+    size_t coeff_count() const { return coeff_count_; }
+
+private:
+    std::uint64_t root_ = 0;
+    std::uint64_t inv_root_ = 0;
+    int coeff_count_power_ = 0;
+    std::size_t coeff_count_ = 0;
+    seal::Modulus modulus_;
+
+    // Inverse of coeff_count_ modulo modulus_.
+    uint64_t inv_degree_modulo_;
+    uint64_t inv_degree_modulo_shoup_;
+
+    // Holds 1~(n-1)-th powers of root_ in bit-reversed order, the 0-th power is
+    // left unset.
+    std::vector<uint64_t> root_powers_;
+    std::vector<uint64_t> root_powers_shoup_;
+
+    // Holds 1~(n-1)-th powers of inv_root_ in scrambled order, the 0-th power
+    // is left unset.
+    std::vector<uint64_t> inv_root_powers_;
+    std::vector<uint64_t> inv_root_powers_shoup_;
 };
 
 void nwt_2d_radix8_forward_inplace(uint64_t *inout, const DNTTTable &ntt_tables,
-                                   uint64_t coeff_modulus_size,
-                                   uint64_t start_modulus_idx);
+                                   size_t coeff_modulus_size,
+                                   size_t start_modulus_idx);
+void nwt_2d_radix8_backward_inplace(uint64_t *inout,
+                                    const DNTTTable &ntt_tables,
+                                    size_t coeff_modulus_size,
+                                    size_t start_modulus_idx);
 
 } // namespace hifive

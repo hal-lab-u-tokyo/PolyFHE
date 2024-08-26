@@ -11,8 +11,8 @@ Ciphertext::Ciphertext(const seal::Ciphertext &src) {
 
     const uint64_t poly_size =
         src.coeff_modulus_size() * src.poly_modulus_degree();
-    ax_ = make_and_copy_gpu_ptr((uint64_t *) src.data(0), poly_size);
-    bx_ = make_and_copy_gpu_ptr((uint64_t *) src.data(1), poly_size);
+    ax_ = hifive::make_and_copy_gpu_ptr((uint64_t *) src.data(0), poly_size);
+    bx_ = hifive::make_and_copy_gpu_ptr((uint64_t *) src.data(1), poly_size);
 }
 
 Ciphertext::Ciphertext(uint64_t poly_modulus_degree,
