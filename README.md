@@ -17,8 +17,8 @@ cmake --build build -j $(nproc)
 - [x] Impl HAdd
 - [ ] Design how to fuse kernels
 - [ ] Prepare Precomputed Values
-- [ ] Impl NTT
-- [ ] Impl HMul
+- [x] Impl NTT
+- [x] Impl HMul
 - [ ] Understand Key-Decomposed ModUp
 - [ ] Impl ModUp
 - [ ] Prepare DecomposedKey

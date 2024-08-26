@@ -9,7 +9,6 @@ enable_testing()
 
 add_executable(test_ckks
     cuckks.cu
-    cuckks-phantom.cu
     ciphertext.cu
     gpu_utils.cu
     ntt.cu
