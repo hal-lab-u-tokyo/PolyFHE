@@ -9,7 +9,8 @@ extern __global__ void tensor_square_2x2_rns_poly();
 namespace hifive {
 
 void HAdd(const seal::SEALContext &context, Ciphertext &result,
-          const Ciphertext &ct0, const Ciphertext &ct1) {
+          const Ciphertext &ct0, const Ciphertext &ct1,
+          const gpu_ptr &modulus) {
     // Verify parameters.
     if (ct0.coeff_modulus_size() != ct1.coeff_modulus_size()) {
         throw std::invalid_argument("ct0 and ct1 parameter mismatch");
@@ -32,8 +33,10 @@ void HAdd(const seal::SEALContext &context, Ciphertext &result,
         uint64_t *ct1_bxi = ct1.bx() + i * poly_modulus_degree;
         uint64_t *result_axi = result.ax() + i * poly_modulus_degree;
         uint64_t *result_bxi = result.bx() + i * poly_modulus_degree;
-        poly_add_nomod<<<blockSize, gridSize>>>(result_axi, ct0_axi, ct1_axi);
-        poly_add_nomod<<<blockSize, gridSize>>>(result_bxi, ct0_bxi, ct1_bxi);
+        poly_add_mod<<<blockSize, gridSize>>>(result_axi, ct0_axi, ct1_axi,
+                                              modulus.get(), i);
+        poly_add_mod<<<blockSize, gridSize>>>(result_bxi, ct0_bxi, ct1_bxi,
+                                              modulus.get(), i);
     }
 }
 

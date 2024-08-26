@@ -14,7 +14,7 @@
 namespace hifive {
 
 void HAdd(const seal::SEALContext &context, Ciphertext &result,
-          const Ciphertext &ct0, const Ciphertext &ct1);
+          const Ciphertext &ct0, const Ciphertext &ct1, const gpu_ptr &modulus);
 
 class Evaluator {
 public:

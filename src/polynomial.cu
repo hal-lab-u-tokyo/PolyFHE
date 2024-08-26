@@ -12,11 +12,13 @@ __global__ void poly_add(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b,
     d_out[idx] = (v0 + v1) > mod ? (v0 + v1 - mod) : (v0 + v1);
 }
 
-__global__ void poly_add_nomod(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b) {
+__global__ void poly_add_mod(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b,
+                             uint64_t *d_mod, int limb) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     uint64_t v0 = d_a[idx];
     uint64_t v1 = d_b[idx];
-    d_out[idx] = v0 + v1;
+    uint64_t mod = d_mod[limb];
+    d_out[idx] = (v0 + v1) > mod ? (v0 + v1 - mod) : (v0 + v1);
 }
 
 __global__ void poly_mult(uint64_t *d_out, uint64_t *d_a, uint64_t *d_b,
