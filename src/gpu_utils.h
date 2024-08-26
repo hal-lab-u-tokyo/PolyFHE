@@ -22,6 +22,7 @@ public:
 template <typename T>
 class gpu_ptr {
 public:
+    gpu_ptr() = default;
     gpu_ptr(T *d_ptr, uint64_t size) : d_ptr_(d_ptr), n_(size) {}
     ~gpu_ptr() { cudaFree(d_ptr_); }
 

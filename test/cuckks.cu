@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 // SEAL
+#include "ciphertext.h"
 #include "gpu_utils.h"
 #include "seal/seal.h"
 
@@ -126,13 +127,7 @@ TEST(cuCKKS, HAdd) {
     encryptor.encrypt(x_plain, x_encrypted);
 
     // Copy to GPU
-    std::cout << "x_encrypted.size() = " << x_encrypted.size() << std::endl;
-    const size_t poly_size =
-        x_encrypted.coeff_modulus_size() * x_encrypted.poly_modulus_degree();
-    gpu_ptr<uint64_t> dx_ax =
-        make_and_copy_gpu_ptr<uint64_t>(x_encrypted.data(0), poly_size);
-    gpu_ptr<uint64_t> dx_bx =
-        make_and_copy_gpu_ptr<uint64_t>(x_encrypted.data(1), poly_size);
+    Ciphertext ct_x(x_encrypted);
 
     // Decrypt and Decode
     seal::Plaintext x_decoded;
