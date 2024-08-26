@@ -8,10 +8,10 @@ FetchContent_MakeAvailable(googletest)
 enable_testing()
 
 add_executable(test_ckks
-    ckks.cu
+    cuckks.cu
+    cuckks-phantom.cu
     gpucontext.cu
     phantom.cu
-    seal.cu
 )
 target_link_libraries(test_ckks HiFive)
 target_link_libraries(test_ckks Phantom)

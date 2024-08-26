@@ -11,12 +11,14 @@ cmake --build build -j $(nproc)
 ```
 
 ## TODO
-- [ ] Prepare Params
-- [ ] En/Decrypt
+- [x] Prepare Params
+- [x] En/Decrypt
 - [ ] Prepare DeviceVector
 - [ ] Impl HAdd
+- [ ] Impl NTT
 - [ ] Impl HMul
 - [ ] Understand Key-Decomposed ModUp
 - [ ] Impl ModUp
+- [ ] Prepare DecomposedKey
 - [ ] Impl KeySwitch
 - [ ] Impl ModDown
