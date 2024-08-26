@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
 
 // SEAL
-#include "ciphertext.h"
-#include "gpu_utils.h"
 #include "seal/seal.h"
+
+// HiFive
+#include "ciphertext.h"
+#include "evaluate.h"
+#include "gpu_utils.h"
 
 using namespace hifive;
 
@@ -122,12 +125,20 @@ TEST(cuCKKS, HAdd) {
         input[i] = i;
     }
     seal::Plaintext x_plain;
-    seal::Ciphertext x_encrypted;
+    seal::Ciphertext x_encrypted, y_encrypted;
     encoder.encode(input, scale, x_plain);
     encryptor.encrypt(x_plain, x_encrypted);
+    encryptor.encrypt(x_plain, y_encrypted);
 
     // Copy to GPU
     Ciphertext ct_x(x_encrypted);
+    Ciphertext ct_y(y_encrypted);
+    Ciphertext ct_xy(x_encrypted.poly_modulus_degree(),
+                     x_encrypted.coeff_modulus_size());
+
+    HAdd(context, ct_xy, ct_x, ct_y);
+
+    // Copy back to CPU
 
     // Decrypt and Decode
     seal::Plaintext x_decoded;

@@ -13,8 +13,8 @@
 
 namespace hifive {
 
-void Add(const seal::SEALContext &context, Ciphertext &result,
-         const Ciphertext &ct0, const Ciphertext &ct1);
+void HAdd(const seal::SEALContext &context, Ciphertext &result,
+          const Ciphertext &ct0, const Ciphertext &ct1);
 
 class Evaluator {
 public:
