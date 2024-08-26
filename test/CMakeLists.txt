@@ -12,6 +12,7 @@ add_executable(test_ckks
     cuckks-phantom.cu
     ciphertext.cu
     gpu_utils.cu
+    ntt.cu
     phantom.cu
 )
 target_link_libraries(test_ckks HiFive)
