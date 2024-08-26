@@ -8,7 +8,7 @@
 #include "example.h"
 #include "phantom.h"
 
-TEST(CKKS, MultAndRelin) {
+TEST(cuCKKSPhantom, MultAndRelin) {
     // std::vector v_alpha = {1, 2, 3, 4, 15};
     std::vector v_alpha = {3};
     for (auto alpha : v_alpha) {
