@@ -13,6 +13,7 @@ add_executable(test_ckks
     gpu_utils.cu
     ntt.cu
     phantom.cu
+    polynomial.cu
 )
 target_link_libraries(test_ckks HiFive)
 target_link_libraries(test_ckks Phantom)
