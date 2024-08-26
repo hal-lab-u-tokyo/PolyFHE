@@ -22,3 +22,10 @@ cmake --build build -j $(nproc)
 - [ ] Prepare DecomposedKey
 - [ ] Impl KeySwitch
 - [ ] Impl ModDown
+
+
+## Tips
+- Memory check
+```
+compute-sanitizer --tool memcheck ./build/test/test_ckks --gtest_filter="*GPU*"
+```

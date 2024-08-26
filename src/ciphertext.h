@@ -28,8 +28,8 @@ private:
     uint64_t poly_modulus_degree_ = 0;
     uint64_t coeff_modulus_size_ = 0;
     bool is_ntt_form_ = true;
-    gpu_ptr<uint64_t> ax_;
-    gpu_ptr<uint64_t> bx_;
+    gpu_ptr ax_;
+    gpu_ptr bx_;
 };
 
 } // namespace hifive

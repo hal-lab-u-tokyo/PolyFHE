@@ -1,14 +1,4 @@
-#include <gtest/gtest.h>
-
-// SEAL
-#include "seal/seal.h"
-
-// HiFive
-#include "ciphertext.h"
-#include "evaluate.h"
-#include "gpu_utils.h"
-
-using namespace hifive;
+#include "test.h"
 
 TEST(cuCKKS, Params) {
     // SEAL
@@ -139,6 +129,7 @@ TEST(cuCKKS, HAdd) {
     HAdd(context, ct_xy, ct_x, ct_y);
 
     // Copy back to CPU
+    std::cout << "Copying back to CPU" << std::endl;
     ct_xy.CopyBack(x_encrypted);
 
     // Decrypt and Decode
