@@ -9,6 +9,8 @@ enable_testing()
 
 add_executable(test_ckks
     ckks.cu
+    gpucontext.cu
+    phantom.cu
 )
 target_link_libraries(test_ckks HiFive)
 target_link_libraries(test_ckks Phantom)
@@ -17,22 +19,3 @@ target_include_directories(test_ckks PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_include_directories(test_ckks PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/include)
 target_include_directories(test_ckks PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/examples)
 target_include_directories(test_ckks PUBLIC /usr/local/include)
-
-add_executable(test_ntt
-    ntt.cu
-)
-target_link_libraries(test_ntt HiFive)
-target_link_libraries(test_ntt Phantom)
-target_link_libraries(test_ntt GTest::gtest_main)
-target_include_directories(test_ntt PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_include_directories(test_ntt PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/include)
-target_include_directories(test_ntt PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/examples)
-target_include_directories(test_ntt PUBLIC /usr/local/include)
-
-add_executable(ref_phantom
-    phantom.cu
-)
-target_link_libraries(ref_phantom Phantom)
-target_include_directories(ref_phantom PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_include_directories(ref_phantom PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/include)
-target_include_directories(ref_phantom PUBLIC ${CMAKE_SOURCE_DIR}/thirdparty/phantom-fhe/examples)

@@ -3,12 +3,12 @@
 #include <vector>
 
 #include "evaluate.h"
+
+// Phantom
 #include "example.h"
 #include "phantom.h"
 
-TEST(GPUContextTest, GetGPUInfo) { EXPECT_EQ(1, 1); }
-
-TEST(CKKS, Encrypt) {
+TEST(CKKS, MultAndRelin) {
     // std::vector v_alpha = {1, 2, 3, 4, 15};
     std::vector v_alpha = {3};
     for (auto alpha : v_alpha) {

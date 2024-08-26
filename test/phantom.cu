@@ -1,9 +1,12 @@
+#include <gtest/gtest.h>
+
 #include <iostream>
 
+// Phantom
 #include "example.h"
 #include "phantom.h"
 
-int main() {
+TEST(Phantom, MultAndRelin) {
     std::cout << "Phantom example" << std::endl;
     phantom::EncryptionParameters parms(phantom::scheme_type::ckks);
     std::vector v_alpha = {3};
