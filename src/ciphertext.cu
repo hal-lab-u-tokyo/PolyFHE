@@ -24,4 +24,10 @@ Ciphertext::Ciphertext(uint64_t poly_modulus_degree,
     bx_ = make_gpu_ptr<uint64_t>(poly_size);
 }
 
+void Ciphertext::CopyBack(seal::Ciphertext &dst) const {
+    const uint64_t poly_size = poly_modulus_degree_ * coeff_modulus_size_;
+    ax_.copy_to_cpu((uint64_t *) dst.data(0), poly_size);
+    bx_.copy_to_cpu((uint64_t *) dst.data(1), poly_size);
+}
+
 } // namespace hifive

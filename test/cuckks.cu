@@ -139,6 +139,7 @@ TEST(cuCKKS, HAdd) {
     HAdd(context, ct_xy, ct_x, ct_y);
 
     // Copy back to CPU
+    ct_xy.CopyBack(x_encrypted);
 
     // Decrypt and Decode
     seal::Plaintext x_decoded;

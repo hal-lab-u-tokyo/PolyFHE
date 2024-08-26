@@ -26,6 +26,12 @@ public:
     gpu_ptr(T *d_ptr, uint64_t size) : d_ptr_(d_ptr), n_(size) {}
     ~gpu_ptr() { cudaFree(d_ptr_); }
 
+    void copy_to_cpu(T *dst, uint64_t size) const {
+        assert(size <= size_);
+        checkCudaErrors(
+            cudaMemcpy(dst, d_ptr_, size * sizeof(T), cudaMemcpyDeviceToHost));
+    }
+
     T *get() const { return d_ptr_; }
     uint64_t size() const { return n_; }
 

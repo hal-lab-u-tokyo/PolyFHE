@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "gpu_utils.h"
-
 namespace hifive {
 
 void __checkCudaErrors(cudaError_t err, const char *filename, int line) {

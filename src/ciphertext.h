@@ -15,6 +15,8 @@ public:
     Ciphertext(uint64_t poly_modulus_degree, uint64_t coeff_modulus_size);
     ~Ciphertext() = default;
 
+    void CopyBack(seal::Ciphertext &dst) const;
+
     uint64_t poly_modulus_degree() const { return poly_modulus_degree_; }
     uint64_t coeff_modulus_size() const { return coeff_modulus_size_; }
     bool is_ntt_form() const { return is_ntt_form_; }
