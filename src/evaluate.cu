@@ -40,6 +40,16 @@ void HAdd(const seal::SEALContext &context, Ciphertext &result,
     }
 }
 
+void NTT(DNTTTable &d_ntt_table, gpu_ptr &a, int batch_size, int start_idx) {
+    const auto &s = cudaStreamPerThread;
+    nwt_2d_radix8_forward_inplace(a.get(), d_ntt_table, batch_size, 0, s);
+}
+
+void iNTT(DNTTTable &d_ntt_table, gpu_ptr &a, int batch_size, int start_idx) {
+    const auto &s = cudaStreamPerThread;
+    nwt_2d_radix8_backward_inplace(a.get(), d_ntt_table, batch_size, 0, s);
+}
+
 Evaluator::Evaluator() { gpu_context_ = std::make_unique<GPUContext>(); }
 
 void Evaluator::Add(const PhantomContext &context, PhantomCiphertext &result,

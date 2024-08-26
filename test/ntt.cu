@@ -7,9 +7,10 @@ void test_ntt(size_t log_dim, size_t batch_size) {
     const auto &s = cudaStreamPerThread;
 
     // generate modulus
-    const auto h_modulus = phantom::arith::CoeffModulus::Create(
-        dim, std::vector<int>(batch_size, 50));
-    // copy modulus to device
+    const auto h_modulus =
+        seal::CoeffModulus::Create(dim, std::vector<int>(batch_size, 50));
+
+    // copy modulus to device in Phantom format
     auto modulus = phantom::util::make_cuda_auto_ptr<DModulus>(batch_size, s);
     for (size_t i = 0; i < batch_size; i++) {
         modulus.get()[i].set(h_modulus[i].value(),
@@ -21,7 +22,8 @@ void test_ntt(size_t log_dim, size_t batch_size) {
     DNTTTable d_ntt_tables;
     d_ntt_tables.init(dim, batch_size, s);
     for (int i = 0; i < batch_size; i++) {
-        auto h_ntt_table = phantom::arith::NTT(log_dim, h_modulus[i]);
+        phantom::arith::Modulus mod(h_modulus[i].value());
+        auto h_ntt_table = phantom::arith::NTT(log_dim, mod);
         d_ntt_tables.set(&modulus.get()[i],
                          h_ntt_table.get_from_root_powers().data(),
                          h_ntt_table.get_from_root_powers_shoup().data(),
@@ -37,15 +39,12 @@ void test_ntt(size_t log_dim, size_t batch_size) {
         h_data[i] = 2;
     }
 
-    auto d_data =
-        phantom::util::make_cuda_auto_ptr<uint64_t>(batch_size * dim, s);
-    cudaMemcpyAsync(d_data.get(), h_data.get(),
-                    batch_size * dim * sizeof(uint64_t), cudaMemcpyHostToDevice,
-                    s);
+    // copy input to device
+    hifive::gpu_ptr d_data =
+        hifive::make_and_copy_gpu_ptr(h_data.get(), batch_size * dim);
 
-    nwt_2d_radix8_forward_inplace(d_data.get(), d_ntt_tables, batch_size, 0, s);
-    nwt_2d_radix8_backward_inplace(d_data.get(), d_ntt_tables, batch_size, 0,
-                                   s);
+    hifive::NTT(d_ntt_tables, d_data, batch_size, 0);
+    hifive::iNTT(d_ntt_tables, d_data, batch_size, 0);
 
     cudaMemcpyAsync(h_data.get(), d_data.get(),
                     batch_size * dim * sizeof(uint64_t), cudaMemcpyDeviceToHost,
