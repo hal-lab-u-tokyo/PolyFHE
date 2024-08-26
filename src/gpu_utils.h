@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cassert>
-
 #include <cuda.h>
 #include <cuda_runtime.h>
+
+#include <cassert>
 
 namespace hifive {
 
@@ -34,10 +34,18 @@ private:
 };
 
 template <typename T>
-gpu_ptr<T> make_gpu_ptr(T *src, uint64_t size) {
+gpu_ptr<T> make_and_copy_gpu_ptr(T *src, uint64_t size) {
     T *d_ptr;
     checkCudaErrors(cudaMalloc(&d_ptr, size * sizeof(T)));
-    checkCudaErrors(cudaMemcpy(d_ptr, src, size * sizeof(T), cudaMemcpyHostToDevice));
+    checkCudaErrors(
+        cudaMemcpy(d_ptr, src, size * sizeof(T), cudaMemcpyHostToDevice));
+    return gpu_ptr<T>(d_ptr, size);
+}
+
+template <typename T>
+gpu_ptr<T> make_gpu_ptr(uint64_t size) {
+    T *d_ptr;
+    checkCudaErrors(cudaMalloc(&d_ptr, size * sizeof(T)));
     return gpu_ptr<T>(d_ptr, size);
 }
 
