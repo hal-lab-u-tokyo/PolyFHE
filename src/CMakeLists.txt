@@ -1,6 +1,6 @@
 add_library(HiFive
     evaluate.cu
-    gpucontext.cu
+    gpu_utils.cu
     polynomial.cu
 )
 target_link_libraries(HiFive Phantom)

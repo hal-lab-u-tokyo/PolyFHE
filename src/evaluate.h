@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "gpucontext.h"
+#include "gpu_utils.h"
 #include "phantom.h"
 
 namespace hifive {

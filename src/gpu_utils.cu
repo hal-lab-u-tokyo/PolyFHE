@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "gpucontext.h"
+#include "gpu_utils.h"
 namespace hifive {
 
 GPUContext::GPUContext() {
