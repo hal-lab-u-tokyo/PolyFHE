@@ -1,18 +1,15 @@
 #include "ciphertext.h"
 
-// SEAL
-#include "seal/seal.h"
-
 namespace hifive {
 
-Ciphertext::Ciphertext(const seal::Ciphertext &src) {
+Ciphertext::Ciphertext(const PhantomCiphertext &src) {
     poly_modulus_degree_ = src.poly_modulus_degree();
     coeff_modulus_size_ = src.coeff_modulus_size();
 
     const uint64_t poly_size =
         src.coeff_modulus_size() * src.poly_modulus_degree();
-    ax_ = hifive::make_and_copy_gpu_ptr((uint64_t *) src.data(0), poly_size);
-    bx_ = hifive::make_and_copy_gpu_ptr((uint64_t *) src.data(1), poly_size);
+    ax_ = hifive::gpu_ptr((uint64_t *) src.data(), poly_size);
+    bx_ = hifive::gpu_ptr((uint64_t *) src.data() + poly_size, poly_size);
 }
 
 Ciphertext::Ciphertext(uint64_t poly_modulus_degree,
@@ -24,10 +21,14 @@ Ciphertext::Ciphertext(uint64_t poly_modulus_degree,
     bx_ = make_gpu_ptr(poly_size);
 }
 
-void Ciphertext::CopyBack(seal::Ciphertext &dst) const {
+void Ciphertext::CopyBack(PhantomCiphertext &dst) const {
     const uint64_t poly_size = poly_modulus_degree_ * coeff_modulus_size_;
-    ax_.copy_to_cpu((uint64_t *) dst.data(0), poly_size);
-    bx_.copy_to_cpu((uint64_t *) dst.data(1), poly_size);
+    checkCudaErrors(cudaMemcpy(dst.data(), ax_.get(),
+                               poly_size * sizeof(uint64_t),
+                               cudaMemcpyDeviceToDevice));
+    checkCudaErrors(cudaMemcpy(dst.data() + poly_size, bx_.get(),
+                               poly_size * sizeof(uint64_t),
+                               cudaMemcpyDeviceToDevice));
 }
 
 } // namespace hifive
