@@ -1,1 +1,1 @@
-add_subdirectory(Polynomial)
+add_subdirectory(Poly)
