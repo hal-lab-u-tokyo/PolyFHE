@@ -7,6 +7,7 @@ set (LIBS
     AffineFullUnroll
     MLIROptLib
     MLIRPass
+    MLIRPoly
 )
 
 add_llvm_executable(hifive-opt hifive-opt.cpp)
