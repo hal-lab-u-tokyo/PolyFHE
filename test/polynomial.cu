@@ -1,5 +1,7 @@
 #include "test.h"
 
+TEST(Polynomial, Dummy) { cudaFree(0); }
+
 TEST(Polynomial, Add) {
     const int n = 16;
     const int l = 10;

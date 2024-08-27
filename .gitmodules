@@ -1,6 +1,3 @@
 [submodule "thirdparty/phantom-fhe"]
 	path = thirdparty/phantom-fhe
 	url = git@github.com:encryptorion-lab/phantom-fhe.git
-[submodule "thirdparty/SEAL"]
-	path = thirdparty/SEAL
-	url = git@github.com:microsoft/SEAL.git

@@ -7,8 +7,8 @@ void test_ntt(size_t log_dim, size_t batch_size) {
     const auto &s = cudaStreamPerThread;
 
     // generate modulus
-    const auto h_modulus =
-        seal::CoeffModulus::Create(dim, std::vector<int>(batch_size, 50));
+    const auto h_modulus = phantom::arith::CoeffModulus::Create(
+        dim, std::vector<int>(batch_size, 50));
 
     // copy modulus to device in Phantom format
     auto modulus = phantom::util::make_cuda_auto_ptr<DModulus>(batch_size, s);
@@ -22,8 +22,7 @@ void test_ntt(size_t log_dim, size_t batch_size) {
     DNTTTable d_ntt_tables;
     d_ntt_tables.init(dim, batch_size, s);
     for (int i = 0; i < batch_size; i++) {
-        phantom::arith::Modulus mod(h_modulus[i].value());
-        auto h_ntt_table = phantom::arith::NTT(log_dim, mod);
+        auto h_ntt_table = phantom::arith::NTT(log_dim, h_modulus[i]);
         d_ntt_tables.set(&modulus.get()[i],
                          h_ntt_table.get_from_root_powers().data(),
                          h_ntt_table.get_from_root_powers_shoup().data(),

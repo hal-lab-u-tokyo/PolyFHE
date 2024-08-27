@@ -15,15 +15,18 @@ cmake --build build -j $(nproc)
 - [x] En/Decrypt
 - [x] Prepare DeviceVector
 - [x] Impl HAdd
-- [ ] Design how to fuse kernels
 - [ ] Prepare Precomputed Values
 - [x] Impl NTT
 - [x] Impl HMul
-- [ ] Understand Key-Decomposed ModUp
+- [x] Understand Key-Decomposed ModUp
 - [ ] Impl ModUp
 - [ ] Prepare DecomposedKey
 - [ ] Impl KeySwitch
+- [ ] Understand Key-Decomposed ModDown
 - [ ] Impl ModDown
+- [ ] Impl Rescale
+- [ ] Impl Accumulate
+- [ ] Design how to fuse kernels
 
 
 ## Tips

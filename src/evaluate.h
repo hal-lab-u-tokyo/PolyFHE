@@ -8,17 +8,16 @@
 // Phantom
 #include "phantom.h"
 
-// SEAL
-#include "seal/seal.h"
-
 namespace hifive {
 
-void HAdd(const seal::SEALContext &context, Ciphertext &result,
-          const Ciphertext &ct0, const Ciphertext &ct1, const gpu_ptr &modulus);
+void HAdd(Ciphertext &result, const Ciphertext &ct0, const Ciphertext &ct1,
+          const gpu_ptr &modulus);
 
-void HMult(const seal::SEALContext &context, Ciphertext &result,
-           const Ciphertext &ct0, const Ciphertext &ct1,
+void HMult(Ciphertext &result, const Ciphertext &ct0, const Ciphertext &ct1,
            const gpu_ptr &modulus);
+
+void HMultRelin(Ciphertext &result, const Ciphertext &ct0,
+                const Ciphertext &ct1, const gpu_ptr &modulus);
 
 void NTT(DNTTTable &d_ntt_table, gpu_ptr &a, int batch_size, int start_idx);
 

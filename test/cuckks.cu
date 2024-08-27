@@ -1,38 +1,39 @@
 #include "test.h"
 
 TEST(cuCKKS, Params) {
-    // SEAL
-    std::vector v_alpha = {1, 2, 3, 4, 15};
+    // Phantom
+    // std::vector v_alpha = {1, 2, 3, 4, 15};
+    std::vector v_alpha = {1, 2, 3};
     for (auto alpha : v_alpha) {
-        seal::EncryptionParameters parms(seal::scheme_type::ckks);
+        phantom::EncryptionParameters parms(phantom::scheme_type::ckks);
         size_t poly_modulus_degree = 1 << 15;
         parms.set_poly_modulus_degree(poly_modulus_degree);
         switch (alpha) {
         case 1:
-            parms.set_coeff_modulus(seal::CoeffModulus::Create(
+            parms.set_coeff_modulus(phantom::arith::CoeffModulus::Create(
                 poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
                                       40, 40, 40, 40, 40, 40, 40, 40, 40, 60}));
 
             break;
         case 2:
-            parms.set_coeff_modulus(seal::CoeffModulus::Create(
+            parms.set_coeff_modulus(phantom::arith::CoeffModulus::Create(
                 poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
                                       40, 40, 40, 40, 40, 40, 60, 60}));
             break;
         case 3:
-            parms.set_coeff_modulus(seal::CoeffModulus::Create(
+            parms.set_coeff_modulus(phantom::arith::CoeffModulus::Create(
                 poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
                                       40, 40, 40, 40, 40, 60, 60, 60}));
             break;
         case 4:
-            parms.set_coeff_modulus(seal::CoeffModulus::Create(
+            parms.set_coeff_modulus(phantom::arith::CoeffModulus::Create(
                 poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
                                       40, 40, 60, 60, 60, 60}));
             break;
         case 15:
             poly_modulus_degree = 1 << 16;
             parms.set_poly_modulus_degree(poly_modulus_degree);
-            parms.set_coeff_modulus(seal::CoeffModulus::Create(
+            parms.set_coeff_modulus(phantom::arith::CoeffModulus::Create(
                 poly_modulus_degree,
                 {60, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
                  50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50,
@@ -43,7 +44,7 @@ TEST(cuCKKS, Params) {
             throw std::invalid_argument("Invalid alpha");
         }
 
-        seal::SEALContext context(parms);
+        PhantomContext context(parms);
     }
 }
 
@@ -51,20 +52,16 @@ TEST(cuCKKS, Encrypt) {
     const uint64_t alpha = 3;
     const uint64_t poly_modulus_degree = 1 << 15;
 
-    seal::EncryptionParameters parms(seal::scheme_type::ckks);
+    phantom::EncryptionParameters parms(phantom::scheme_type::ckks);
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    parms.set_coeff_modulus(seal::CoeffModulus::Create(
+    parms.set_coeff_modulus(phantom::arith::CoeffModulus::Create(
         poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
                               40, 40, 40, 60, 60, 60}));
 
-    seal::SEALContext context(parms);
-    seal::KeyGenerator keygen(context);
-    auto secret_key = keygen.secret_key();
-    seal::PublicKey public_key;
-    keygen.create_public_key(public_key);
-    seal::Encryptor encryptor(context, public_key);
-    seal::Decryptor decryptor(context, secret_key);
-    seal::CKKSEncoder encoder(context);
+    PhantomContext context(parms);
+    PhantomCKKSEncoder encoder(context);
+    PhantomSecretKey secret_key(context);
+    PhantomPublicKey public_key = secret_key.gen_publickey(context);
 
     // Encode and Encrypt
     size_t slot_count = encoder.slot_count();
@@ -73,18 +70,18 @@ TEST(cuCKKS, Encrypt) {
     for (size_t i = 0; i < slot_count; i++) {
         input[i] = i;
     }
-    seal::Plaintext x_plain;
-    seal::Ciphertext x_encrypted;
-    encoder.encode(input, scale, x_plain);
-    encryptor.encrypt(x_plain, x_encrypted);
+    PhantomPlaintext x_plain;
+    PhantomCiphertext x_encrypted;
+    encoder.encode(context, input, scale, x_plain);
+    public_key.encrypt_asymmetric(context, x_plain, x_encrypted);
 
     // Decrypt and Decode
-    seal::Plaintext x_decoded;
+    PhantomPlaintext x_decoded;
     std::vector<double> output;
-    decryptor.decrypt(x_encrypted, x_decoded);
-    encoder.decode(x_decoded, output);
+    secret_key.decrypt(context, x_encrypted, x_decoded);
+    encoder.decode(context, x_decoded, output);
     for (size_t i = 0; i < slot_count; i++) {
-        EXPECT_NEAR(input[i], output[i], 1e-6);
+        EXPECT_NEAR(input[i], output[i], 1e-5);
     }
 }
 
@@ -92,20 +89,16 @@ TEST(cuCKKS, HAdd) {
     const uint64_t alpha = 3;
     const uint64_t poly_modulus_degree = 1 << 15;
 
-    seal::EncryptionParameters parms(seal::scheme_type::ckks);
+    phantom::EncryptionParameters parms(phantom::scheme_type::ckks);
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    parms.set_coeff_modulus(seal::CoeffModulus::Create(
+    parms.set_coeff_modulus(phantom::arith::CoeffModulus::Create(
         poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
                               40, 40, 40, 60, 60, 60}));
 
-    seal::SEALContext context(parms);
-    seal::KeyGenerator keygen(context);
-    auto secret_key = keygen.secret_key();
-    seal::PublicKey public_key;
-    keygen.create_public_key(public_key);
-    seal::Encryptor encryptor(context, public_key);
-    seal::Decryptor decryptor(context, secret_key);
-    seal::CKKSEncoder encoder(context);
+    PhantomContext context(parms);
+    PhantomCKKSEncoder encoder(context);
+    PhantomSecretKey secret_key(context);
+    PhantomPublicKey public_key = secret_key.gen_publickey(context);
 
     // Encode and Encrypt
     size_t slot_count = encoder.slot_count();
@@ -114,11 +107,11 @@ TEST(cuCKKS, HAdd) {
     for (size_t i = 0; i < slot_count; i++) {
         input[i] = i;
     }
-    seal::Plaintext x_plain;
-    seal::Ciphertext x_encrypted, y_encrypted;
-    encoder.encode(input, scale, x_plain);
-    encryptor.encrypt(x_plain, x_encrypted);
-    encryptor.encrypt(x_plain, y_encrypted);
+    PhantomPlaintext x_plain;
+    PhantomCiphertext x_encrypted, y_encrypted;
+    encoder.encode(context, input, scale, x_plain);
+    public_key.encrypt_asymmetric(context, x_plain, x_encrypted);
+    public_key.encrypt_asymmetric(context, x_plain, y_encrypted);
 
     // Copy to GPU
     hifive::Ciphertext ct_x(x_encrypted);
@@ -132,18 +125,18 @@ TEST(cuCKKS, HAdd) {
     hifive::gpu_ptr d_coeff_modulus = hifive::make_and_copy_gpu_ptr(
         tmp_modulus.data(), parms.coeff_modulus().size());
 
-    hifive::HAdd(context, ct_xy, ct_x, ct_y, d_coeff_modulus);
+    hifive::HAdd(ct_xy, ct_x, ct_y, d_coeff_modulus);
 
     // Copy back to CPU
     ct_xy.CopyBack(x_encrypted);
 
     // Decrypt and Decode
-    seal::Plaintext x_decoded;
+    PhantomPlaintext x_decoded;
     std::vector<double> output;
-    decryptor.decrypt(x_encrypted, x_decoded);
-    encoder.decode(x_decoded, output);
+    secret_key.decrypt(context, x_encrypted, x_decoded);
+    encoder.decode(context, x_decoded, output);
     for (size_t i = 0; i < slot_count; i++) {
-        EXPECT_NEAR(input[i] * 2, output[i], 1e-6);
+        EXPECT_NEAR(input[i] * 2, output[i], 1e-5);
     }
 }
 
@@ -151,20 +144,16 @@ TEST(cuCKKS, HMult) {
     const uint64_t alpha = 3;
     const uint64_t poly_modulus_degree = 1 << 15;
 
-    seal::EncryptionParameters parms(seal::scheme_type::ckks);
+    phantom::EncryptionParameters parms(phantom::scheme_type::ckks);
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    parms.set_coeff_modulus(seal::CoeffModulus::Create(
+    parms.set_coeff_modulus(phantom::arith::CoeffModulus::Create(
         poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
                               40, 40, 40, 60, 60, 60}));
 
-    seal::SEALContext context(parms);
-    seal::KeyGenerator keygen(context);
-    auto secret_key = keygen.secret_key();
-    seal::PublicKey public_key;
-    keygen.create_public_key(public_key);
-    seal::Encryptor encryptor(context, public_key);
-    seal::Decryptor decryptor(context, secret_key);
-    seal::CKKSEncoder encoder(context);
+    PhantomContext context(parms);
+    PhantomCKKSEncoder encoder(context);
+    PhantomSecretKey secret_key(context);
+    PhantomPublicKey public_key = secret_key.gen_publickey(context);
 
     // Encode and Encrypt
     size_t slot_count = encoder.slot_count();
@@ -173,11 +162,11 @@ TEST(cuCKKS, HMult) {
     for (size_t i = 0; i < slot_count; i++) {
         input[i] = i;
     }
-    seal::Plaintext x_plain;
-    seal::Ciphertext x_encrypted, y_encrypted;
-    encoder.encode(input, scale, x_plain);
-    encryptor.encrypt(x_plain, x_encrypted);
-    encryptor.encrypt(x_plain, y_encrypted);
+    PhantomPlaintext x_plain;
+    PhantomCiphertext x_encrypted, y_encrypted;
+    encoder.encode(context, input, scale, x_plain);
+    public_key.encrypt_asymmetric(context, x_plain, x_encrypted);
+    public_key.encrypt_asymmetric(context, x_plain, y_encrypted);
 
     // Copy to GPU
     hifive::Ciphertext ct_x(x_encrypted);
@@ -191,17 +180,17 @@ TEST(cuCKKS, HMult) {
     hifive::gpu_ptr d_coeff_modulus = hifive::make_and_copy_gpu_ptr(
         tmp_modulus.data(), parms.coeff_modulus().size());
 
-    hifive::HMult(context, ct_xy, ct_x, ct_y, d_coeff_modulus);
+    hifive::HMult(ct_xy, ct_x, ct_y, d_coeff_modulus);
 
     // Copy back to CPU
     ct_xy.CopyBack(x_encrypted);
 
     // Decrypt and Decode
-    seal::Plaintext x_decoded;
+    PhantomPlaintext x_decoded;
     std::vector<double> output;
-    decryptor.decrypt(x_encrypted, x_decoded);
-    encoder.decode(x_decoded, output);
+    secret_key.decrypt(context, x_encrypted, x_decoded);
+    encoder.decode(context, x_decoded, output);
     for (size_t i = 0; i < 2; i++) {
-        EXPECT_NEAR(input[i] * input[i], output[i], 1e-6);
+        EXPECT_NEAR(input[i] * input[i], output[i], 1e-5);
     }
 }

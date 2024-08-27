@@ -53,6 +53,7 @@ public:
 private:
     uint64_t *d_ptr_ = nullptr;
     uint64_t n_ = 0;
+    uint64_t size_ = 0;
 };
 
 gpu_ptr make_and_copy_gpu_ptr(uint64_t *src, uint64_t size);

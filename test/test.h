@@ -10,9 +10,6 @@
 #include "gpu_utils.h"
 #include "polynomial.h"
 
-// SEAL
-#include "seal/seal.h"
-
 // Phantom
 #include "phantom.h"
 

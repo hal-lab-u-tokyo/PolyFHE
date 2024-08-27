@@ -4,18 +4,18 @@
 
 #include "gpu_utils.h"
 
-// SEAL
-#include "seal/seal.h"
+// Phantom
+#include "phantom.h"
 
 namespace hifive {
 
 class Ciphertext {
 public:
-    Ciphertext(const seal::Ciphertext &src);
+    Ciphertext(const PhantomCiphertext &src);
     Ciphertext(uint64_t poly_modulus_degree, uint64_t coeff_modulus_size);
     ~Ciphertext() = default;
 
-    void CopyBack(seal::Ciphertext &dst) const;
+    void CopyBack(PhantomCiphertext &dst) const;
 
     uint64_t poly_modulus_degree() const { return poly_modulus_degree_; }
     uint64_t coeff_modulus_size() const { return coeff_modulus_size_; }
