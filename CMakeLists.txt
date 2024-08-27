@@ -24,6 +24,6 @@ include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${PROJECT_SOURCE_DIR}/thirdparty/llvm-project)
 include_directories(${PROJECT_BINARY_DIR})
 
-#add_subdirectory(tests)
+add_subdirectory(tests)
 add_subdirectory(tools)
 add_subdirectory(lib)
