@@ -132,7 +132,7 @@ TEST(cuCKKS, HAdd) {
     hifive::gpu_ptr d_coeff_modulus = hifive::make_and_copy_gpu_ptr(
         tmp_modulus.data(), parms.coeff_modulus().size());
 
-    hifive::HAdd(context, ct_xy, ct_x, ct_y, d_coeff_modulus);
+    hifive::HAdd(ct_xy, ct_x, ct_y, d_coeff_modulus);
 
     // Copy back to CPU
     ct_xy.CopyBack(x_encrypted);
@@ -191,7 +191,7 @@ TEST(cuCKKS, HMult) {
     hifive::gpu_ptr d_coeff_modulus = hifive::make_and_copy_gpu_ptr(
         tmp_modulus.data(), parms.coeff_modulus().size());
 
-    hifive::HMult(context, ct_xy, ct_x, ct_y, d_coeff_modulus);
+    hifive::HMult(ct_xy, ct_x, ct_y, d_coeff_modulus);
 
     // Copy back to CPU
     ct_xy.CopyBack(x_encrypted);
@@ -250,7 +250,7 @@ TEST(cuCKKS, HMultRelin) {
     hifive::gpu_ptr d_coeff_modulus = hifive::make_and_copy_gpu_ptr(
         tmp_modulus.data(), parms.coeff_modulus().size());
 
-    hifive::HMultRelin(context, ct_xy, ct_x, ct_y, d_coeff_modulus);
+    hifive::HMultRelin(ct_xy, ct_x, ct_y, d_coeff_modulus);
 
     // Copy back to CPU
     ct_xy.CopyBack(x_encrypted);

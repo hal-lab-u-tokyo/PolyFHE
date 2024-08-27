@@ -8,8 +8,7 @@ extern __global__ void tensor_square_2x2_rns_poly();
 
 namespace hifive {
 
-void HAdd(const seal::SEALContext &context, Ciphertext &result,
-          const Ciphertext &ct0, const Ciphertext &ct1,
+void HAdd(Ciphertext &result, const Ciphertext &ct0, const Ciphertext &ct1,
           const gpu_ptr &modulus) {
     // Verify parameters.
     if (ct0.coeff_modulus_size() != ct1.coeff_modulus_size()) {
@@ -40,8 +39,7 @@ void HAdd(const seal::SEALContext &context, Ciphertext &result,
     }
 }
 
-void HMult(const seal::SEALContext &context, Ciphertext &result,
-           const Ciphertext &ct0, const Ciphertext &ct1,
+void HMult(Ciphertext &result, const Ciphertext &ct0, const Ciphertext &ct1,
            const gpu_ptr &modulus) {
     // Verify parameters.
     if (ct0.coeff_modulus_size() != ct1.coeff_modulus_size()) {
@@ -72,9 +70,8 @@ void HMult(const seal::SEALContext &context, Ciphertext &result,
     }
 }
 
-void HMultRelin(const seal::SEALContext &context, Ciphertext &result,
-                const Ciphertext &ct0, const Ciphertext &ct1,
-                const gpu_ptr &modulus) {
+void HMultRelin(Ciphertext &result, const Ciphertext &ct0,
+                const Ciphertext &ct1, const gpu_ptr &modulus) {
     // Verify parameters.
     if (ct0.coeff_modulus_size() != ct1.coeff_modulus_size()) {
         throw std::invalid_argument("ct0 and ct1 parameter mismatch");
@@ -102,6 +99,17 @@ void HMultRelin(const seal::SEALContext &context, Ciphertext &result,
         poly_mult_mod<<<gridSize, blockSize>>>(result_bxi, ct0_bxi, ct1_bxi,
                                                modulus.get(), i);
     }
+
+    // ModUp
+    const int tilda_r = 3;
+    const int beta = 23;
+    // gpu_ptr t_mod_up = make_gpu_ptr(
+
+    // KSKIP
+
+    // ModDown
+
+    // Accumulate
 }
 
 void NTT(DNTTTable &d_ntt_table, gpu_ptr &a, int batch_size, int start_idx) {
