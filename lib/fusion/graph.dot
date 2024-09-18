@@ -5,12 +5,12 @@ digraph G {
 3 [color=dodgerblue2, label=Mult];
 4 [color=dodgerblue2, label=Add];
 5 [color=coral1, label=INTT];
-6 [color=green3, label=ModUp];
+6 [color=green4, label=ModUp];
 7 [color=coral1, label=NTT];
 8 [color=dodgerblue2, label=Mult];
-9 [color=green3, label=Reduce];
+9 [color=green4, label=Reduce];
 10 [color=coral1, label=INTT];
-11 [color=green3, label=ModDown];
+11 [color=green4, label=ModDown];
 12 [color=coral1, label=NTT];
 13 [color=dodgerblue2, label=Add];
 14 [color=dodgerblue2, label=Add];

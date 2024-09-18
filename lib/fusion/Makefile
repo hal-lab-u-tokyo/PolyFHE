@@ -1,4 +1,6 @@
-SRC=main.cc
+SRC=\
+	poly.cc \
+	main.cc
 
 CXXFLAGS=-std=c++11 -Wall -Wextra -pedantic -O3
 BIN=fusion
