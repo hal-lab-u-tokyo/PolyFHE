@@ -48,6 +48,8 @@ void connect_edge(int in, GraphPoly::vertex_descriptor to, GraphPoly &g) {
     if (in != -1) {
         GraphPoly::vertex_descriptor in_v = boost::vertex(in, g);
         boost::add_edge(in_v, to, g);
+    }else {
+        g[to].if_root = true;
     }
 }
 
@@ -127,4 +129,33 @@ std::pair<int, int> lower_hmult(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax
     const int out1 = boost::get(boost::vertex_index, g, add_c0c2);
     const int out2 = boost::get(boost::vertex_index, g, add_c1c2);
     return std::make_pair(out1, out2);
+}
+
+void fuse_poly(GraphPoly &g_poly, GraphPoly &g_poly_fused){
+    // Depth first search
+    const int n = boost::num_vertices(g_poly);
+    std::cout << "Number of vertices: " << n << std::endl;
+
+    std::vector<int> visited(n, 0);
+    std::vector<int> stack;
+    for (int i = 0; i < n; i++) {
+        const GraphPoly::vertex_descriptor v = boost::vertex(i, g_poly);
+        if (g_poly[v].if_root) {
+            stack.push_back(i);
+        }
+    }
+
+    while (!stack.empty()) {
+        int v = stack.back();
+        stack.pop_back();
+        if (visited[v] == 1) {
+            continue;
+        }
+        std::cout << "Visiting " << v << std::endl;
+        visited[v] = 1;
+        stack.push_back(v);
+        for (auto it = boost::adjacent_vertices(v, g_poly); it.first != it.second; ++it.first) {
+            stack.push_back(*it.first);
+        }
+    }
 }

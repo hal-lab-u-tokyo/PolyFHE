@@ -10,8 +10,8 @@ all: $(SRC)
 	$(CXX) $(CXXFLAGS) $(SRC) -o $(BIN) $(LDFLAGS)
 
 dot:
-	dot -Tpng -o graph_poly.png graph_poly.dot
-	dot -Tpng -o graph_fhe.png graph_fhe.dot
+	dot -Tpng -o ./graph/graph_poly.png ./graph/graph_poly.dot
+	dot -Tpng -o ./graph/graph_fhe.png ./graph/graph_fhe.dot
 
 run: 
 	./$(BIN)

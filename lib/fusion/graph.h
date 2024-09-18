@@ -19,6 +19,7 @@ public:
     std::string name;
     AccessPattern access_pattern;
     std::string color;
+    bool if_root = false;
 };
 
 struct FHEOp {
@@ -35,3 +36,4 @@ std::pair<int, int> lower_hmult(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax
 
 void dummy_fhe_graph(GraphFHE &g);
 void lower_fhe_to_poly(GraphFHE &g_fhe, GraphPoly &g_poly);
+void fuse_poly(GraphPoly &g_poly, GraphPoly &g_poly_fused);
