@@ -44,25 +44,28 @@ PolyOp NewINTT(){
     return {"INTT", PolyWise, getColor(PolyWise)};
 }
 
-std::pair<int, int> lower_hadd(GraphPoly &g, int in1, int in2) {
+void connect_edge(int in, GraphPoly::vertex_descriptor to, GraphPoly &g) {
+    if (in != -1) {
+        GraphPoly::vertex_descriptor in_v = boost::vertex(in, g);
+        boost::add_edge(in_v, to, g);
+    }
+}
+
+std::pair<int, int> lower_hadd(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax, int ct1_bx) {
     GraphPoly::vertex_descriptor add_ax = boost::add_vertex(g);
     GraphPoly::vertex_descriptor add_bx = boost::add_vertex(g);
     g[add_ax] = NewAdd();
     g[add_bx] = NewAdd();
-    if (in1 > 0){
-        GraphPoly::vertex_descriptor in1_v = boost::vertex(in1, g);
-        boost::add_edge(in1_v, add_ax, g);
-    }
-    if (in2 > 0){
-        GraphPoly::vertex_descriptor in2_v = boost::vertex(in2, g);
-        boost::add_edge(in2_v, add_bx, g);
-    }
+    connect_edge(ct0_ax, add_ax, g);
+    connect_edge(ct0_bx, add_bx, g);
+    connect_edge(ct1_ax, add_ax, g);
+    connect_edge(ct1_bx, add_bx, g);
     const int out1 = boost::get(boost::vertex_index, g, add_ax);
     const int out2 = boost::get(boost::vertex_index, g, add_bx);
     return std::make_pair(out1, out2);
 }
 
-std::pair<int, int> lower_hmult(GraphPoly &g, int in1, int in2) {
+std::pair<int, int> lower_hmult(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax, int ct1_bx) {
     // Mult
     GraphPoly::vertex_descriptor mult_axax = boost::add_vertex(g);
     GraphPoly::vertex_descriptor mult_axbx = boost::add_vertex(g);
@@ -76,17 +79,15 @@ std::pair<int, int> lower_hmult(GraphPoly &g, int in1, int in2) {
     g[add_axbx_bxax] = NewAdd();
     boost::add_edge(mult_axbx, add_axbx_bxax, g);
     boost::add_edge(mult_bxax, add_axbx_bxax, g);
-    if (in1 > 0){
-        GraphPoly::vertex_descriptor in1_v = boost::vertex(in1, g);
-        boost::add_edge(in1_v, mult_axax, g);
-        boost::add_edge(in1_v, mult_axbx, g);
-    }
-    if (in2 > 0){
-        GraphPoly::vertex_descriptor in2_v = boost::vertex(in2, g);
-        boost::add_edge(in2_v, mult_bxax, g);
-        boost::add_edge(in2_v, mult_bxbx, g);
-    }
-
+    connect_edge(ct0_ax, mult_axax, g);
+    connect_edge(ct1_ax, mult_axax, g);
+    connect_edge(ct0_bx, mult_bxbx, g);
+    connect_edge(ct1_bx, mult_bxbx, g);
+    connect_edge(ct0_ax, mult_axbx, g);
+    connect_edge(ct1_bx, mult_axbx, g);
+    connect_edge(ct0_bx, mult_bxax, g);
+    connect_edge(ct1_ax, mult_bxax, g);
+    
     // KeySwitch
     GraphPoly::vertex_descriptor intt = boost::add_vertex(g);
     GraphPoly::vertex_descriptor modup = boost::add_vertex(g);

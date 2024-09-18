@@ -18,10 +18,14 @@ digraph G {
 16 [color=coral1, label=NTT];
 17 [color=dodgerblue2, label=Add];
 18 [color=dodgerblue2, label=Add];
+0->4 ;
+0->5 ;
+1->7 ;
+1->6 ;
 2->4 ;
-2->5 ;
-3->6 ;
+2->6 ;
 3->7 ;
+3->5 ;
 4->17 ;
 5->8 ;
 6->8 ;

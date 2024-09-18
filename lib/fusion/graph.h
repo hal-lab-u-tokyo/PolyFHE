@@ -30,8 +30,8 @@ struct FHEOp {
 typedef boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, PolyOp> GraphPoly;
 typedef boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, FHEOp> GraphFHE;
 
-std::pair<int, int> lower_hadd(GraphPoly &g, int in1, int in2);
-std::pair<int, int> lower_hmult(GraphPoly &g, int in1, int in2);
+std::pair<int, int> lower_hadd(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax, int ct1_bx);
+std::pair<int, int> lower_hmult(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax, int ct1_bx);
 
 void dummy_fhe_graph(GraphFHE &g);
 void lower_fhe_to_poly(GraphFHE &g_fhe, GraphPoly &g_poly);
