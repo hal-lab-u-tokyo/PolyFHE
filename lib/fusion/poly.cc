@@ -44,7 +44,25 @@ PolyOp NewINTT(){
     return {"INTT", PolyWise, getColor(PolyWise)};
 }
 
-void define_hmult(GraphPoly &g) {
+std::pair<int, int> lower_hadd(GraphPoly &g, int in1, int in2) {
+    GraphPoly::vertex_descriptor add_ax = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor add_bx = boost::add_vertex(g);
+    g[add_ax] = NewAdd();
+    g[add_bx] = NewAdd();
+    if (in1 > 0){
+        GraphPoly::vertex_descriptor in1_v = boost::vertex(in1, g);
+        boost::add_edge(in1_v, add_ax, g);
+    }
+    if (in2 > 0){
+        GraphPoly::vertex_descriptor in2_v = boost::vertex(in2, g);
+        boost::add_edge(in2_v, add_bx, g);
+    }
+    const int out1 = boost::get(boost::vertex_index, g, add_ax);
+    const int out2 = boost::get(boost::vertex_index, g, add_bx);
+    return std::make_pair(out1, out2);
+}
+
+std::pair<int, int> lower_hmult(GraphPoly &g, int in1, int in2) {
     // Mult
     GraphPoly::vertex_descriptor mult_axax = boost::add_vertex(g);
     GraphPoly::vertex_descriptor mult_axbx = boost::add_vertex(g);
@@ -58,6 +76,16 @@ void define_hmult(GraphPoly &g) {
     g[add_axbx_bxax] = NewAdd();
     boost::add_edge(mult_axbx, add_axbx_bxax, g);
     boost::add_edge(mult_bxax, add_axbx_bxax, g);
+    if (in1 > 0){
+        GraphPoly::vertex_descriptor in1_v = boost::vertex(in1, g);
+        boost::add_edge(in1_v, mult_axax, g);
+        boost::add_edge(in1_v, mult_axbx, g);
+    }
+    if (in2 > 0){
+        GraphPoly::vertex_descriptor in2_v = boost::vertex(in2, g);
+        boost::add_edge(in2_v, mult_bxax, g);
+        boost::add_edge(in2_v, mult_bxbx, g);
+    }
 
     // KeySwitch
     GraphPoly::vertex_descriptor intt = boost::add_vertex(g);
@@ -94,4 +122,8 @@ void define_hmult(GraphPoly &g) {
     boost::add_edge(mult_bxbx, add_c1c2, g);
     boost::add_edge(ntt_after_moddown, add_c0c2, g);
     boost::add_edge(ntt_after_moddown, add_c1c2, g);
+
+    const int out1 = boost::get(boost::vertex_index, g, add_c0c2);
+    const int out2 = boost::get(boost::vertex_index, g, add_c1c2);
+    return std::make_pair(out1, out2);
 }

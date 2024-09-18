@@ -18,7 +18,7 @@ int main()
     boost::write_graphviz_dp(file_fhe, g_fhe, dp_fhe);
     
     GraphPoly g_poly;
-    define_hmult(g_poly);
+    lower_fhe_to_poly(g_fhe, g_poly);
     //boost::print_graph(g_poly, get(&PolyOp::name, g_poly));
     boost::dynamic_properties dp_poly;
     dp_poly.property("node_id", get(boost::vertex_index, g_poly));

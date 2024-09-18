@@ -3,7 +3,7 @@ SRC=\
 	poly.cc \
 	main.cc
 
-CXXFLAGS=-std=c++11 -Wall -Wextra -pedantic -O3
+CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -O3
 BIN=fusion
 
 all: $(SRC)
