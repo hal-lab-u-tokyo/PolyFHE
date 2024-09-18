@@ -44,13 +44,13 @@ PolyOp NewINTT(){
     return {"INTT", PolyWise, getColor(PolyWise)};
 }
 
-void define_hmult(Graph &g) {
+void define_hmult(GraphPoly &g) {
     // Mult
-    Graph::vertex_descriptor mult_axax = boost::add_vertex(g);
-    Graph::vertex_descriptor mult_axbx = boost::add_vertex(g);
-    Graph::vertex_descriptor mult_bxax = boost::add_vertex(g);
-    Graph::vertex_descriptor mult_bxbx = boost::add_vertex(g);
-    Graph::vertex_descriptor add_axbx_bxax = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor mult_axax = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor mult_axbx = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor mult_bxax = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor mult_bxbx = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor add_axbx_bxax = boost::add_vertex(g);
     g[mult_axax] = NewMult();
     g[mult_axbx] = NewMult();
     g[mult_bxax] = NewMult();
@@ -60,14 +60,14 @@ void define_hmult(Graph &g) {
     boost::add_edge(mult_bxax, add_axbx_bxax, g);
 
     // KeySwitch
-    Graph::vertex_descriptor intt = boost::add_vertex(g);
-    Graph::vertex_descriptor modup = boost::add_vertex(g);
-    Graph::vertex_descriptor ntt = boost::add_vertex(g);
-    Graph::vertex_descriptor mult = boost::add_vertex(g);
-    Graph::vertex_descriptor reduce = boost::add_vertex(g);
-    Graph::vertex_descriptor intt_after_ksw = boost::add_vertex(g);
-    Graph::vertex_descriptor moddown = boost::add_vertex(g);
-    Graph::vertex_descriptor ntt_after_moddown = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor intt = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor modup = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor ntt = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor mult = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor reduce = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor intt_after_ksw = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor moddown = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor ntt_after_moddown = boost::add_vertex(g);
     g[intt] = NewINTT();
     g[modup] = NewModUp();
     g[ntt] = NewNTT();
@@ -86,8 +86,8 @@ void define_hmult(Graph &g) {
     boost::add_edge(moddown, ntt_after_moddown, g);
     
     // Sum
-    Graph::vertex_descriptor add_c0c2 = boost::add_vertex(g);
-    Graph::vertex_descriptor add_c1c2 = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor add_c0c2 = boost::add_vertex(g);
+    GraphPoly::vertex_descriptor add_c1c2 = boost::add_vertex(g);
     g[add_c0c2] = NewAdd();
     g[add_c1c2] = NewAdd();
     boost::add_edge(mult_axax, add_c0c2, g);

@@ -1,4 +1,5 @@
 SRC=\
+	fhe.cc \
 	poly.cc \
 	main.cc
 
@@ -9,7 +10,8 @@ all: $(SRC)
 	$(CXX) $(CXXFLAGS) $(SRC) -o $(BIN) $(LDFLAGS)
 
 dot:
-	dot -Tpng -o graph.png graph.dot
+	dot -Tpng -o graph_poly.png graph_poly.dot
+	dot -Tpng -o graph_fhe.png graph_fhe.dot
 
 run: 
 	./$(BIN)

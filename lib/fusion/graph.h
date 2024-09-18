@@ -20,6 +20,12 @@ public:
     std::string color;
 };
 
-typedef boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, PolyOp> Graph;
+struct FHEOp {
+    std::string name;
+};
 
-void define_hmult(Graph &g);
+typedef boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, PolyOp> GraphPoly;
+typedef boost::adjacency_list<boost::listS, boost::vecS, boost::directedS, FHEOp> GraphFHE;
+
+void dummy_fhe_graph(GraphFHE &g);
+void define_hmult(GraphPoly &g);
