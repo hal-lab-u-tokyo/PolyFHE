@@ -3,10 +3,12 @@
 std::string getColor(AccessPattern ap) {
     switch (ap) {
         case ElemWise:
-            return "dodgerblue2";
+            return "goldenrod";
         case PolyWise:
             return "coral1";
-        case CoeffWise:
+        case AlphaWise:
+            return "dodgerblue2";
+        case BetaWise:
             return "green4";
         case Other:
             return "black";
@@ -27,15 +29,15 @@ PolyOp NewKeySwitch(){
 }
 
 PolyOp NewModDown(){
-    return {"ModDown", CoeffWise, getColor(CoeffWise)};
+    return {"ModDown", AlphaWise, getColor(AlphaWise)};
 }
 
 PolyOp NewModUp(){
-    return {"ModUp", CoeffWise, getColor(CoeffWise)};
+    return {"ModUp", AlphaWise, getColor(AlphaWise)};
 }
 
 PolyOp NewReduce(){
-    return {"Reduce", CoeffWise, getColor(CoeffWise)};
+    return {"Reduce", BetaWise, getColor(BetaWise)};
 }
 
 PolyOp NewNTT(){

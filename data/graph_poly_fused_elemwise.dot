@@ -1,31 +1,31 @@
 digraph G {
-0 [color=dodgerblue2, label=Add];
-1 [color=dodgerblue2, label=Add];
+0 [color=goldenrod, label=Add];
+1 [color=goldenrod, label=Add];
 2 [color=black, label=Malloc];
 3 [color=black, label=Malloc];
 4 [color=black, label=Malloc];
 5 [color=black, label=Malloc];
-6 [color=dodgerblue2, label=Add];
-7 [color=dodgerblue2, label=Add];
+6 [color=goldenrod, label=Add];
+7 [color=goldenrod, label=Add];
 8 [color=black, label=Malloc];
 9 [color=black, label=Malloc];
 10 [color=black, label=Malloc];
 11 [color=black, label=Malloc];
-12 [color=dodgerblue2, label=Mult];
-13 [color=dodgerblue2, label=Mult];
+12 [color=goldenrod, label=Mult];
+13 [color=goldenrod, label=Mult];
 14 [color=coral1, label="Mult
 Add
 INTT"];
-15 [color=green4, label=ModUp];
+15 [color=dodgerblue2, label=ModUp];
 16 [color=coral1, label=NTT];
 17 [color=green4, label="Mult
 Reduce"];
 18 [color=coral1, label=INTT];
-19 [color=green4, label=ModDown];
+19 [color=dodgerblue2, label=ModDown];
 20 [color=coral1, label=NTT];
-21 [color=dodgerblue2, label="Mult
+21 [color=goldenrod, label="Mult
 Add"];
-22 [color=dodgerblue2, label=Add];
+22 [color=goldenrod, label=Add];
 2->0 ;
 3->1 ;
 4->0 ;

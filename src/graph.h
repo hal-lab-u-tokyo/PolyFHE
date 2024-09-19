@@ -11,7 +11,8 @@
 enum AccessPattern {
     ElemWise,
     PolyWise,
-    CoeffWise,
+    AlphaWise,
+    BetaWise,
     Other
 };
 
