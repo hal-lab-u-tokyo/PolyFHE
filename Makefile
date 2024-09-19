@@ -12,6 +12,7 @@ $(BIN): $(SRC)
 dot:
 	dot -Tpng -o ./data/graph_poly.png ./data/graph_poly.dot
 	dot -Tpng -o ./data/graph_fhe.png ./data/graph_fhe.dot
+	dot -Tpng -o ./data/graph_poly_fused_elemwise.png ./data/graph_poly_fused_elemwise.dot
 
 run: $(BIN)
 	./$(BIN)

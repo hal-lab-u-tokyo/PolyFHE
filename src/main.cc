@@ -7,6 +7,15 @@
 
 #include "graph.h"
 
+void export_poly_graph(GraphPoly &g_poly, std::string filename) {
+    boost::dynamic_properties dp_poly;
+    dp_poly.property("node_id", get(boost::vertex_index, g_poly));
+    dp_poly.property("label", get(&PolyOp::name, g_poly));
+    dp_poly.property("color", get(&PolyOp::color, g_poly));
+    std::ofstream file(filename);
+    boost::write_graphviz_dp(file, g_poly, dp_poly);
+}
+
 int main()
 {
     // Define FHE graph
@@ -21,15 +30,10 @@ int main()
     // Lower to Poly graph
     GraphPoly g_poly;
     lower_fhe_to_poly(g_fhe, g_poly);
-    //boost::print_graph(g_poly, get(&PolyOp::name, g_poly));
-    boost::dynamic_properties dp_poly;
-    dp_poly.property("node_id", get(boost::vertex_index, g_poly));
-    dp_poly.property("label", get(&PolyOp::name, g_poly));
-    dp_poly.property("color", get(&PolyOp::color, g_poly));
-    std::ofstream file("./data/graph_poly.dot");
-    boost::write_graphviz_dp(file, g_poly, dp_poly);
+    export_poly_graph(g_poly, "./data/graph_poly.dot");
 
     // Fuse Poly graph
     GraphPoly g_poly_fused;
-    fuse_poly(g_poly, g_poly_fused);
+    fuse_poly(g_poly);
+    export_poly_graph(g_poly, "./data/graph_poly_fused_elemwise.dot");
 }

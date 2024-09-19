@@ -139,7 +139,7 @@ std::pair<int, int> lower_hmult(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax
     return std::make_pair(out1, out2);
 }
 
-void fuse_poly(GraphPoly &g_poly, GraphPoly &g_poly_fused){
+void fuse_poly(GraphPoly &g_poly){
     // Depth first search
     const int n = boost::num_vertices(g_poly);
     std::cout << "Number of vertices: " << n << std::endl;
@@ -162,11 +162,21 @@ void fuse_poly(GraphPoly &g_poly, GraphPoly &g_poly_fused){
         visited[v] = 1;
         // fuse Elem-wise operations with adjacent PolyOp
         if (g_poly[v].access_pattern == ElemWise) {
-            std::cout << "ElemWise: " << g_poly[v].name;
-            for (auto it = boost::adjacent_vertices(v, g_poly); it.first != it.second; ++it.first) {
-                std::cout << " -> " << g_poly[*it.first].name;
+            const int num_adjacent = boost::out_degree(v, g_poly);
+            if (num_adjacent == 1) {
+                const GraphPoly::vertex_descriptor adj = *boost::adjacent_vertices(v, g_poly).first;
+                g_poly[adj].name = g_poly[v].name + "\n" + g_poly[adj].name;
+
+                // connect v's parent to adj
+                for (auto it = boost::in_edges(v, g_poly); it.first != it.second; ++it.first) {
+                    const GraphPoly::vertex_descriptor parent = boost::source(*it.first, g_poly);
+                    boost::add_edge(parent, adj, g_poly);
+                }
+
+                // remove v
+                boost::clear_vertex(v, g_poly);
+                boost::remove_vertex(v, g_poly);
             }
-            std::cout << std::endl;
         }
         stack.push_back(v);
         for (auto it = boost::adjacent_vertices(v, g_poly); it.first != it.second; ++it.first) {
