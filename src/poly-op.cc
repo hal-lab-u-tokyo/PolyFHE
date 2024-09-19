@@ -2,68 +2,51 @@
 
 std::string getColor(AccessPattern ap) {
     switch (ap) {
-        case ElemWise:
-            return "goldenrod";
-        case PolyWise:
-            return "coral1";
-        case AlphaWise:
-            return "dodgerblue2";
-        case BetaWise:
-            return "green4";
-        case Other:
-            return "black";
+    case ElemWise:
+        return "goldenrod";
+    case PolyWise:
+        return "coral1";
+    case AlphaWise:
+        return "dodgerblue2";
+    case BetaWise:
+        return "green4";
+    case Other:
+        return "black";
     }
     return "black";
 }
 
-PolyOp NewAdd(){
-    return {"Add", ElemWise, getColor(ElemWise)};
-}
+PolyOp NewAdd() { return {"Add", ElemWise, getColor(ElemWise)}; }
 
-PolyOp NewMult(){
-    return {"Mult", ElemWise, getColor(ElemWise)};
-}
+PolyOp NewMult() { return {"Mult", ElemWise, getColor(ElemWise)}; }
 
-PolyOp NewKeySwitch(){
-    return {"KeySwitch", ElemWise, getColor(ElemWise)};
-}
+PolyOp NewKeySwitch() { return {"KeySwitch", ElemWise, getColor(ElemWise)}; }
 
-PolyOp NewModDown(){
-    return {"ModDown", AlphaWise, getColor(AlphaWise)};
-}
+PolyOp NewModDown() { return {"ModDown", AlphaWise, getColor(AlphaWise)}; }
 
-PolyOp NewModUp(){
-    return {"ModUp", AlphaWise, getColor(AlphaWise)};
-}
+PolyOp NewModUp() { return {"ModUp", AlphaWise, getColor(AlphaWise)}; }
 
-PolyOp NewReduce(){
-    return {"Reduce", BetaWise, getColor(BetaWise)};
-}
+PolyOp NewReduce() { return {"Reduce", BetaWise, getColor(BetaWise)}; }
 
-PolyOp NewNTT(){
-    return {"NTT", PolyWise, getColor(PolyWise)};
-}
+PolyOp NewNTT() { return {"NTT", PolyWise, getColor(PolyWise)}; }
 
-PolyOp NewINTT(){
-    return {"INTT", PolyWise, getColor(PolyWise)};
-}
+PolyOp NewINTT() { return {"INTT", PolyWise, getColor(PolyWise)}; }
 
-PolyOp NewMalloc(){
-    return {"Malloc", Other, getColor(Other)};
-}
+PolyOp NewMalloc() { return {"Malloc", Other, getColor(Other)}; }
 
 void connect_edge(int in, GraphPoly::vertex_descriptor to, GraphPoly &g) {
     if (in != -1) {
         GraphPoly::vertex_descriptor in_v = boost::vertex(in, g);
         boost::add_edge(in_v, to, g);
-    }else {
+    } else {
         GraphPoly::vertex_descriptor malloc = boost::add_vertex(g);
         g[malloc] = NewMalloc();
         boost::add_edge(malloc, to, g);
     }
 }
 
-std::pair<int, int> lower_hadd(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax, int ct1_bx) {
+std::pair<int, int> lower_hadd(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax,
+                               int ct1_bx) {
     GraphPoly::vertex_descriptor add_ax = boost::add_vertex(g);
     GraphPoly::vertex_descriptor add_bx = boost::add_vertex(g);
     g[add_ax] = NewAdd();
@@ -77,7 +60,8 @@ std::pair<int, int> lower_hadd(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax,
     return std::make_pair(out1, out2);
 }
 
-std::pair<int, int> lower_hmult(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax, int ct1_bx) {
+std::pair<int, int> lower_hmult(GraphPoly &g, int ct0_ax, int ct0_bx,
+                                int ct1_ax, int ct1_bx) {
     // Mult
     GraphPoly::vertex_descriptor mult_axax = boost::add_vertex(g);
     GraphPoly::vertex_descriptor mult_axbx = boost::add_vertex(g);
@@ -99,7 +83,7 @@ std::pair<int, int> lower_hmult(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax
     connect_edge(ct1_bx, mult_axbx, g);
     connect_edge(ct0_bx, mult_bxax, g);
     connect_edge(ct1_ax, mult_bxax, g);
-    
+
     // KeySwitch
     GraphPoly::vertex_descriptor intt = boost::add_vertex(g);
     GraphPoly::vertex_descriptor modup = boost::add_vertex(g);
@@ -125,7 +109,7 @@ std::pair<int, int> lower_hmult(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax
     boost::add_edge(reduce, intt_after_ksw, g);
     boost::add_edge(intt_after_ksw, moddown, g);
     boost::add_edge(moddown, ntt_after_moddown, g);
-    
+
     // Sum
     GraphPoly::vertex_descriptor add_c0c2 = boost::add_vertex(g);
     GraphPoly::vertex_descriptor add_c1c2 = boost::add_vertex(g);
@@ -141,7 +125,7 @@ std::pair<int, int> lower_hmult(GraphPoly &g, int ct0_ax, int ct0_bx, int ct1_ax
     return std::make_pair(out1, out2);
 }
 
-void fuse_poly(GraphPoly &g_poly){
+void fuse_poly(GraphPoly &g_poly) {
     // Depth first search
     const int n = boost::num_vertices(g_poly);
     std::cout << "Number of vertices: " << n << std::endl;
@@ -166,12 +150,15 @@ void fuse_poly(GraphPoly &g_poly){
         if (g_poly[v].access_pattern == ElemWise) {
             const int num_adjacent = boost::out_degree(v, g_poly);
             if (num_adjacent == 1) {
-                const GraphPoly::vertex_descriptor adj = *boost::adjacent_vertices(v, g_poly).first;
+                const GraphPoly::vertex_descriptor adj =
+                    *boost::adjacent_vertices(v, g_poly).first;
                 g_poly[adj].name = g_poly[v].name + "\n" + g_poly[adj].name;
 
                 // connect v's parent to adj
-                for (auto it = boost::in_edges(v, g_poly); it.first != it.second; ++it.first) {
-                    const GraphPoly::vertex_descriptor parent = boost::source(*it.first, g_poly);
+                for (auto it = boost::in_edges(v, g_poly);
+                     it.first != it.second; ++it.first) {
+                    const GraphPoly::vertex_descriptor parent =
+                        boost::source(*it.first, g_poly);
                     boost::add_edge(parent, adj, g_poly);
                 }
 
@@ -181,7 +168,116 @@ void fuse_poly(GraphPoly &g_poly){
             }
         }
         stack.push_back(v);
-        for (auto it = boost::adjacent_vertices(v, g_poly); it.first != it.second; ++it.first) {
+        for (auto it = boost::adjacent_vertices(v, g_poly);
+             it.first != it.second; ++it.first) {
+            stack.push_back(*it.first);
+        }
+    }
+}
+
+void fuse_poly_alpha(GraphPoly &g_poly) {
+    // Depth first search
+    const int n = boost::num_vertices(g_poly);
+    std::cout << "Number of vertices: " << n << std::endl;
+
+    std::vector<int> visited(n, 0);
+    std::vector<int> stack;
+    for (int i = 0; i < n; i++) {
+        const GraphPoly::vertex_descriptor v = boost::vertex(i, g_poly);
+        if (g_poly[v].name == "Malloc") {
+            stack.push_back(i);
+        }
+    }
+
+    while (!stack.empty()) {
+        int v = stack.back();
+        stack.pop_back();
+        if (visited[v] == 1) {
+            continue;
+        }
+        visited[v] = 1;
+        if (g_poly[v].access_pattern == AlphaWise) {
+            const int num_adjacent = boost::out_degree(v, g_poly);
+            if (num_adjacent == 1) {
+                const GraphPoly::vertex_descriptor adj =
+                    *boost::adjacent_vertices(v, g_poly).first;
+
+                if (g_poly[adj].access_pattern != BetaWise) {
+                    g_poly[adj].name = g_poly[v].name + "\n" + g_poly[adj].name;
+                    g_poly[adj].access_pattern = AlphaWise;
+                    g_poly[adj].color = getColor(AlphaWise);
+
+                    // connect v's parent to adj
+                    for (auto it = boost::in_edges(v, g_poly);
+                         it.first != it.second; ++it.first) {
+                        const GraphPoly::vertex_descriptor parent =
+                            boost::source(*it.first, g_poly);
+                        boost::add_edge(parent, adj, g_poly);
+                    }
+
+                    // remove v
+                    boost::clear_vertex(v, g_poly);
+                    boost::remove_vertex(v, g_poly);
+                }
+            }
+        }
+        stack.push_back(v);
+        for (auto it = boost::adjacent_vertices(v, g_poly);
+             it.first != it.second; ++it.first) {
+            stack.push_back(*it.first);
+        }
+    }
+}
+
+void fuse_poly_beta(GraphPoly &g_poly) {
+    // Depth first search
+    const int n = boost::num_vertices(g_poly);
+    std::cout << "Number of vertices: " << n << std::endl;
+
+    std::vector<int> visited(n, 0);
+    std::vector<int> stack;
+    for (int i = 0; i < n; i++) {
+        const GraphPoly::vertex_descriptor v = boost::vertex(i, g_poly);
+        if (g_poly[v].name == "Malloc") {
+            stack.push_back(i);
+        }
+    }
+
+    while (!stack.empty()) {
+        int v = stack.back();
+        stack.pop_back();
+        if (visited[v] == 1) {
+            continue;
+        }
+        visited[v] = 1;
+        if (g_poly[v].access_pattern == BetaWise) {
+            const int num_adjacent = boost::out_degree(v, g_poly);
+            if (num_adjacent == 1) {
+                const GraphPoly::vertex_descriptor adj =
+                    *boost::adjacent_vertices(v, g_poly).first;
+
+                if (g_poly[adj].access_pattern != AlphaWise) {
+                    g_poly[adj].name = g_poly[v].name + "\n" + g_poly[adj].name;
+                    g_poly[adj].access_pattern = BetaWise;
+                    g_poly[adj].color = getColor(BetaWise);
+
+                    // connect v's parent to adj
+                    for (auto it = boost::in_edges(v, g_poly);
+                         it.first != it.second; ++it.first) {
+                        const GraphPoly::vertex_descriptor parent =
+                            boost::source(*it.first, g_poly);
+                        boost::add_edge(parent, adj, g_poly);
+                    }
+
+                    // remove v
+                    boost::clear_vertex(v, g_poly);
+                    boost::remove_vertex(v, g_poly);
+                }
+            }
+        }
+        stack.push_back(v);
+        for (auto it = boost::adjacent_vertices(v, g_poly);
+             it.first != it.second; ++it.first) {
             stack.push_back(*it.first);
         }
     }
