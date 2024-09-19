@@ -11,26 +11,14 @@ FHEOp NewHMult(){
 }
 
 void dummy_fhe_graph(GraphFHE &g){
+    GraphFHE::vertex_descriptor add0 = boost::add_vertex(g);
     GraphFHE::vertex_descriptor add1 = boost::add_vertex(g);
-    GraphFHE::vertex_descriptor add2 = boost::add_vertex(g);
-    GraphFHE::vertex_descriptor mult1 = boost::add_vertex(g);
-    GraphFHE::vertex_descriptor add3 = boost::add_vertex(g);
-    GraphFHE::vertex_descriptor add4 = boost::add_vertex(g);
-    GraphFHE::vertex_descriptor mult2 = boost::add_vertex(g);
-    GraphFHE::vertex_descriptor add5 = boost::add_vertex(g);
+    GraphFHE::vertex_descriptor mult0 = boost::add_vertex(g);
+    g[add0] = NewHAdd();
     g[add1] = NewHAdd();
-    g[add2] = NewHAdd();
-    g[mult1] = NewHMult();
-    g[add3] = NewHAdd();
-    g[add4] = NewHAdd();
-    g[mult2] = NewHMult();
-    g[add5] = NewHAdd();
-    boost::add_edge(add1, mult1, g);
-    boost::add_edge(add2, mult1, g);
-    boost::add_edge(add3, mult2, g);
-    boost::add_edge(add4, mult2, g);
-    boost::add_edge(mult1, add5, g);
-    boost::add_edge(mult2, add5, g);
+    g[mult0] = NewHMult();
+    boost::add_edge(add0, mult0, g);
+    boost::add_edge(add1, mult0, g);
 }
 
 void update_children(GraphFHE &g, GraphFHE::vertex_descriptor v, int out1, int out2){

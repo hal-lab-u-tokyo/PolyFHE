@@ -8,6 +8,8 @@ std::string getColor(AccessPattern ap) {
             return "coral1";
         case CoeffWise:
             return "green4";
+        case Other:
+            return "black";
     }
     return "black";
 }
@@ -44,12 +46,18 @@ PolyOp NewINTT(){
     return {"INTT", PolyWise, getColor(PolyWise)};
 }
 
+PolyOp NewMalloc(){
+    return {"Malloc", Other, getColor(Other)};
+}
+
 void connect_edge(int in, GraphPoly::vertex_descriptor to, GraphPoly &g) {
     if (in != -1) {
         GraphPoly::vertex_descriptor in_v = boost::vertex(in, g);
         boost::add_edge(in_v, to, g);
     }else {
-        g[to].if_root = true;
+        GraphPoly::vertex_descriptor malloc = boost::add_vertex(g);
+        g[malloc] = NewMalloc();
+        boost::add_edge(malloc, to, g);
     }
 }
 
@@ -140,7 +148,7 @@ void fuse_poly(GraphPoly &g_poly, GraphPoly &g_poly_fused){
     std::vector<int> stack;
     for (int i = 0; i < n; i++) {
         const GraphPoly::vertex_descriptor v = boost::vertex(i, g_poly);
-        if (g_poly[v].if_root) {
+        if (g_poly[v].name == "Malloc") {
             stack.push_back(i);
         }
     }
@@ -151,8 +159,15 @@ void fuse_poly(GraphPoly &g_poly, GraphPoly &g_poly_fused){
         if (visited[v] == 1) {
             continue;
         }
-        std::cout << "Visiting " << v << std::endl;
         visited[v] = 1;
+        // fuse Elem-wise operations with adjacent PolyOp
+        if (g_poly[v].access_pattern == ElemWise) {
+            std::cout << "ElemWise: " << g_poly[v].name;
+            for (auto it = boost::adjacent_vertices(v, g_poly); it.first != it.second; ++it.first) {
+                std::cout << " -> " << g_poly[*it.first].name;
+            }
+            std::cout << std::endl;
+        }
         stack.push_back(v);
         for (auto it = boost::adjacent_vertices(v, g_poly); it.first != it.second; ++it.first) {
             stack.push_back(*it.first);

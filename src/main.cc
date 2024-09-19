@@ -15,7 +15,7 @@ int main()
     boost::dynamic_properties dp_fhe;
     dp_fhe.property("node_id", get(boost::vertex_index, g_fhe));
     dp_fhe.property("label", get(&FHEOp::name, g_fhe));
-    std::ofstream file_fhe("./graph/graph_fhe.dot");
+    std::ofstream file_fhe("./data/graph_fhe.dot");
     boost::write_graphviz_dp(file_fhe, g_fhe, dp_fhe);
     
     // Lower to Poly graph
@@ -26,7 +26,7 @@ int main()
     dp_poly.property("node_id", get(boost::vertex_index, g_poly));
     dp_poly.property("label", get(&PolyOp::name, g_poly));
     dp_poly.property("color", get(&PolyOp::color, g_poly));
-    std::ofstream file("./graph/graph_poly.dot");
+    std::ofstream file("./data/graph_poly.dot");
     boost::write_graphviz_dp(file, g_poly, dp_poly);
 
     // Fuse Poly graph

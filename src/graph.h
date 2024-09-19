@@ -11,7 +11,8 @@
 enum AccessPattern {
     ElemWise,
     PolyWise,
-    CoeffWise
+    CoeffWise,
+    Other
 };
 
 struct PolyOp {
@@ -19,7 +20,6 @@ public:
     std::string name;
     AccessPattern access_pattern;
     std::string color;
-    bool if_root = false;
 };
 
 struct FHEOp {
