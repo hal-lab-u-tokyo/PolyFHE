@@ -1,0 +1,5 @@
+*.o
+test-*
+test_*
+*.nsys-rep
+*.sqlite
