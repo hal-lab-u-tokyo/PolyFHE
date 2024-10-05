@@ -635,11 +635,12 @@ void Context::qiNTTAndEqual(uint64_t* a, long index) {
                 //				if(a[j] >= qd) a[j] -= qd;
                 //				uint64_t T = a[j + t];
                 //				unsigned __int128 U =
-                //static_cast<unsigned __int128>(T) * W; 				uint64_t Q =
-                //static_cast<uint64_t>(U >> 64); 				T *= w; 				uint64_t T1 = Q * q;
-                //				T -= T1;
-                //				a[j + t] = a[j] + qd - T;
-                //				a[j] += T;
+                // static_cast<unsigned __int128>(T) * W;
+                // uint64_t Q =
+                // static_cast<uint64_t>(U >> 64); T
+                // *= w; uint64_t T1 = Q * q; 				T -= T1;
+                // a[j + t] = a[j] + qd - T; 				a[j]
+                //+= T;
             }
         }
     }
@@ -681,11 +682,12 @@ void Context::piNTTAndEqual(uint64_t* a, long index) {
                 //				if(a[j] >= pd) a[j] -= pd;
                 //				uint64_t T = a[j + t];
                 //				unsigned __int128 U =
-                //static_cast<unsigned __int128>(T) * W; 				uint64_t Q =
-                //static_cast<uint64_t>(U >> 64); 				T *= w; 				uint64_t T1 = Q * pi;
-                //				T -= T1;
-                //				a[j + t] = a[j] + pd - T;
-                //				a[j] += T;
+                // static_cast<unsigned __int128>(T) * W;
+                // uint64_t Q =
+                // static_cast<uint64_t>(U >> 64); T
+                // *= w; uint64_t T1 = Q * pi; 				T -= T1;
+                // a[j + t] = a[j] + pd - T; 				a[j]
+                //+= T;
             }
         }
     }
@@ -1449,11 +1451,16 @@ uint64_t* Context::modDown(uint64_t* a, long l, long dl) {
 void Context::leftRot(uint64_t* res, uint64_t* a, long l, long rotSlots) {
     //	long idx = rotSlots % Nh;
     //	for (long n = 0; n < N; ++n) {
-    //		uint32_t reversed = bitReverse(static_cast<uint32_t>(n)) >> (32 -
-    //logN); 		uint64_t index_raw = rotGroup[idx] * (2 * reversed + 1); 		index_raw
-    //&= (M - 1); 		long index = bitReverse((static_cast<uint32_t>(index_raw) - 1)
-    //>> 1) >> (32 - logN); 		for (long i = 0; i < l; ++i) { 			res[n + (i << logN)]
-    //= a[index + (i << logN)];
+    //		uint32_t reversed = bitReverse(static_cast<uint32_t>(n)) >> (32
+    //- logN); 		uint64_t index_raw = rotGroup[idx] * (2 * reversed + 1);
+    // index_raw
+    //&= (M - 1); 		long index =
+    // bitReverse((static_cast<uint32_t>(index_raw)
+    //- 1)
+    //>> 1) >> (32 - logN); 		for (long i = 0; i < l; ++i) {
+    //res[n
+    //+ (i
+    //<< logN)] = a[index + (i << logN)];
     //		}
     //	}
 
