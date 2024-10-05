@@ -1,4 +1,4 @@
-#include "hifive/common/logger.h"
+#include "hifive/core/logger.h"
 #include "hifive/core/graph/graph.hpp"
 #include "hifive/engine/pass/kernel_fusion_pass.hpp"
 #include "hifive/engine/pass/pass_manager.hpp"

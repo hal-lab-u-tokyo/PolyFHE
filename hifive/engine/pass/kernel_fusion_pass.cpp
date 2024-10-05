@@ -1,4 +1,4 @@
-#include "hifive/common/logger.h"
+#include "hifive/core/logger.h"
 #include "hifive/engine/pass/kernel_fusion_pass.hpp"
 
 namespace hifive {
