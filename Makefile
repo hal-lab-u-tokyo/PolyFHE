@@ -1,6 +1,7 @@
 SRC=\
 	hifive/core/graph/graph.cpp \
 	hifive/core/graph/node.cpp \
+	hifive/engine/codegen/cuda_codegen.cpp \
 	hifive/engine/pass/kernel_fusion_pass.cpp \
 	hifive/tools/hifive.cpp
 
@@ -24,3 +25,6 @@ run: $(BIN)
 format:
 	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i
 	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
+
+clean:
+	rm -rf $(BIN)

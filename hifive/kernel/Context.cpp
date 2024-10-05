@@ -1458,7 +1458,7 @@ void Context::leftRot(uint64_t* res, uint64_t* a, long l, long rotSlots) {
     // bitReverse((static_cast<uint32_t>(index_raw)
     //- 1)
     //>> 1) >> (32 - logN); 		for (long i = 0; i < l; ++i) {
-    //res[n
+    // res[n
     //+ (i
     //<< logN)] = a[index + (i << logN)];
     //		}
