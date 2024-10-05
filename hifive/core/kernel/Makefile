@@ -30,4 +30,5 @@ cuda: $(POLY_SRC)
 	nvcc $(POLY_OBJS) -o test_polynomial
 
 format: $(POLY_SRC) $(POLY_HDR)
-	clang-format -i $^ | chmod 777 $^
+	clang-format -i $^
+	chmod 777 $^

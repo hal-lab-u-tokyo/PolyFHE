@@ -10,8 +10,11 @@
 __global__ void fused_add(uint64_t *dst, const uint64_t *a, const uint64_t *b,
                           const int width, const int height, const int N) {
     extern __shared__ uint64_t shared[];
-    poly_add(shared, a, b, true, false, false, width, height, N);
-    poly_add(dst, shared, b, false, true, false, width, height, N);
+    const uint64_t *a_i = a + blockIdx.x * width;
+    const uint64_t *b_i = b + blockIdx.x * width;
+    uint64_t *dst_i = dst + blockIdx.x * width;
+    poly_add(shared, a_i, b_i, true, false, false, width, height, N);
+    poly_add(dst_i, shared, b_i, false, true, false, width, height, N);
 }
 
 int test_add() {
@@ -32,31 +35,31 @@ int test_add() {
     cudaMemcpy(d_a, a, N * L * sizeof(uint64_t), cudaMemcpyHostToDevice);
     cudaMemcpy(d_b, b, N * L * sizeof(uint64_t), cudaMemcpyHostToDevice);
 
-    const int block_width = 256;
+    const int block_width = 1 << 8;
     const int block_height = L;
     const int block_size = block_width * block_height * sizeof(uint64_t);
-    auto start = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < N / block_width; i++) {
-        fused_add<<<1, block_width, block_size>>>(
-            d_c + i * block_width, d_a + i * block_width, d_b + i * block_width,
-            block_width, block_height, N);
-    }
-    CudaCheckError();
-    cudaDeviceSynchronize();
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "Time: "
-              << std::chrono::duration_cast<std::chrono::microseconds>(end -
-                                                                       start)
-                     .count()
-              << "us" << std::endl;
-    cudaMemcpy(c, d_c, N * L * sizeof(uint64_t), cudaMemcpyDeviceToHost);
-    for (int i = 0; i < N * L; i++) {
-        if (c[i] != a[i] + b[i] * 2) {
-            std::cout << "Error at index " << i << ": " << c[i]
-                      << " != " << a[i] << " + " << b[i] * 2 << std::endl;
-            return 1;
+    for (int i = 0; i < 10; i++) {
+        auto start = std::chrono::high_resolution_clock::now();
+        fused_add<<<N / block_width, block_width, block_size>>>(
+            d_c, d_a, d_b, block_width, block_height, N);
+        CudaCheckError();
+        cudaDeviceSynchronize();
+        auto end = std::chrono::high_resolution_clock::now();
+
+        cudaMemcpy(c, d_c, N * L * sizeof(uint64_t), cudaMemcpyDeviceToHost);
+        for (int i = 0; i < N * L; i++) {
+            if (c[i] != a[i] + b[i] * 2) {
+                std::cout << "Error at index " << i << ": " << c[i]
+                          << " != " << a[i] << " + " << b[i] * 2 << std::endl;
+                return 1;
+            }
         }
+        auto elapsed =
+            std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+
+        std::cout << "Time: " << elapsed.count() << "us" << std::endl;
     }
+
     return 0;
 }
 

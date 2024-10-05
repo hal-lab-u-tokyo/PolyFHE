@@ -1,10 +1,10 @@
 SRC=\
-	src/fhe-op.cc \
-	src/poly-op.cc \
-	src/main.cc
+	hifive/core/graph/graph.cpp \
+	hifive/core/graph/node.cpp \
+	hifive/tools/hifive.cpp
 
-CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -O2
-BIN=fusion
+CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -O2 -I./
+BIN=cc-hifive
 
 $(BIN): $(SRC)
 	$(CXX) $(CXXFLAGS) $(SRC) -o $(BIN) $(LDFLAGS)
@@ -21,5 +21,5 @@ run: $(BIN)
 	make dot
 
 format:
-	find ./src -iname *.h -o -iname *.cc -o -iname *.cu | xargs clang-format -i
-	find ./src -iname *.h -o -iname *.cc -o -iname *.cu | xargs chmod 666
+	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i
+	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
