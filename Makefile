@@ -5,9 +5,10 @@ SRC=\
 	hifive/tools/hifive.cpp
 
 CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -O2 -I./
-BIN=cc-hifive
+BIN=build/cc-hifive
 
 $(BIN): $(SRC)
+	mkdir -p build
 	$(CXX) $(CXXFLAGS) $(SRC) -o $(BIN) $(LDFLAGS)
 
 dot:
@@ -19,7 +20,6 @@ dot:
 
 run: $(BIN)
 	./$(BIN)
-	make dot
 
 format:
 	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i

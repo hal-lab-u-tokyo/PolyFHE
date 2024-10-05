@@ -1,5 +1,4 @@
-#include <iostream>
-
+#include "hifive/common/logger.h"
 #include "hifive/core/graph/graph.hpp"
 #include "hifive/engine/pass/kernel_fusion_pass.hpp"
 #include "hifive/engine/pass/pass_manager.hpp"
@@ -16,5 +15,5 @@ int main() {
     // Run PassManager
     pass_manager.run_on_graph(graph);
 
-    std::cout << "Hifive Succeeded" << std::endl;
+    LOG_INFO("Hifive succeeded\n");
 }
