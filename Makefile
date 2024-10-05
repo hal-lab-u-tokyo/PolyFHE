@@ -1,6 +1,7 @@
 SRC=\
 	hifive/core/graph/graph.cpp \
 	hifive/core/graph/node.cpp \
+	hifive/engine/pass/kernel_fusion_pass.cpp \
 	hifive/tools/hifive.cpp
 
 CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -O2 -I./
