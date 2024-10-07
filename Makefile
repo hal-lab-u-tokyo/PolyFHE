@@ -3,6 +3,7 @@ SRC=\
 	hifive/core/graph/node.cpp \
 	hifive/engine/codegen/cuda_codegen.cpp \
 	hifive/engine/pass/kernel_fusion_pass.cpp \
+	hifive/frontend/parser.cpp \
 	hifive/tools/hifive.cpp
 
 HDR=\
@@ -16,6 +17,7 @@ HDR=\
 	hifive/frontend/parser.hpp
 
 CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -O2 -I./
+LDFLAGS=-lboost_graph
 BIN=build/cc-hifive
 
 $(BIN): $(SRC) $(HDR)
