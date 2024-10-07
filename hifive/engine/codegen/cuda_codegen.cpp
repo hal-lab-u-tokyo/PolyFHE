@@ -5,7 +5,8 @@
 
 namespace hifive {
 namespace engine {
-bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
+bool CudaCodegen::run_on_graph(
+    std::shared_ptr<hifive::core::Graph>& /*graph*/) {
     LOG_INFO("Running CudaCodegen\n");
 
     CodeWriter w;
@@ -21,7 +22,7 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     // gen cudaMallocHost
     // gen cudaMalloc
     // gen cudaMemcpy
-    
+
     w << "// Output arguments\n";
     // as well for graph->outputs
 

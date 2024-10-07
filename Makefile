@@ -3,6 +3,7 @@ SRC=\
 	hifive/core/graph/node.cpp \
 	hifive/engine/codegen/cuda_codegen.cpp \
 	hifive/engine/pass/kernel_fusion_pass.cpp \
+	hifive/frontend/parser.cpp \
 	hifive/tools/hifive.cpp
 
 HDR=\
@@ -12,9 +13,11 @@ HDR=\
 	hifive/engine/codegen/codegen_manager.hpp \
 	hifive/engine/codegen/codegen_writer.hpp \
 	hifive/engine/codegen/cuda_codegen.hpp \
-	hifive/engine/pass/kernel_fusion_pass.hpp
+	hifive/engine/pass/kernel_fusion_pass.hpp \
+	hifive/frontend/parser.hpp
 
 CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -O2 -I./
+LDFLAGS=-lboost_graph
 BIN=build/cc-hifive
 
 $(BIN): $(SRC) $(HDR)
@@ -22,11 +25,7 @@ $(BIN): $(SRC) $(HDR)
 	$(CXX) $(CXXFLAGS) $(SRC) -o $(BIN) $(LDFLAGS)
 
 dot:
-	dot -Tpng -o ./data/graph_poly.png ./data/graph_poly.dot
 	dot -Tpng -o ./data/graph_fhe.png ./data/graph_fhe.dot
-	dot -Tpng -o ./data/graph_poly_fused_elemwise.png ./data/graph_poly_fused_elemwise.dot
-	dot -Tpng -o ./data/graph_poly_fused_alpha.png ./data/graph_poly_fused_alpha.dot
-	dot -Tpng -o ./data/graph_poly_fused_beta.png ./data/graph_poly_fused_beta.dot
 
 run: $(BIN)
 	./$(BIN)
