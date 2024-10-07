@@ -15,14 +15,18 @@ HDR=\
 	hifive/engine/codegen/cuda_codegen.hpp \
 	hifive/engine/pass/kernel_fusion_pass.hpp \
 	hifive/frontend/parser.hpp
+OBJ=$(SRC:.cpp=.o)
 
 CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph
 BIN=build/cc-hifive
 
-$(BIN): $(SRC) $(HDR)
+$(BIN): $(SRC) $(HDR) $(OBJ)
 	mkdir -p build
-	$(CXX) $(CXXFLAGS) $(SRC) -o $(BIN) $(LDFLAGS)
+	$(CXX) $(OBJ) -o $(BIN) $(LDFLAGS)
+
+%.o: %.cpp %.hpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 dot:
 	dot -Tpng -o ./data/graph_fhe.png ./data/graph_fhe.dot
