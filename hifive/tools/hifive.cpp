@@ -19,8 +19,7 @@ int main() {
 
     // Code Generation
     hifive::engine::CodegenManager codegen_manager;
-    codegen_manager.push_back(
-        std::make_shared<hifive::engine::CudaCodegen>());
+    codegen_manager.set(std::make_shared<hifive::engine::CudaCodegen>());
     codegen_manager.run_on_graph(graph);
 
     LOG_INFO("Hifive succeeded\n");

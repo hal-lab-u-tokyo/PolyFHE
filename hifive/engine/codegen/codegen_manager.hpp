@@ -9,16 +9,26 @@
 
 namespace hifive {
 namespace engine {
-class CodegenManager : public std::vector<std::shared_ptr<CodegenBase>> {
+class CodegenManager : public std::shared_ptr<CodegenBase> {
 public:
+    void set(std::shared_ptr<CodegenBase> pass_codegen) {
+        this->pass_codegen = pass_codegen;
+    }
+
     bool run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
-        for (auto& pass : *this) {
-            if (!pass->run_on_graph(graph)) {
-                return false;
-            }
+        if (pass_codegen == nullptr) {
+            LOG_ERROR("Codegen is not set\n");
+            return false;
+        }
+        if (pass_codegen->run_on_graph(graph) == false) {
+            LOG_ERROR("Codegen failed\n");
+            return false;
         }
         return true;
     }
+
+private:
+    std::shared_ptr<CodegenBase> pass_codegen;
 };
 } // namespace engine
 } // namespace hifive
