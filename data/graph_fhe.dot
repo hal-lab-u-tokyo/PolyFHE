@@ -1,7 +1,11 @@
 digraph G {
-0 [label=HAdd];
-1 [label=HAdd];
-2 [label=HMult];
-0->2 ;
-1->2 ;
+Init[label="Init"];
+HAdd0[label="HAdd"];
+HAdd1[label="HAdd"];
+End[label="End"];
+Init->HAdd0[label=Ct_N_L];
+Init->HAdd0[label=Ct_N_L];
+HAdd0->HAdd1[label=Ct_N_L];
+Init->HAdd1[label=Ct_N_L];
+HAdd1->End[label=Ct_N_L];
 }

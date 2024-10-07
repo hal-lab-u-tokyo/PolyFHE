@@ -5,7 +5,7 @@
 namespace hifive {
 namespace engine {
 bool KernelFusionPass::run_on_graph(
-    std::shared_ptr<hifive::core::Graph>& graph) {
+    std::shared_ptr<hifive::core::Graph>& /*graph*/) {
     LOG_INFO("Running KernelFusionPass\n");
     return true;
 }
