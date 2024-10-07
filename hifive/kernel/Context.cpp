@@ -75,7 +75,7 @@ Context::Context(long logN, long logp, long L, long K, long h, double sigma)
         qrVec[i] = (static_cast<unsigned __int128>(1) << qTwok[i]) / qVec[i];
         qkVec[i] =
             static_cast<uint64_t>(((static_cast<unsigned __int128>(
-                                        invMod(((uint64_t)(1) << 62), qVec[i]))
+                                        invMod(((uint64_t) (1) << 62), qVec[i]))
                                     << 62) -
                                    1) /
                                   qVec[i]);
@@ -160,7 +160,7 @@ Context::Context(long logN, long logp, long L, long K, long h, double sigma)
         prVec[i] = (static_cast<unsigned __int128>(1) << pTwok[i]) / pVec[i];
         pkVec[i] =
             static_cast<uint64_t>(((static_cast<unsigned __int128>(
-                                        invMod(((uint64_t)(1) << 62), pVec[i]))
+                                        invMod(((uint64_t) (1) << 62), pVec[i]))
                                     << 62) -
                                    1) /
                                   pVec[i]);
@@ -509,8 +509,8 @@ void Context::encode(uint64_t* a, complex<double>* v, long slots, long l) {
              ++j, jdx += gap, idx += gap) {
             long mir = uvals[j].real();
             long mii = uvals[j].imag();
-            mi[idx] = mir >= 0 ? (uint64_t) mir : (uint64_t)(qVec[i] + mir);
-            mi[jdx] = mii >= 0 ? (uint64_t) mii : (uint64_t)(qVec[i] + mii);
+            mi[idx] = mir >= 0 ? (uint64_t) mir : (uint64_t) (qVec[i] + mir);
+            mi[jdx] = mii >= 0 ? (uint64_t) mii : (uint64_t) (qVec[i] + mii);
         }
         qiNTTAndEqual(mi, i);
     }
@@ -1458,7 +1458,7 @@ void Context::leftRot(uint64_t* res, uint64_t* a, long l, long rotSlots) {
     // bitReverse((static_cast<uint32_t>(index_raw)
     //- 1)
     //>> 1) >> (32 - logN); 		for (long i = 0; i < l; ++i) {
-    //res[n
+    // res[n
     //+ (i
     //<< logN)] = a[index + (i << logN)];
     //		}

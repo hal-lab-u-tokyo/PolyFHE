@@ -1,0 +1,34 @@
+#pragma once
+
+#include <memory>
+#include <vector>
+
+#include "hifive/core/graph/graph.hpp"
+#include "hifive/core/logger.h"
+#include "hifive/engine/codegen/codegen_base.hpp"
+
+namespace hifive {
+namespace engine {
+class CodegenManager : public std::shared_ptr<CodegenBase> {
+public:
+    void set(std::shared_ptr<CodegenBase> pass_codegen) {
+        this->pass_codegen = pass_codegen;
+    }
+
+    bool run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
+        if (pass_codegen == nullptr) {
+            LOG_ERROR("Codegen is not set\n");
+            return false;
+        }
+        if (pass_codegen->run_on_graph(graph) == false) {
+            LOG_ERROR("Codegen failed\n");
+            return false;
+        }
+        return true;
+    }
+
+private:
+    std::shared_ptr<CodegenBase> pass_codegen;
+};
+} // namespace engine
+} // namespace hifive
