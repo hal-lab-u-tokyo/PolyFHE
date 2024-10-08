@@ -3,10 +3,13 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <vector>
 
 namespace hifive {
 namespace core {
 class Edge;
+
+enum class VariableType { U64, U64_PTR };
 class Node {
 public:
     Node(std::string op_type) : m_op_type(op_type), m_id(-1) {}
@@ -20,6 +23,9 @@ public:
     std::string get_op_name() { return m_op_type + std::to_string(m_id); }
     void set_id(int id) { m_id = id; }
     int get_id() { return m_id; }
+
+    std::vector<VariableType> get_input_types();
+    std::vector<VariableType> get_output_types();
 
 private:
     std::string m_op_type;

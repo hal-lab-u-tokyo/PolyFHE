@@ -12,6 +12,9 @@
   printf("\x1b[31m[ERROR][%s][%d][%s]\x1b[39m ", __FILE__, __LINE__, \
          __func__),                                                  \
       printf(__VA_ARGS__)
+#define LOG_WARN(...)                                                          \
+  printf("\x1b[32m[INFO][%s][%d][%s]\x1b[39m ", __FILE__, __LINE__, __func__), \
+      printf(__VA_ARGS__)
 #define LOG_INFO(...)                                                          \
   printf("\x1b[36m[INFO][%s][%d][%s]\x1b[39m ", __FILE__, __LINE__, __func__), \
       printf(__VA_ARGS__)

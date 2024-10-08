@@ -17,7 +17,7 @@ HDR=\
 	hifive/frontend/parser.hpp
 OBJ=$(SRC:.cpp=.o)
 
-CXXFLAGS=-std=c++17 -Wall -Wextra -pedantic -O2 -I./
+CXXFLAGS=-std=c++2a -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph
 BIN=build/cc-hifive
 
@@ -29,10 +29,10 @@ $(BIN): $(SRC) $(HDR) $(OBJ)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 dot:
-	dot -Tpng -o ./data/graph_fhe.png ./data/graph_fhe.dot
+	dot -Tpng -o ./data/graph_poly.png ./data/graph_poly.dot
 
 run: $(BIN)
-	./$(BIN) ./data/graph_fhe.dot
+	./$(BIN) ./data/graph_poly.dot
 	nvcc -o build/gen_cuda build/gen_cuda_main.cu
 	./build/gen_cuda
 
