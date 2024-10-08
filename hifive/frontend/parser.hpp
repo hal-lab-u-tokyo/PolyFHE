@@ -8,7 +8,6 @@
 namespace hifive {
 namespace frontend {
 
-void ParseDotToGraph(const std::string& dot,
-                     std::shared_ptr<hifive::core::Graph>& graph);
+std::shared_ptr<hifive::core::Graph> ParseDotToGraph(const std::string& dot);
 } // namespace frontend
 } // namespace hifive

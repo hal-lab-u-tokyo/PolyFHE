@@ -5,8 +5,7 @@
 
 namespace hifive {
 namespace engine {
-bool CudaCodegen::run_on_graph(
-    std::shared_ptr<hifive::core::Graph>& /*graph*/) {
+bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     LOG_INFO("Running CudaCodegen\n");
 
     CodeWriter w;
@@ -18,13 +17,24 @@ bool CudaCodegen::run_on_graph(
     w << "// cuda_init();\n\n";
 
     w << "// Input arguments\n";
-    // for graph->inputs
-    // gen cudaMallocHost
-    // gen cudaMalloc
-    // gen cudaMemcpy
+    std::shared_ptr<hifive::core::Node> init_node = graph->get_init_node();
+    for (auto edge : init_node->get_out_edges()) {
+        std::shared_ptr<hifive::core::Node> e = edge->get_dst();
+        w << "// Edge: " << init_node->get_op_name() << " -> "
+          << e->get_op_name() << "\n";
+        w << "uint64_t *input_" << e->get_op_name() << "_h;\n";
+        w << "uint64_t *input_" << e->get_op_name() << "_d;\n";
+    }
 
     w << "// Output arguments\n";
-    // as well for graph->outputs
+    std::shared_ptr<hifive::core::Node> exit_node = graph->get_exit_node();
+    for (auto edge : exit_node->get_in_edges()) {
+        std::shared_ptr<hifive::core::Node> e = edge->get_src();
+        w << "// Edge: " << e->get_op_name() << " -> "
+          << exit_node->get_op_name() << "\n";
+        w << "uint64_t *output_" << e->get_op_name() << "_h;\n";
+        w << "uint64_t *output_" << e->get_op_name() << "_d;\n";
+    }
 
     w.block_end();
 

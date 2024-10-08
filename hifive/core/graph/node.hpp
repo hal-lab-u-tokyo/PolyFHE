@@ -16,7 +16,8 @@ public:
     std::set<std::shared_ptr<Edge>> &get_in_edges() { return m_in_edges; }
     std::set<std::shared_ptr<Edge>> &get_out_edges() { return m_out_edges; }
 
-    std::string &get_op_name() { return m_op_type; }
+    std::string &get_op_type() { return m_op_type; }
+    std::string get_op_name() { return m_op_type + std::to_string(m_id); }
     void set_id(int id) { m_id = id; }
     int get_id() { return m_id; }
 
