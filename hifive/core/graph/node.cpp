@@ -1,6 +1,6 @@
 #include "hifive/core/graph/node.hpp"
 
-#include "hifive/core/logger.h"
+#include "hifive/core/logger.hpp"
 namespace hifive {
 namespace core {
 std::vector<VariableType> Node::get_input_types() {

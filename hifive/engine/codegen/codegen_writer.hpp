@@ -4,7 +4,7 @@
 #include <sstream>
 #include <string>
 
-#include "hifive/core/logger.h"
+#include "hifive/core/logger.hpp"
 
 namespace hifive {
 namespace engine {

@@ -3,7 +3,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graphviz.hpp>
 
-#include "hifive/core/logger.h"
+#include "hifive/core/logger.hpp"
 
 namespace hifive {
 namespace frontend {

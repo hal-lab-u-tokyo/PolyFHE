@@ -1,6 +1,6 @@
 #include "hifive/engine/pass/kernel_fusion_pass.hpp"
 
-#include "hifive/core/logger.h"
+#include "hifive/core/logger.hpp"
 
 namespace hifive {
 namespace engine {

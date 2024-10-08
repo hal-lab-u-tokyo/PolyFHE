@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "hifive/core/graph/graph.hpp"
-#include "hifive/core/logger.h"
+#include "hifive/core/logger.hpp"
 #include "hifive/engine/codegen/codegen_base.hpp"
 
 namespace hifive {

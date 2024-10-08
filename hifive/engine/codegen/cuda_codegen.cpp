@@ -1,6 +1,6 @@
 #include "hifive/engine/codegen/cuda_codegen.hpp"
 
-#include "hifive/core/logger.h"
+#include "hifive/core/logger.hpp"
 #include "hifive/engine/codegen/codegen_writer.hpp"
 
 namespace hifive {
