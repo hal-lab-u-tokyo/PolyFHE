@@ -33,12 +33,14 @@ std::string emit_signature(std::vector<hifive::core::VariableType> types,
 
 void CudaCodegen::emit_kernel(std::shared_ptr<hifive::core::Graph>& graph,
                               std::string filename) {
+    LOG_INFO("Start Emitting kernel\n");
     // Hash map to store the kernel signature
     m_cu_kernels = std::map<std::string, std::shared_ptr<CodeUnitKernel>>();
 
     // Iterate the graph and generate the kernel signature
     for (auto node : graph->get_nodes()) {
         std::string op_type = node->get_op_type();
+
         if (m_cu_kernels.contains(op_type)) {
             continue;
         }
@@ -52,16 +54,20 @@ void CudaCodegen::emit_kernel(std::shared_ptr<hifive::core::Graph>& graph,
 
         CodeWriter w;
         w << "// Define kernel for node: " << node->get_op_type() << "\n";
-        w << "// void " << cu->func_name << "(";
+        w << "__global__ void " << cu->func_name << "(";
         w << cu->input_signature;
         if (cu->input_signature.size() > 0 && cu->output_signature.size() > 0) {
             w << ", ";
         }
         w << cu->output_signature;
-        w << "){\n";
-        w << "// }\n";
+        w << ")";
+        w.block_begin();
+        w << "extern __shared__ uint64_t shared[];\n";
+        w.block_end();
+        w << "\n";
         w.write_to_file(filename, true);
     }
+    LOG_INFO("Finished Emitting kernel\n");
 }
 
 bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
