@@ -106,13 +106,18 @@ std::shared_ptr<hifive::core::Graph> ConvertDotToGraph(const graph_t& g_dot) {
         }
         for (auto it = boost::adjacent_vertices(i, g_dot);
              it.first != it.second; ++it.first) {
+            // Get destination node
             int j = *it.first;
             std::shared_ptr<hifive::core::Node> dst = visited[j];
             if (!dst) {
                 LOG_ERROR("Node %d not visited\n", j);
                 exit(1);
             }
-            graph_hifive->add_edge(src, dst);
+
+            // Get DotEdge
+            graph_t::edge_descriptor e = boost::edge(i, *it.first, g_dot).first;
+            DotEdge edge = g_dot[e];
+            graph_hifive->add_edge(src, dst, edge.label);
         }
     }
 

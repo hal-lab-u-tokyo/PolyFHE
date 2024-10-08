@@ -32,7 +32,9 @@ dot:
 	dot -Tpng -o ./data/graph_fhe.png ./data/graph_fhe.dot
 
 run: $(BIN)
-	./$(BIN)
+	./$(BIN) ./data/graph_fhe.dot
+	nvcc -o build/gen_cuda build/gen_cuda_main.cu
+	./build/gen_cuda
 
 format:
 	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i

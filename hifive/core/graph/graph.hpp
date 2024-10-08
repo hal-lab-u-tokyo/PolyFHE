@@ -11,6 +11,8 @@ namespace core {
 class Graph {
 public:
     void add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst);
+    void add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
+                  std::string label);
     void add_node(std::shared_ptr<Node> node);
 
     std::vector<std::shared_ptr<Node>> &get_nodes() { return m_nodes; }
