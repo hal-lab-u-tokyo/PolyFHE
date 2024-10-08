@@ -39,11 +39,15 @@ void CudaCodegen::emit_kernel(std::shared_ptr<hifive::core::Graph>& graph,
 
     // Iterate the graph and generate the kernel signature
     for (auto node : graph->get_nodes()) {
-        std::string op_type = node->get_op_type();
+        if (node == nullptr) {
+            continue;
+        }
 
+        std::string op_type = node->get_op_type();
         if (m_cu_kernels.contains(op_type)) {
             continue;
         }
+        LOG_INFO("Emitting kernel for node: %s\n", op_type.c_str());
 
         std::shared_ptr<CodeUnitKernel> cu = std::make_shared<CodeUnitKernel>();
         cu->op_type = node->get_op_type();

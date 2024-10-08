@@ -21,18 +21,44 @@ bool KernelFusionPass::run_on_graph(
             continue;
         }
         visited[node_idx] = true;
-
         auto node = graph->get_nodes()[node_idx];
-        LOG_INFO("Visiting node%d %s\n", node->get_id(),
-                 node->get_op_name().c_str());
+        LOG_INFO("Visiting node: %s\n", node->get_op_name().c_str());
+
+        // Fuse if one-to-one
+        if (node->get_access_pattern() ==
+            hifive::core::MemoryAccessPattern::ElementWise) {
+            auto edge_to_next = *node->get_out_edges().begin();
+            auto next_node = edge_to_next->get_dst();
+
+            // Check if next node is element-wise
+            if (next_node->get_access_pattern() !=
+                hifive::core::MemoryAccessPattern::ElementWise) {
+                continue;
+            }
+
+            // Fuse
+            auto fused_node = std::make_shared<hifive::core::FusedNode>();
+            fused_node->add_fused_node(node);
+            fused_node->add_fused_node(next_node);
+            fused_node->add_incoming(*node->get_in_edges().begin());
+            fused_node->add_outgoing(*next_node->get_out_edges().begin());
+
+            // Update edge
+            node->get_in_edges().begin()->get()->set_dst(fused_node);
+            next_node->get_in_edges().begin()->get()->set_src(fused_node);
+
+            // Update graph
+            graph->add_node(fused_node);
+            graph->remove_node(node);
+            graph->remove_node(next_node);
+        }
 
         for (auto edge : node->get_out_edges()) {
-            LOG_INFO("\tVisiting edge %s -> %s\n",
-                     edge->get_src()->get_op_name().c_str(),
-                     edge->get_dst()->get_op_name().c_str());
             stack.push_back(edge->get_dst()->get_id());
         }
     }
+
+    LOG_INFO("Number of nodes after fusion: %ld\n", graph->get_nodes().size());
     return true;
 }
 } // namespace engine

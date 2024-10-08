@@ -13,6 +13,8 @@ public:
         : m_src(src), m_dst(dst) {}
     std::shared_ptr<Node> get_src() { return m_src; }
     std::shared_ptr<Node> get_dst() { return m_dst; }
+    void set_src(std::shared_ptr<Node> src) { m_src = src; }
+    void set_dst(std::shared_ptr<Node> dst) { m_dst = dst; }
 
     void set_shape(std::vector<int> shape) { m_shape = shape; }
     int get_shape(size_t i) {
