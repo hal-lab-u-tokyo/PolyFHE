@@ -3,23 +3,23 @@
 #include "hifive/core/logger.hpp"
 namespace hifive {
 namespace core {
+
+Node::Node(std::string op_type) : m_op_type(op_type), m_id(-1) {}
+
 std::vector<VariableType> Node::get_input_types() {
     std::vector<VariableType> types;
-    if (m_op_type == "Add") {
+    // TODO: consider other types
+    for (auto edge : m_in_edges) {
         types.push_back(VariableType::U64_PTR);
-        types.push_back(VariableType::U64_PTR);
-    } else {
-        LOG_WARN("Node type not supported: %s\n", m_op_type.c_str());
     }
     return types;
 }
 
 std::vector<VariableType> Node::get_output_types() {
     std::vector<VariableType> types;
-    if (m_op_type == "Add") {
+    // TODO: consider other types
+    for (auto edge : m_out_edges) {
         types.push_back(VariableType::U64_PTR);
-    } else {
-        LOG_WARN("Node type not supported: %s\n", m_op_type.c_str());
     }
     return types;
 }

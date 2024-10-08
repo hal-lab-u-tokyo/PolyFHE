@@ -17,7 +17,7 @@ HDR=\
 	hifive/frontend/parser.hpp
 OBJ=$(SRC:.cpp=.o)
 
-CXXFLAGS=-std=c++2a -Wall -Wextra -pedantic -O2 -I./
+CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph
 BIN=build/cc-hifive
 
@@ -41,4 +41,4 @@ format:
 	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
 
 clean:
-	rm -rf $(BIN)
+	rm -rf $(BIN) $(OBJ)
