@@ -44,7 +44,6 @@ graph_t ParseDot(const std::string& dot) {
 }
 
 std::shared_ptr<hifive::core::Graph> ConvertDotToGraph(const graph_t& g_dot) {
-    // Convert to hifive graph
     std::shared_ptr<hifive::core::Graph> graph_hifive =
         std::make_shared<hifive::core::Graph>();
 
@@ -75,8 +74,18 @@ std::shared_ptr<hifive::core::Graph> ConvertDotToGraph(const graph_t& g_dot) {
         std::shared_ptr<hifive::core::Node> node =
             std::make_shared<hifive::core::Node>(g_dot[v].label);
         visited[v] = node;
-        if (node->get_op_name() == "Init") {
+        if (node->get_op_type() == "Init") {
+            if (graph_hifive->get_init_node()) {
+                LOG_ERROR("Multiple init nodes found\n");
+                exit(1);
+            }
             graph_hifive->set_init_node(node);
+        } else if (node->get_op_type() == "End") {
+            if (graph_hifive->get_exit_node()) {
+                LOG_ERROR("Multiple exit nodes found\n");
+                exit(1);
+            }
+            graph_hifive->set_exit_node(node);
         }
 
         // Add Node
@@ -97,23 +106,30 @@ std::shared_ptr<hifive::core::Graph> ConvertDotToGraph(const graph_t& g_dot) {
         }
         for (auto it = boost::adjacent_vertices(i, g_dot);
              it.first != it.second; ++it.first) {
+            // Get destination node
             int j = *it.first;
             std::shared_ptr<hifive::core::Node> dst = visited[j];
             if (!dst) {
                 LOG_ERROR("Node %d not visited\n", j);
                 exit(1);
             }
-            graph_hifive->add_edge(src, dst);
+
+            // Get DotEdge
+            graph_t::edge_descriptor e = boost::edge(i, *it.first, g_dot).first;
+            DotEdge edge = g_dot[e];
+            graph_hifive->add_edge(src, dst, edge.label);
         }
     }
 
     return graph_hifive;
 }
 
-void ParseDotToGraph(const std::string& dot,
-                     std::shared_ptr<hifive::core::Graph>& graph_hifive) {
+std::shared_ptr<hifive::core::Graph> ParseDotToGraph(const std::string& dot) {
     graph_t g_dot = ParseDot(dot);
-    graph_hifive = ConvertDotToGraph(g_dot);
+    std::shared_ptr<hifive::core::Graph> graph = ConvertDotToGraph(g_dot);
+    LOG_INFO("Successfully converted dot to graph, %ld nodes\n",
+             graph->get_nodes().size());
+    return graph;
 }
 
 } // namespace frontend

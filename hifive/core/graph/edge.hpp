@@ -14,6 +14,12 @@ public:
     std::shared_ptr<Node> get_src() { return m_src; }
     std::shared_ptr<Node> get_dst() { return m_dst; }
 
+    void set_shape(std::vector<int> shape) { m_shape = shape; }
+    int get_shape(size_t i) {
+        assert(i < m_shape.size());
+        return m_shape[i];
+    }
+
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;

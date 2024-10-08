@@ -7,15 +7,14 @@
 #include "hifive/frontend/parser.hpp"
 
 int main(int argc, char** argv) {
-    std::shared_ptr<hifive::core::Graph> graph =
-        std::make_shared<hifive::core::Graph>();
-
     // Parse Input Dot
     if (argc < 2) {
         LOG_ERROR("Usage: %s <input_dot>\n", argv[0]);
         exit(1);
     }
-    hifive::frontend::ParseDotToGraph(argv[1], graph);
+
+    std::shared_ptr<hifive::core::Graph> graph =
+        hifive::frontend::ParseDotToGraph(argv[1]);
 
     // Register Pass
     hifive::engine::PassManager pass_manager;
