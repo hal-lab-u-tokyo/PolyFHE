@@ -8,6 +8,9 @@
 #include "hifive/core/graph/node.hpp"
 namespace hifive {
 namespace core {
+
+enum class GraphType { FHE, Poly, Other };
+
 class Graph {
 public:
     void add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst);
@@ -40,10 +43,14 @@ public:
         return m_init_node->get_id();
     }
 
+    GraphType get_graph_type() { return m_graph_type; }
+    void set_graph_type(GraphType graph_type) { m_graph_type = graph_type; }
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     std::shared_ptr<Node> m_init_node;
     std::shared_ptr<Node> m_exit_node;
+    GraphType m_graph_type;
 };
 } // namespace core
 } // namespace hifive
