@@ -60,7 +60,6 @@ public:
     void add_fused_node(std::shared_ptr<Node> node) {
         m_fused_nodes.push_back(node);
         std::string op_type = get_op_type();
-        LOG_INFO("Fused node: %s\n", op_type.c_str());
         set_op_type(op_type);
     }
     std::string get_op_type() override {

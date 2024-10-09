@@ -18,6 +18,19 @@ public:
 
     std::vector<std::shared_ptr<Node>> &get_nodes() { return m_nodes; }
 
+    // Get the number of nodes in the graph.
+    // Don't use get_nodes().size() to get number of nodes
+    // because get_nodes().size() returns the number of nodes including nullptr
+    int get_nodes_size() {
+        int count = 0;
+        for (auto node : m_nodes) {
+            if (node != nullptr) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     void set_init_node(std::shared_ptr<Node> node) { m_init_node = node; }
     void set_exit_node(std::shared_ptr<Node> node) { m_exit_node = node; }
     std::shared_ptr<Node> get_init_node() { return m_init_node; }

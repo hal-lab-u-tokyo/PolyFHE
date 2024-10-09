@@ -9,7 +9,7 @@ bool KernelFusionPass::run_on_graph(
     LOG_INFO("Running KernelFusionPass\n");
 
     const int n = graph->get_nodes().size();
-    LOG_INFO("Number of nodes: %d\n", n);
+    LOG_INFO("Number of nodes before fusion: %d\n", graph->get_nodes_size());
     std::vector<bool> visited(n, false);
     std::vector<int> stack;
 
@@ -26,7 +26,6 @@ bool KernelFusionPass::run_on_graph(
             // Fused node is nullptr
             continue;
         }
-        LOG_INFO("Visiting node: %s\n", node->get_op_name().c_str());
 
         // Fuse if one-to-one
         if (node->get_access_pattern() ==
@@ -44,6 +43,7 @@ bool KernelFusionPass::run_on_graph(
             auto fused_node = std::make_shared<hifive::core::FusedNode>();
             fused_node->add_fused_node(node);
             fused_node->add_fused_node(next_node);
+
             // TODO: rethinking the edge management
             for (auto edge : node->get_in_edges()) {
                 fused_node->add_incoming(edge);
@@ -70,6 +70,9 @@ bool KernelFusionPass::run_on_graph(
             graph->add_node(fused_node);
             graph->remove_node(node);
             graph->remove_node(next_node);
+            LOG_INFO("Fused %s + %s -> %s\n", node->get_op_name().c_str(),
+                     next_node->get_op_name().c_str(),
+                     fused_node->get_op_name().c_str());
         }
 
         for (auto edge : node->get_out_edges()) {
@@ -77,7 +80,8 @@ bool KernelFusionPass::run_on_graph(
         }
     }
 
-    LOG_INFO("Number of nodes after fusion: %ld\n", graph->get_nodes().size());
+    LOG_IMPORTANT("Number of nodes after fusion: %d\n",
+                  graph->get_nodes_size());
     return true;
 }
 } // namespace engine
