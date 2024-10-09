@@ -48,6 +48,16 @@ bool KernelFusionPass::run_on_graph(
             for (auto edge : node->get_in_edges()) {
                 fused_node->add_incoming(edge);
             }
+            for (auto edge : node->get_out_edges()) {
+                if (edge->get_dst() != next_node) {
+                    fused_node->add_outgoing(edge);
+                }
+            }
+            for (auto edge : next_node->get_in_edges()) {
+                if (edge->get_src() != node) {
+                    fused_node->add_incoming(edge);
+                }
+            }
             for (auto edge : next_node->get_out_edges()) {
                 fused_node->add_outgoing(edge);
             }
