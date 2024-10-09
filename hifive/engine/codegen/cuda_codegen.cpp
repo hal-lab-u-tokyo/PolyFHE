@@ -47,7 +47,6 @@ void CudaCodegen::emit_kernel(std::shared_ptr<hifive::core::Graph>& graph,
         if (m_cu_kernels.contains(op_type)) {
             continue;
         }
-        LOG_INFO("Emitting kernel for node: %s\n", op_type.c_str());
 
         std::shared_ptr<CodeUnitKernel> cu = std::make_shared<CodeUnitKernel>();
         cu->op_type = node->get_op_type();
@@ -71,7 +70,6 @@ void CudaCodegen::emit_kernel(std::shared_ptr<hifive::core::Graph>& graph,
         w << "\n";
         w.write_to_file(filename, true);
     }
-    LOG_INFO("Finished Emitting kernel\n");
 }
 
 bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {

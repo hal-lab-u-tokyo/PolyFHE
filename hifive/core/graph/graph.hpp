@@ -14,16 +14,22 @@ public:
     void add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
                   std::string label);
     void add_node(std::shared_ptr<Node> node);
-    void remove_node(std::shared_ptr<Node> node) {
-        for (auto it = m_nodes.begin(); it != m_nodes.end(); it++) {
-            if (*it == node) {
-                m_nodes.erase(it);
-                break;
-            }
-        }
-    }
+    void remove_node(std::shared_ptr<Node> node);
 
     std::vector<std::shared_ptr<Node>> &get_nodes() { return m_nodes; }
+
+    // Get the number of nodes in the graph.
+    // Don't use get_nodes().size() to get number of nodes
+    // because get_nodes().size() returns the number of nodes including nullptr
+    int get_nodes_size() {
+        int count = 0;
+        for (auto node : m_nodes) {
+            if (node != nullptr) {
+                count++;
+            }
+        }
+        return count;
+    }
 
     void set_init_node(std::shared_ptr<Node> node) { m_init_node = node; }
     void set_exit_node(std::shared_ptr<Node> node) { m_exit_node = node; }

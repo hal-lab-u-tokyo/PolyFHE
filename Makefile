@@ -2,6 +2,7 @@ SRC=\
 	hifive/core/graph/graph.cpp \
 	hifive/core/graph/node.cpp \
 	hifive/engine/codegen/cuda_codegen.cpp \
+	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
 	hifive/engine/pass/kernel_fusion_pass.cpp \
 	hifive/frontend/parser.cpp \
 	hifive/tools/hifive.cpp
@@ -9,10 +10,12 @@ SRC=\
 HDR=\
 	hifive/core/graph/graph.hpp \
 	hifive/core/graph/node.hpp \
+	hifive/core/logger.hpp \
 	hifive/engine/codegen/codegen_base.hpp \
 	hifive/engine/codegen/codegen_manager.hpp \
 	hifive/engine/codegen/codegen_writer.hpp \
 	hifive/engine/codegen/cuda_codegen.hpp \
+	hifive/engine/pass/calculate_memory_traffic_pass.hpp \
 	hifive/engine/pass/kernel_fusion_pass.hpp \
 	hifive/frontend/parser.hpp
 OBJ=$(SRC:.cpp=.o)
