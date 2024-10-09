@@ -17,15 +17,21 @@ public:
     void set_dst(std::shared_ptr<Node> dst) { m_dst = dst; }
 
     void set_shape(std::vector<int> shape) { m_shape = shape; }
-    int get_shape(size_t i) {
-        assert(i < m_shape.size());
-        return m_shape[i];
-    }
+    std::vector<int> get_shape() { return m_shape; }
+    int get_size_in_byte() { return get_size() * sizeof(uint64_t); }
 
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;
     std::vector<int> m_shape;
+
+    int get_size() {
+        int size = 1;
+        for (auto s : m_shape) {
+            size *= s;
+        }
+        return size;
+    }
 };
 } // namespace core
 } // namespace hifive
