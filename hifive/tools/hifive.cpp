@@ -2,6 +2,7 @@
 #include "hifive/core/logger.hpp"
 #include "hifive/engine/codegen/codegen_manager.hpp"
 #include "hifive/engine/codegen/cuda_codegen.hpp"
+#include "hifive/engine/pass/calculate_memory_traffic_pass.hpp"
 #include "hifive/engine/pass/kernel_fusion_pass.hpp"
 #include "hifive/engine/pass/pass_manager.hpp"
 #include "hifive/frontend/parser.hpp"
@@ -18,8 +19,16 @@ int main(int argc, char** argv) {
 
     // Register Pass
     hifive::engine::PassManager pass_manager;
+
+    // Memory Traffic of original graph
+    pass_manager.push_back(
+        std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
+    // Kernel Fusion
     pass_manager.push_back(
         std::make_shared<hifive::engine::KernelFusionPass>());
+    // Memory Traffic of optimized graph
+    pass_manager.push_back(
+        std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
 
     // Run PassManager
     pass_manager.run_on_graph(graph);

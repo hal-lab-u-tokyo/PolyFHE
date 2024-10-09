@@ -43,5 +43,18 @@ void Graph::add_node(std::shared_ptr<Node> node) {
     m_nodes.push_back(node);
     node->set_id(id);
 }
+
+void Graph::remove_node(std::shared_ptr<Node> node) {
+    for (auto it = m_nodes.begin(); it != m_nodes.end(); it++) {
+        if (*it == node) {
+            // Since node_id is the index of the node in m_nodes,
+            // we don't remove() the node from m_nodes to avoid
+            // updating the node_id of other nodes.
+            *it = nullptr;
+            break;
+        }
+    }
+}
+
 } // namespace core
 } // namespace hifive

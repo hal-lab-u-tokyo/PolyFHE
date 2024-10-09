@@ -22,6 +22,10 @@ bool KernelFusionPass::run_on_graph(
         }
         visited[node_idx] = true;
         auto node = graph->get_nodes()[node_idx];
+        if (node == nullptr) {
+            // Fused node is nullptr
+            continue;
+        }
         LOG_INFO("Visiting node: %s\n", node->get_op_name().c_str());
 
         // Fuse if one-to-one
