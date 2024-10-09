@@ -24,6 +24,7 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,
                               DotNode, DotEdge>
     graph_t;
 
-std::shared_ptr<hifive::core::Graph> ParseDotToGraph(const std::string& dot);
+std::shared_ptr<hifive::core::Graph> ParseDotToGraph(
+    const std::string& dot, hifive::core::GraphType graph_type);
 } // namespace frontend
 } // namespace hifive

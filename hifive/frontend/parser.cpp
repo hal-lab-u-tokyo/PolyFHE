@@ -26,7 +26,8 @@ graph_t ParseDot(const std::string& dot) {
     return g_dot;
 }
 
-std::shared_ptr<hifive::core::Graph> ConvertDotToGraph(const graph_t& g_dot) {
+std::shared_ptr<hifive::core::Graph> ConvertDotToGraph(
+    const graph_t& g_dot, hifive::core::GraphType graph_type) {
     std::shared_ptr<hifive::core::Graph> graph_hifive =
         std::make_shared<hifive::core::Graph>();
 
@@ -104,12 +105,15 @@ std::shared_ptr<hifive::core::Graph> ConvertDotToGraph(const graph_t& g_dot) {
         }
     }
 
+    graph_hifive->set_graph_type(graph_type);
     return graph_hifive;
 }
 
-std::shared_ptr<hifive::core::Graph> ParseDotToGraph(const std::string& dot) {
+std::shared_ptr<hifive::core::Graph> ParseDotToGraph(
+    const std::string& dot, hifive::core::GraphType graph_type) {
     graph_t g_dot = ParseDot(dot);
-    std::shared_ptr<hifive::core::Graph> graph = ConvertDotToGraph(g_dot);
+    std::shared_ptr<hifive::core::Graph> graph =
+        ConvertDotToGraph(g_dot, graph_type);
     LOG_INFO("Successfully converted dot to graph, %ld nodes\n",
              graph->get_nodes().size());
     return graph;

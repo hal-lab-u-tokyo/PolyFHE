@@ -1,3 +1,5 @@
+#include <boost/program_options.hpp>
+
 #include "hifive/core/graph/graph.hpp"
 #include "hifive/core/logger.hpp"
 #include "hifive/engine/codegen/codegen_manager.hpp"
@@ -7,15 +9,54 @@
 #include "hifive/engine/pass/pass_manager.hpp"
 #include "hifive/frontend/parser.hpp"
 
-int main(int argc, char** argv) {
-    // Parse Input Dot
-    if (argc < 2) {
-        LOG_ERROR("Usage: %s <input_dot>\n", argv[0]);
+struct Config {
+    std::string input_file;
+    hifive::core::GraphType type;
+};
+
+Config define_and_parse_arguments(int argc, char** argv) {
+    Config config;
+    boost::program_options::options_description desc("Hifive Options");
+    desc.add_options()("help,h", "Print help message")(
+        "input,i", boost::program_options::value<std::string>(),
+        "Input dot file");
+
+    boost::program_options::variables_map vm;
+    boost::program_options::store(
+        boost::program_options::parse_command_line(argc, argv, desc), vm);
+    boost::program_options::notify(vm);
+
+    if (vm.count("help")) {
+        std::cout << desc << std::endl;
         exit(1);
     }
 
+    if (!vm.count("input")) {
+        LOG_ERROR("Input file is required\n");
+        exit(1);
+    }
+    config.input_file = vm["input"].as<std::string>();
+
+    // Set Graph Type
+    // If `input` argument contains `fhe`, then the graph is
+    // core::GraphType::FHE Else if it contains `poly`, then the graph is
+    // core::GraphType::Poly Otherwise, the graph is core::GraphType::Other
+    if (config.input_file.find("fhe") != std::string::npos) {
+        config.type = hifive::core::GraphType::FHE;
+    } else if (config.input_file.find("poly") != std::string::npos) {
+        config.type = hifive::core::GraphType::Poly;
+    } else {
+        config.type = hifive::core::GraphType::Other;
+    }
+
+    return config;
+}
+
+int main(int argc, char** argv) {
+    Config config = define_and_parse_arguments(argc, argv);
+
     std::shared_ptr<hifive::core::Graph> graph =
-        hifive::frontend::ParseDotToGraph(argv[1]);
+        hifive::frontend::ParseDotToGraph(config.input_file, config.type);
 
     // Register Pass
     hifive::engine::PassManager pass_manager;
