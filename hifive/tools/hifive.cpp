@@ -1,5 +1,5 @@
 #include "hifive/core/graph/graph.hpp"
-#include "hifive/core/logger.h"
+#include "hifive/core/logger.hpp"
 #include "hifive/engine/codegen/codegen_manager.hpp"
 #include "hifive/engine/codegen/cuda_codegen.hpp"
 #include "hifive/engine/pass/kernel_fusion_pass.hpp"

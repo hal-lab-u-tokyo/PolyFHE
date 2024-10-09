@@ -1,6 +1,6 @@
 #include "hifive/core/graph/graph.hpp"
 
-#include "hifive/core/logger.h"
+#include "hifive/core/logger.hpp"
 
 namespace hifive {
 namespace core {

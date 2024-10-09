@@ -14,6 +14,14 @@ public:
     void add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
                   std::string label);
     void add_node(std::shared_ptr<Node> node);
+    void remove_node(std::shared_ptr<Node> node) {
+        for (auto it = m_nodes.begin(); it != m_nodes.end(); it++) {
+            if (*it == node) {
+                m_nodes.erase(it);
+                break;
+            }
+        }
+    }
 
     std::vector<std::shared_ptr<Node>> &get_nodes() { return m_nodes; }
 
