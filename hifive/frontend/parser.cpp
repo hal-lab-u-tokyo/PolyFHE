@@ -1,26 +1,9 @@
 #include "hifive/frontend/parser.hpp"
 
-#include <boost/graph/adjacency_list.hpp>
-#include <boost/graph/graphviz.hpp>
-
 #include "hifive/core/logger.hpp"
 
 namespace hifive {
 namespace frontend {
-
-struct DotNode {
-    std::string name;
-    std::string label;
-    int peripheries;
-};
-
-struct DotEdge {
-    std::string label;
-};
-
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,
-                              DotNode, DotEdge>
-    graph_t;
 
 graph_t ParseDot(const std::string& dot) {
     LOG_INFO("Parsing %s\n", dot.c_str());

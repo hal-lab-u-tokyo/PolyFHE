@@ -1,6 +1,7 @@
 #include "hifive/engine/pass/kernel_fusion_pass.hpp"
 
 #include "hifive/core/logger.hpp"
+#include "hifive/frontend/exporter.hpp"
 
 namespace hifive {
 namespace engine {
@@ -47,24 +48,24 @@ bool KernelFusionPass::run_on_graph(
             // TODO: rethinking the edge management
             for (auto edge : node->get_in_edges()) {
                 fused_node->add_incoming(edge);
-            }
-            for (auto edge : node->get_out_edges()) {
-                if (edge->get_dst() != next_node) {
-                    fused_node->add_outgoing(edge);
-                }
+                edge->set_dst(fused_node);
             }
             for (auto edge : next_node->get_in_edges()) {
                 if (edge->get_src() != node) {
                     fused_node->add_incoming(edge);
+                    edge->set_dst(fused_node);
+                }
+            }
+            for (auto edge : node->get_out_edges()) {
+                if (edge->get_dst() != next_node) {
+                    fused_node->add_outgoing(edge);
+                    edge->set_src(fused_node);
                 }
             }
             for (auto edge : next_node->get_out_edges()) {
                 fused_node->add_outgoing(edge);
+                edge->set_src(fused_node);
             }
-
-            // Update edge
-            node->get_in_edges().begin()->get()->set_dst(fused_node);
-            next_node->get_in_edges().begin()->get()->set_src(fused_node);
 
             // Update graph
             graph->add_node(fused_node);
@@ -82,6 +83,7 @@ bool KernelFusionPass::run_on_graph(
 
     LOG_IMPORTANT("Number of nodes after fusion: %d\n",
                   graph->get_nodes_size());
+    hifive::frontend::export_graph_to_dot(graph, "build/graph_fused.dot");
     return true;
 }
 } // namespace engine
