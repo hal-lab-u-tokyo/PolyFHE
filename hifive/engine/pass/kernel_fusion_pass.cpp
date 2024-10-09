@@ -40,8 +40,13 @@ bool KernelFusionPass::run_on_graph(
             auto fused_node = std::make_shared<hifive::core::FusedNode>();
             fused_node->add_fused_node(node);
             fused_node->add_fused_node(next_node);
-            fused_node->add_incoming(*node->get_in_edges().begin());
-            fused_node->add_outgoing(*next_node->get_out_edges().begin());
+            // TODO: rethinking the edge management
+            for (auto edge : node->get_in_edges()) {
+                fused_node->add_incoming(edge);
+            }
+            for (auto edge : next_node->get_out_edges()) {
+                fused_node->add_outgoing(edge);
+            }
 
             // Update edge
             node->get_in_edges().begin()->get()->set_dst(fused_node);
