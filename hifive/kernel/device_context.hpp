@@ -5,7 +5,7 @@
 
 class DeviceContext {
 public:
-    DeviceContext() = default;
+    DeviceContext();
 
     // Encryption parameters
     long logN;  ///< Logarithm of Ring Dimension

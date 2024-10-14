@@ -94,7 +94,7 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w << "int main(int argc, char *argv[])";
     w.block_begin();
     w << "std::cout << \"Starting Benchmarking...\" << std::endl;\n";
-    w << "// cuda_init();\n\n";
+    w << "DeviceContext dc;\n\n";
 
     w << "// Input arguments\n";
     std::shared_ptr<hifive::core::Node> init_node = graph->get_init_node();

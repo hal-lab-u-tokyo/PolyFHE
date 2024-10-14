@@ -20,7 +20,7 @@ HDR=\
 	hifive/engine/pass/kernel_fusion_pass.hpp \
 	hifive/frontend/exporter.hpp \
 	hifive/frontend/parser.hpp
-SRC_RUNTIME=
+
 OBJ=$(SRC:.cpp=.o)
 
 CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
@@ -38,10 +38,16 @@ dot:
 	dot -Tpng -o ./data/graph_poly.png ./data/graph_poly.dot
 	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;
 
+SRC_RUNTIME=\
+	hifive/kernel/device_context.cu
+CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./hifive/kernel/FullRNS-HEAAN/src/ -I./
+LDFLAGS_RUNTIME=-L./hifive/kernel/FullRNS-HEAAN/lib/ -lFRNSHEAAN
+BIN_RUNTIME=build/gen_cuda
+
 run: $(BIN)
 	./$(BIN) -i ./data/graph_poly.dot
-	nvcc -o build/gen_cuda build/gen_cuda_main.cu ${SRC_RUNTIME} -I./
-	./build/gen_cuda
+	nvcc -o $(BIN_RUNTIME) build/gen_cuda_main.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./$(BIN_RUNTIME)
 	make dot
 
 format:
