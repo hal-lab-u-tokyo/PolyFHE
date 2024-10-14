@@ -20,6 +20,7 @@ HDR=\
 	hifive/engine/pass/kernel_fusion_pass.hpp \
 	hifive/frontend/exporter.hpp \
 	hifive/frontend/parser.hpp
+SRC_RUNTIME=
 OBJ=$(SRC:.cpp=.o)
 
 CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
@@ -39,7 +40,7 @@ dot:
 
 run: $(BIN)
 	./$(BIN) -i ./data/graph_poly.dot
-	nvcc -o build/gen_cuda build/gen_cuda_main.cu
+	nvcc -o build/gen_cuda build/gen_cuda_main.cu ${SRC_RUNTIME} -I./
 	./build/gen_cuda
 	make dot
 

@@ -58,8 +58,12 @@ void CudaCodegen::emit_kernel(std::shared_ptr<hifive::core::Graph>& graph,
         CodeWriter w;
         w << "// Define kernel for node: " << node->get_op_type() << "\n";
         w << "__global__ void " << cu->func_name << "(";
+        w << "DeviceContext *dc";
+        if (cu->input_signature.size() > 0) {
+            w << ", ";
+        }
         w << cu->input_signature;
-        if (cu->input_signature.size() > 0 && cu->output_signature.size() > 0) {
+        if (cu->output_signature.size() > 0) {
             w << ", ";
         }
         w << cu->output_signature;
@@ -81,6 +85,7 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w_include << "#include <cuda.h>\n";
     w_include << "#include <cuda_runtime.h>\n";
     w_include << "#include <iostream>\n\n";
+    w_include << "#include \"hifive/kernel/device_context.hpp\"\n\n";
     w_include.write_to_file(filename);
 
     emit_kernel(graph, filename);
