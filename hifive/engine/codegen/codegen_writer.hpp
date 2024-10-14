@@ -56,6 +56,10 @@ public:
         *this << "}\n";
     }
 
+    void indent_inc() { indent++; }
+
+    void indent_dec() { indent--; }
+
     void write_to_file(const std::string& filename, const bool append = false) {
         auto flag = append ? std::ios_base::out | std::ios_base::app
                            : std::ios_base::out;

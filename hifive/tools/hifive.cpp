@@ -65,8 +65,8 @@ int main(int argc, char** argv) {
     pass_manager.push_back(
         std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
     // Kernel Fusion
-    pass_manager.push_back(
-        std::make_shared<hifive::engine::KernelFusionPass>());
+    // pass_manager.push_back(
+    //    std::make_shared<hifive::engine::KernelFusionPass>());
     // Memory Traffic of optimized graph
     pass_manager.push_back(
         std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
