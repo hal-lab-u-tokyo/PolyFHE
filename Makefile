@@ -46,7 +46,7 @@ BIN_RUNTIME=build/gen_cuda
 
 run: $(BIN)
 	./$(BIN) -i ./data/graph_poly.dot
-	nvcc -o $(BIN_RUNTIME) build/gen_cuda_main.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
 

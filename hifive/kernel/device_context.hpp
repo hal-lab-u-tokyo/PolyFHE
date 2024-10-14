@@ -1,10 +1,32 @@
 #pragma once
 
+#include <cuda_runtime.h>
+
+#include <cassert>
 #include <complex>
 #include <cstdint>
 
+#include "hifive/core/logger.hpp"
+#include "hifive/kernel/FullRNS-HEAAN/src/Context.h"
+
+#define checkCudaErrors(err) __checkCudaErrors(err, __FILE__, __LINE__)
+
+void __checkCudaErrors(cudaError_t err, const char* filename, int line);
+inline void __checkCudaErrors(cudaError_t err, const char* filename, int line) {
+    assert(filename);
+    if (cudaSuccess != err) {
+        const char* ename = cudaGetErrorName(err);
+        LOG_ERROR(
+            "CUDA API Error %04d: \"%s\" from file <%s>, "
+            "line %i.\n",
+            err, ((ename != NULL) ? ename : "Unknown"), filename, line);
+        exit(err);
+    }
+}
+
 class DeviceContext {
 public:
+    // TODO: Add constructor receiving parameters
     DeviceContext();
 
     // Encryption parameters
@@ -91,4 +113,7 @@ public:
     uint64_t* p2coeff;
     uint64_t* pccoeff;
     uint64_t* p2hcoeff;
+
+private:
+    void set_params(Context& context);
 };
