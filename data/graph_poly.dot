@@ -3,9 +3,9 @@ Init[label="Init"];
 HAdd0[label="Add"];
 HAdd1[label="Add"];
 End[label="End"];
-Init->HAdd0[label="8192_20"];
-Init->HAdd0[label="8192_20"];
-HAdd0->HAdd1[label="8192_20"];
-Init->HAdd1[label="8192_20"];
-HAdd1->End[label="8192_20"];
+Init->HAdd0[label="65536_20"];
+Init->HAdd0[label="65536_20"];
+HAdd0->HAdd1[label="65536_20"];
+Init->HAdd1[label="65536_20"];
+HAdd1->End[label="65536_20"];
 }

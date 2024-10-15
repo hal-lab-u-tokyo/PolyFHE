@@ -204,14 +204,15 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                 outedge_map[edge_name] = 1;
             }
             w << "uint64_t *" << edge_name << ";\n";
-            w << "checkCudaErrors(cudaMalloc((void **)&" << edge_name
-              << ", sizeof(uint64_t) * " << edge->get_shape(0) << " * "
-              << edge->get_shape(1) << "));\n";
-            w_body << edge_name << ", ";
-            outedge_names.push_back(edge_name);
             if (node->get_op_type() == "Init") {
                 graph_input_edges.push_back(edge_name);
+            } else {
+                w << "checkCudaErrors(cudaMalloc((void **)&" << edge_name
+                  << ", sizeof(uint64_t) * " << edge->get_shape(0) << " * "
+                  << edge->get_shape(1) << "));\n";
             }
+            w_body << edge_name << ", ";
+            outedge_names.push_back(edge_name);
         }
         w_body << "\n";
         w_body << "//\t inputs: ";
@@ -259,7 +260,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
 
     w << "\n// Combine input edges\n";
     for (int i = 0; i < n_inedge; i++) {
-        w << "// " << graph_input_edges[i] << " = in" << i << ";\n";
+        w << graph_input_edges[i] << " = in" << i << ";\n";
     }
 
     // TODO: Consider which buffer to use for output
@@ -322,7 +323,7 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w.block_begin();
     w << "std::cout << \"Starting Benchmarking...\" << std::endl;\n";
     w << "DeviceContext dc;\n";
-    w << "const int N = 8192;\n";
+    w << "const int N = 65535;\n";
     w << "const int L = 20;\n\n";
 
     std::vector<std::string> input_args;

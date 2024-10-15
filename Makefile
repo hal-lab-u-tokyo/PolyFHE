@@ -67,4 +67,5 @@ format:
 	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
 
 clean:
+	rm -rf build
 	rm -rf $(BIN) $(OBJ)
