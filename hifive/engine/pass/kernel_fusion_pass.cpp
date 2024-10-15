@@ -8,6 +8,8 @@ namespace engine {
 bool KernelFusionPass::run_on_graph(
     std::shared_ptr<hifive::core::Graph>& graph) {
     LOG_INFO("Running KernelFusionPass\n");
+    hifive::frontend::export_graph_to_dot(
+        graph, "build/graph_before_kernel_fusion_pass.dot");
 
     const int n = graph->get_nodes().size();
     LOG_INFO("Number of nodes before fusion: %d\n", graph->get_nodes_size());
@@ -83,7 +85,8 @@ bool KernelFusionPass::run_on_graph(
 
     LOG_IMPORTANT("Number of nodes after fusion: %d\n",
                   graph->get_nodes_size());
-    hifive::frontend::export_graph_to_dot(graph, "build/graph_fused.dot");
+    hifive::frontend::export_graph_to_dot(
+        graph, "build/graph_after_kernel_fusion_pass.dot");
     return true;
 }
 } // namespace engine
