@@ -91,11 +91,19 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                                  const bool if_append) {
     LOG_INFO("Start Generate entry kernel\n");
     CodeWriter w, w_body;
+    const int n_inedge = graph->get_init_node()->get_out_edges().size();
+    const int n_outedge = graph->get_exit_node()->get_in_edges().size();
 
     // Signature
     std::string arg = "DeviceContext *dc";
+    for (int i = 0; i < n_inedge; i++) {
+        arg += ", uint64_t *in" + std::to_string(i);
+    }
+    for (int i = 0; i < n_outedge; i++) {
+        arg += ", uint64_t *out" + std::to_string(i);
+    }
 
-    w << "void entry_kernel(DeviceContext *dc){\n";
+    w << "void entry_kernel(" << arg << "){\n";
     w.indent_inc();
     w_body.indent_inc();
 
@@ -107,8 +115,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     stack.push_back(graph->get_init_node_id());
 
     w << "cout << \"Start: entry_kernel...\" << endl;\n\n";
+
     w << "// Define each node's output edges\n\n";
     w_body << "\n// Call kernels\n";
+    std::vector<std::string> graph_input_edges;
+    std::vector<std::string> graph_output_edges;
 
     while (!stack.empty()) {
         int node_idx = stack.back();
@@ -147,6 +158,9 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
             w << "uint64_t *" << edge_name << " = nullptr;\n";
             w_body << edge_name << ", ";
             outedge_names.push_back(edge_name);
+            if (node->get_op_type() == "Init") {
+                graph_input_edges.push_back(edge_name);
+            }
         }
         w_body << "\n";
         w_body << "//\t inputs: ";
@@ -163,6 +177,9 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
             }
             w_body << edge_name << ", ";
             inedge_names.push_back(edge_name);
+            if (node->get_op_type() == "End") {
+                graph_output_edges.push_back(edge_name);
+            }
         }
         w_body << "\n";
 
@@ -178,7 +195,8 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                 args += ", " + edge_name;
             }
             w_body << "kernel_" << node->get_op_type() << "<<<1024, 1024>>>"
-                   << "(" << args << ");\n\n";
+                   << "(" << args << ");\n";
+            w_body << "checkCudaErrors(cudaDeviceSynchronize());\n\n";
         }
 
         // Update the stack
@@ -186,6 +204,17 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
             stack.push_back(edge->get_dst()->get_id());
         }
     }
+
+    w << "\n// Combine input edges\n";
+    for (int i = 0; i < n_inedge; i++) {
+        w << graph_input_edges[i] << " = in" << i << ";\n";
+    }
+
+    w_body << "\n// Combine output edges\n";
+    for (int i = 0; i < n_outedge; i++) {
+        w_body << "out" << i << " = " << graph_output_edges[i] << ";\n";
+    }
+
     w.indent_dec();
     w_body.indent_dec();
     w_body << "}\n\n";
@@ -280,7 +309,7 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     for (auto arg : output_args) {
         input_args_str += ", " + arg;
     }
-    w << "// entry_kernel(" << input_args_str << ");\n";
+    w << "entry_kernel(" << input_args_str << ");\n";
 
     w << "std::cout << \"Finished Benchmarking...\" << std::endl;\n";
     w.block_end();
