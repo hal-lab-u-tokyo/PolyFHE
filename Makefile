@@ -40,8 +40,9 @@ dot:
 	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;
 
 SRC_RUNTIME=\
-	hifive/kernel/device_context.cu
-CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./hifive/kernel/FullRNS-HEAAN/src/ -I./
+	hifive/kernel/device_context.cu \
+	hifive/kernel/polynomial.cu
+CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./hifive/kernel/FullRNS-HEAAN/src/ -I./  --relocatable-device-code true
 LDFLAGS_RUNTIME=-L./hifive/kernel/FullRNS-HEAAN/lib/ -lFRNSHEAAN
 BIN_RUNTIME=build/gen_cuda
 
@@ -66,4 +67,5 @@ format:
 	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
 
 clean:
+	rm -rf build
 	rm -rf $(BIN) $(OBJ)
