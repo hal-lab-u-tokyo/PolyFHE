@@ -1,5 +1,7 @@
 #include "hifive/engine/codegen/cuda_codegen.hpp"
 
+#include <unordered_map>
+
 #include "hifive/core/logger.hpp"
 #include "hifive/engine/codegen/codegen_writer.hpp"
 
@@ -47,6 +49,10 @@ void CudaCodegen::generate_kernel_defs(
 
         std::string op_type = node->get_op_type();
         if (m_cu_kernels.contains(op_type)) {
+            continue;
+        }
+
+        if ((op_type == "Init") | (op_type == "End")) {
             continue;
         }
 
@@ -118,23 +124,61 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         }
 
         w << "// " << node->get_op_name() << "'s output\n";
-        w_body << "// Call " << node->get_op_type() << " for node "
-               << node->get_op_name() << "\n";
-        if (node->get_op_type() != "Init") {
-            w_body << "// kernel_" << node->get_op_type() << "<<<1024, 1024>>>"
-                   << "(dc);\n";
-        }
+        w_body << "// " << node->get_op_type() << "(" << node->get_op_name()
+               << ")\n";
 
         // define output edge
-        int i = 0;
+        std::unordered_map<std::string, int> inedge_map;
+        std::unordered_map<std::string, int> outedge_map;
+        std::vector<std::string> inedge_names;
+        std::vector<std::string> outedge_names;
+        w_body << "//\t outputs: ";
         for (auto edge : node->get_out_edges()) {
             auto src = edge->get_src();
             auto dst = edge->get_dst();
-            std::string edge_name = "edge_" + src->get_op_name() + "_" +
-                                    std::to_string(i) + "_" +
-                                    dst->get_op_name();
-            w << "uint64_t *" << edge_name << ";\n";
-            i++;
+            std::string edge_name =
+                "edge_" + src->get_op_name() + "_" + dst->get_op_name();
+            if (outedge_map.contains(edge_name)) {
+                outedge_map[edge_name]++;
+                edge_name += "_" + std::to_string(outedge_map[edge_name]);
+            } else {
+                outedge_map[edge_name] = 1;
+            }
+            w << "uint64_t *" << edge_name << " = nullptr;\n";
+            w_body << edge_name << ", ";
+            outedge_names.push_back(edge_name);
+        }
+        w_body << "\n";
+        w_body << "//\t inputs: ";
+        for (auto edge : node->get_in_edges()) {
+            auto src = edge->get_src();
+            auto dst = edge->get_dst();
+            std::string edge_name =
+                "edge_" + src->get_op_name() + "_" + dst->get_op_name();
+            if (inedge_map.contains(edge_name)) {
+                inedge_map[edge_name]++;
+                edge_name += "_" + std::to_string(inedge_map[edge_name]);
+            } else {
+                inedge_map[edge_name] = 1;
+            }
+            w_body << edge_name << ", ";
+            inedge_names.push_back(edge_name);
+        }
+        w_body << "\n";
+
+        // Call the kernel
+        if ((node->get_op_type() == "Init") | (node->get_op_type() == "End")) {
+            w_body << "// Nothing to call\n\n";
+        } else {
+            std::string args = "dc";
+            for (auto edge_name : inedge_names) {
+                args += ", " + edge_name;
+            }
+            for (auto edge_name : outedge_names) {
+                args += ", " + edge_name;
+            }
+            w_body << "kernel_" << node->get_op_type() << "<<<1024, 1024>>>"
+                   << "(" << args << ");\n\n";
         }
 
         // Update the stack
@@ -185,10 +229,10 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     int i = 0;
     for (auto edge : init_node->get_out_edges()) {
         std::shared_ptr<hifive::core::Node> e = edge->get_dst();
-        std::string name_h = "edge_" + init_node->get_op_name() + "_" +
-                             std::to_string(i) + "_" + e->get_op_name() + "_h";
-        std::string name_d = "edge_" + init_node->get_op_name() + "_" +
-                             std::to_string(i) + "_" + e->get_op_name() + "_d";
+        std::string name =
+            "init" + std::to_string(i) + "_to_" + e->get_op_name();
+        std::string name_h = name + "_h";
+        std::string name_d = name + "_d";
         std::string name_size = "sizeof(uint64_t) * " +
                                 std::to_string(edge->get_shape(0)) + " * " +
                                 std::to_string(edge->get_shape(1));
@@ -208,12 +252,10 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     i = 0;
     for (auto edge : exit_node->get_in_edges()) {
         std::shared_ptr<hifive::core::Node> e = edge->get_src();
-        std::string name_h = "edge_" + e->get_op_name() + "_" +
-                             exit_node->get_op_name() + "_" +
-                             std::to_string(i) + "_h";
-        std::string name_d = "edge_" + e->get_op_name() + "_" +
-                             exit_node->get_op_name() + "_" +
-                             std::to_string(i) + "_d";
+        std::string name =
+            "end" + std::to_string(i) + "_from_" + e->get_op_name();
+        std::string name_h = name + "_h";
+        std::string name_d = name + "_d";
         std::string name_size = "sizeof(uint64_t) * " +
                                 std::to_string(edge->get_shape(0)) + " * " +
                                 std::to_string(edge->get_shape(1));
@@ -238,7 +280,7 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     for (auto arg : output_args) {
         input_args_str += ", " + arg;
     }
-    w << "entry_kernel(" << input_args_str << ");\n";
+    w << "// entry_kernel(" << input_args_str << ");\n";
 
     w << "std::cout << \"Finished Benchmarking...\" << std::endl;\n";
     w.block_end();
