@@ -68,7 +68,7 @@ void CudaCodegen::generate_kernel_defs(
         CodeWriter w;
         w << "// Define kernel for node: " << node->get_op_type() << "\n";
         w << "__global__ void " << cu->func_name << "(";
-        w << "DeviceContext *dc";
+        w << "DeviceContext *dc, const int N, const int L";
         if (cu->input_signature.size() > 0) {
             w << ", ";
         }
@@ -78,8 +78,58 @@ void CudaCodegen::generate_kernel_defs(
         }
         w << cu->output_signature;
         w << ")";
+
         w.block_begin();
         w << "extern __shared__ uint64_t shared[];\n";
+        // TODO: consider parameters
+        w << "const int block_x = 128;\n";
+        w << "const int block_y = L;\n";
+
+        const int n_inedge = node->get_in_edges().size();
+        const int n_outedge = node->get_out_edges().size();
+        for (int i = 0; i < n_inedge; i++) {
+            w << "uint64_t *in_" << i << "i = in_" << i
+              << " + blockIdx.x * block_x;\n";
+        }
+        for (int i = 0; i < n_outedge; i++) {
+            w << "uint64_t *out_" << i << "i = out_" << i
+              << " + blockIdx.x * block_x;\n";
+        }
+
+        const std::vector<std::string> ops = node->get_ops();
+        int in_used = 0;
+        for (size_t i = 0; i < ops.size(); i++) {
+            if (ops[i] == "Add") {
+                std::string out, in0, in1;
+                bool if_dst_shared, if_a_shared, if_b_shared;
+
+                if (i == 0) {
+                    in0 = "in_0i";
+                    in1 = "in_1i";
+                    if_a_shared = false;
+                    if_b_shared = false;
+                    in_used = 2;
+                } else {
+                    in0 = "shared";
+                    in1 = "in_" + std::to_string(in_used) + "i";
+                    if_a_shared = true;
+                    if_b_shared = false;
+                    in_used++;
+                }
+                if (i == ops.size() - 1) {
+                    out = "out_0i";
+                    if_dst_shared = false;
+                } else {
+                    out = "shared";
+                    if_dst_shared = true;
+                }
+
+                w << "Add(dc, N, block_x, block_y, " << out << ", " << in0
+                  << ", " << in1 << ", " << if_dst_shared << ", " << if_a_shared
+                  << ", " << if_b_shared << ");\n";
+            }
+        }
+
         w.block_end();
         w << "\n";
         w.write_to_file(filename, if_append);
@@ -95,7 +145,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     const int n_outedge = graph->get_exit_node()->get_in_edges().size();
 
     // Signature
-    std::string arg = "DeviceContext *dc";
+    std::string arg = "DeviceContext *dc, const int N, const int L";
     for (int i = 0; i < n_inedge; i++) {
         arg += ", uint64_t *in" + std::to_string(i);
     }
@@ -153,7 +203,10 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
             } else {
                 outedge_map[edge_name] = 1;
             }
-            w << "uint64_t *" << edge_name << " = nullptr;\n";
+            w << "uint64_t *" << edge_name << ";\n";
+            w << "checkCudaErrors(cudaMalloc((void **)&" << edge_name
+              << ", sizeof(uint64_t) * " << edge->get_shape(0) << " * "
+              << edge->get_shape(1) << "));\n";
             w_body << edge_name << ", ";
             outedge_names.push_back(edge_name);
             if (node->get_op_type() == "Init") {
@@ -185,14 +238,15 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         if ((node->get_op_type() == "Init") | (node->get_op_type() == "End")) {
             w_body << "// Nothing to call\n\n";
         } else {
-            std::string args = "dc";
+            std::string args = "dc, N, L";
             for (auto edge_name : inedge_names) {
                 args += ", " + edge_name;
             }
             for (auto edge_name : outedge_names) {
                 args += ", " + edge_name;
             }
-            w_body << "kernel_" << node->get_op_type() << "<<<1024, 1024>>>"
+            w_body << "kernel_" << node->get_op_type()
+                   << "<<<N/128, 128, L*128*sizeof(uint64_t)>>>"
                    << "(" << args << ");\n";
             w_body << "checkCudaErrors(cudaDeviceSynchronize());\n\n";
         }
@@ -205,13 +259,32 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
 
     w << "\n// Combine input edges\n";
     for (int i = 0; i < n_inedge; i++) {
-        w << graph_input_edges[i] << " = in" << i << ";\n";
+        w << "// " << graph_input_edges[i] << " = in" << i << ";\n";
     }
 
-    w_body << "\n// Combine output edges\n";
+    // TODO: Consider which buffer to use for output
+    w << "\n// Combine output edges\n";
     for (int i = 0; i < n_outedge; i++) {
-        w_body << "out" << i << " = " << graph_output_edges[i] << ";\n";
+        // w_body << "out" << i << " = " << graph_output_edges[i] << ";\n";
+        w << "// " << graph_output_edges[i] << " = out" << i << ";\n";
     }
+
+    // Timer
+    w << "\n// Timer\n";
+    w << "for (int i = 0; i < 5; i++) {\n";
+    w.indent_inc();
+    w << "auto start = std::chrono::high_resolution_clock::now();\n";
+    w.indent_dec();
+
+    w_body.indent_inc();
+    w_body << "auto end = std::chrono::high_resolution_clock::now();\n";
+    w_body << "auto elapsed_usec = "
+              "std::chrono::duration_cast<std::chrono::microseconds>(end - "
+              "start);\n";
+    w_body << "std::cout << \"Elapsed time: \" << elapsed_usec.count() << "
+              "\"us\" << std::endl;\n";
+    w_body.indent_dec();
+    w_body << "}\n";
 
     w.indent_dec();
     w_body.indent_dec();
@@ -231,6 +304,7 @@ void CudaCodegen::generate_include(
     w << "#include <chrono>\n";
     w << "#include <iostream>\n\n";
     w << "#include \"hifive/kernel/device_context.hpp\"\n\n";
+    w << "#include \"hifive/kernel/polynomial.hpp\"\n\n";
     w.write_to_file(filename, if_append);
 }
 
@@ -247,7 +321,9 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w << "int main(int argc, char *argv[])";
     w.block_begin();
     w << "std::cout << \"Starting Benchmarking...\" << std::endl;\n";
-    w << "DeviceContext dc;\n\n";
+    w << "DeviceContext dc;\n";
+    w << "const int N = 8192;\n";
+    w << "const int L = 20;\n\n";
 
     std::vector<std::string> input_args;
     std::vector<std::string> output_args;
@@ -300,7 +376,7 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
 
     w << "\n// Fill input arguments\n";
 
-    std::string input_args_str = "&dc";
+    std::string input_args_str = "&dc, N, L";
     for (auto arg : input_args) {
         input_args_str += ", " + arg;
     }
@@ -309,19 +385,8 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     }
 
     w << "\n";
-    w << "for (int i = 0; i < 5; i++) {\n";
-    w.indent_inc();
     w << "// Run the graph\n";
-    w << "auto start = std::chrono::high_resolution_clock::now();\n";
     w << "entry_kernel(" << input_args_str << ");\n";
-    w << "auto end = std::chrono::high_resolution_clock::now();\n";
-    w << "auto elapsed_usec = "
-         "std::chrono::duration_cast<std::chrono::microseconds>(end - "
-         "start);\n";
-    w << "std::cout << \"Elapsed time: \" << elapsed_usec.count() << \"us\" << "
-         "std::endl;\n";
-    w.indent_dec();
-    w << "}\n";
     w << "std::cout << \"Finished Benchmarking...\" << std::endl;\n";
     w.block_end();
 

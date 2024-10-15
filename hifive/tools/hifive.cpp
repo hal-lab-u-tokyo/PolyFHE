@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
         // Memory Traffic of optimized graph
         pass_manager.push_back(
             std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
-    }else {
+    } else {
         LOG_INFO("Arg: Do not optimize graph\n");
     }
 

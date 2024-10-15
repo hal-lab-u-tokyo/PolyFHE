@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <memory>
 #include <set>
 #include <string>
@@ -25,25 +26,29 @@ public:
     explicit Node(std::string op_type);
     virtual ~Node() = default;
 
+    // Edge
     void add_incoming(std::shared_ptr<Edge> edge) { m_in_edges.insert(edge); }
     void add_outgoing(std::shared_ptr<Edge> edge) { m_out_edges.insert(edge); }
     std::set<std::shared_ptr<Edge>> &get_in_edges() { return m_in_edges; }
     std::set<std::shared_ptr<Edge>> &get_out_edges() { return m_out_edges; }
-
-    virtual std::string get_op_type() { return m_op_type; }
-    void set_op_type(std::string op_type) { m_op_type = op_type; }
-    std::string get_op_name() { return m_op_type + std::to_string(m_id); }
-    MemoryAccessPattern get_access_pattern() { return m_access_pattern; }
-
-    void set_id(int id) { m_id = id; }
-    int get_id() { return m_id; }
-
     std::vector<VariableType> get_input_types();
     std::vector<VariableType> get_output_types();
 
+    // Operation
+    virtual std::string get_op_type() { return m_op_type; }
+    virtual std::vector<std::string> get_ops() { return {m_op_type}; }
+    void set_op_type(std::string op_type) { m_op_type = op_type; }
+    std::string get_op_name() { return m_op_type + std::to_string(m_id); }
+
+    // Access pattern
+    MemoryAccessPattern get_access_pattern() { return m_access_pattern; }
     bool if_one_to_one() {
         return (m_out_edges.size() == 1) && (m_in_edges.size() == 1);
     }
+
+    // ID
+    void set_id(int id) { m_id = id; }
+    int get_id() { return m_id; }
 
 protected:
     std::string m_op_type;
@@ -62,6 +67,8 @@ public:
         std::string op_type = get_op_type();
         set_op_type(op_type);
     }
+
+    // Operation
     std::string get_op_type() override {
         std::string n = "";
         for (auto node : m_fused_nodes) {
@@ -69,6 +76,14 @@ public:
         }
         n.pop_back();
         return n;
+    }
+    std::vector<std::string> get_ops() override {
+        std::cout << "get_ops" << std::endl;
+        std::vector<std::string> ops;
+        for (auto node : m_fused_nodes) {
+            ops.push_back(node->get_op_type());
+        }
+        return ops;
     }
 
 private:
