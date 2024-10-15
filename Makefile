@@ -28,6 +28,7 @@ LDFLAGS=-lboost_graph -lboost_program_options
 BIN=build/cc-hifive
 
 $(BIN): $(SRC) $(HDR) $(OBJ)
+	rm -rf ./build
 	mkdir -p build
 	$(CXX) $(OBJ) -o $(BIN) $(LDFLAGS)
 
@@ -45,6 +46,12 @@ LDFLAGS_RUNTIME=-L./hifive/kernel/FullRNS-HEAAN/lib/ -lFRNSHEAAN
 BIN_RUNTIME=build/gen_cuda
 
 run: $(BIN)
+	./$(BIN) -i ./data/graph_poly.dot -o
+	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./$(BIN_RUNTIME)
+	make dot
+
+run-noopt: $(BIN)
 	./$(BIN) -i ./data/graph_poly.dot
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)

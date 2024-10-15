@@ -7,17 +7,20 @@
 #include "hifive/engine/pass/calculate_memory_traffic_pass.hpp"
 #include "hifive/engine/pass/kernel_fusion_pass.hpp"
 #include "hifive/engine/pass/pass_manager.hpp"
+#include "hifive/frontend/exporter.hpp"
 #include "hifive/frontend/parser.hpp"
 
 struct Config {
     std::string input_file;
     hifive::core::GraphType type;
+    bool if_optimize;
 };
 
 Config define_and_parse_arguments(int argc, char** argv) {
     Config config;
     boost::program_options::options_description desc("Hifive Options");
-    desc.add_options()("help,h", "Print help message")(
+    desc.add_options()("opt,o", "Optimize graph")("help,h",
+                                                  "Print help message")(
         "input,i", boost::program_options::value<std::string>(),
         "Input dot file");
 
@@ -36,6 +39,7 @@ Config define_and_parse_arguments(int argc, char** argv) {
         exit(1);
     }
     config.input_file = vm["input"].as<std::string>();
+    config.if_optimize = vm.count("opt");
 
     // Set Graph Type
     // If `input` argument contains `fhe`, then the graph is
@@ -57,6 +61,7 @@ int main(int argc, char** argv) {
 
     std::shared_ptr<hifive::core::Graph> graph =
         hifive::frontend::ParseDotToGraph(config.input_file, config.type);
+    hifive::frontend::export_graph_to_dot(graph, "build/graph_input.dot");
 
     // Register Pass
     hifive::engine::PassManager pass_manager;
@@ -64,17 +69,24 @@ int main(int argc, char** argv) {
     // Memory Traffic of original graph
     pass_manager.push_back(
         std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
-    // Kernel Fusion
-    // pass_manager.push_back(
-    //    std::make_shared<hifive::engine::KernelFusionPass>());
-    // Memory Traffic of optimized graph
-    pass_manager.push_back(
-        std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
+
+    if (config.if_optimize) {
+        LOG_INFO("Arg: Optimize graph\n");
+        // Kernel Fusion
+        pass_manager.push_back(
+            std::make_shared<hifive::engine::KernelFusionPass>());
+        // Memory Traffic of optimized graph
+        pass_manager.push_back(
+            std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
+    }else {
+        LOG_INFO("Arg: Do not optimize graph\n");
+    }
 
     // Run PassManager
     pass_manager.run_on_graph(graph);
 
     // Code Generation
+    hifive::frontend::export_graph_to_dot(graph, "build/graph_final.dot");
     hifive::engine::CodegenManager codegen_manager;
     codegen_manager.set(std::make_shared<hifive::engine::CudaCodegen>());
     codegen_manager.run_on_graph(graph);
