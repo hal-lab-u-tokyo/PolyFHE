@@ -272,6 +272,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
 
     // Timer
     w << "\n// Timer\n";
+    w << "std::vector<double> elapsed_times;\n";
     w << "for (int i = 0; i < 5; i++) {\n";
     w.indent_inc();
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
@@ -284,8 +285,13 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
               "start);\n";
     w_body << "std::cout << \"Elapsed time: \" << elapsed_usec.count() << "
               "\"us\" << std::endl;\n";
+    w_body << "if (i != 0) {elapsed_times.push_back(elapsed_usec.count());}\n";
     w_body.indent_dec();
     w_body << "}\n";
+    w_body
+        << "std::cout << \"Average time: \" << "
+           "std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0) "
+           "/ elapsed_times.size() << \"us\" << std::endl;\n";
 
     w.indent_dec();
     w_body.indent_dec();
@@ -304,6 +310,7 @@ void CudaCodegen::generate_include(
     w << "#include <cuda_runtime.h>\n";
     w << "#include <chrono>\n";
     w << "#include <iostream>\n\n";
+    w << "#include <numeric>\n";
     w << "#include \"hifive/kernel/device_context.hpp\"\n\n";
     w << "#include \"hifive/kernel/polynomial.hpp\"\n\n";
     w.write_to_file(filename, if_append);

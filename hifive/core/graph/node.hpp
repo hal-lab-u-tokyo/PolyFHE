@@ -41,6 +41,9 @@ public:
     std::string get_op_name() { return m_op_type + std::to_string(m_id); }
 
     // Access pattern
+    void set_access_pattern(MemoryAccessPattern access_pattern) {
+        m_access_pattern = access_pattern;
+    }
     MemoryAccessPattern get_access_pattern() { return m_access_pattern; }
     bool if_one_to_one() {
         return (m_out_edges.size() == 1) && (m_in_edges.size() == 1);

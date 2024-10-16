@@ -46,6 +46,8 @@ bool KernelFusionPass::run_on_graph(
             auto fused_node = std::make_shared<hifive::core::FusedNode>();
             fused_node->add_fused_node(node);
             fused_node->add_fused_node(next_node);
+            fused_node->set_access_pattern(
+                hifive::core::MemoryAccessPattern::ElementWise);
 
             // TODO: rethinking the edge management
             for (auto edge : node->get_in_edges()) {
@@ -76,6 +78,10 @@ bool KernelFusionPass::run_on_graph(
             LOG_INFO("Fused %s + %s -> %s\n", node->get_op_name().c_str(),
                      next_node->get_op_name().c_str(),
                      fused_node->get_op_name().c_str());
+
+            // Update DFS stack
+            visited.push_back(false);
+            stack.push_back(fused_node->get_id());
         }
 
         for (auto edge : node->get_out_edges()) {
