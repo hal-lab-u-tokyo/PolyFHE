@@ -48,7 +48,7 @@ $(BIN): $(SRC) $(HDR) $(OBJ)
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-test: $(SRC_TEST) $(SRC_RUNTIME)
+test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
 	mkdir -p build
 	nvcc -o build/test $(SRC_TEST) $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./build/test
