@@ -294,29 +294,22 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w << "const int N = 65535;\n";
     w << "const int L = 20;\n\n";
 
-    std::vector<std::string> input_args;
-    std::vector<std::string> output_args;
-
     w << "// Input arguments\n";
     std::shared_ptr<hifive::core::Node> init_node = graph->get_init_node();
     int i = 0;
     for (auto edge : init_node->get_out_edges()) {
         std::shared_ptr<hifive::core::Node> e = edge->get_dst();
-        // std::string name =
-        //     "init" + std::to_string(i) + "_to_" + e->get_op_name();
-        std::string name_h = edge->get_name() + "_h";
-        std::string name_d = edge->get_name() + "_d";
         std::string name_size = "sizeof(uint64_t) * " +
                                 std::to_string(edge->get_shape(0)) + " * " +
                                 std::to_string(edge->get_shape(1));
-        input_args.push_back(name_d);
         w << "// Edge: " << init_node->get_op_name() << " -> "
           << e->get_op_name() << "\n";
-        w << "uint64_t *" << name_h << ";\n";
-        w << "uint64_t *" << name_d << ";\n";
-        w << "cudaMallocHost((void **)&" << name_h << ", " << name_size
+        w << "uint64_t *" << edge->get_name() << "_h;\n";
+        w << "uint64_t *" << edge->get_name() << "_d;\n";
+        w << "cudaMallocHost((void **)&" << edge->get_name() << "_h, "
+          << name_size << ");\n";
+        w << "cudaMalloc((void **)&" << edge->get_name() << "_d, " << name_size
           << ");\n";
-        w << "cudaMalloc((void **)&" << name_d << ", " << name_size << ");\n";
         i++;
     }
 
@@ -325,32 +318,28 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     i = 0;
     for (auto edge : exit_node->get_in_edges()) {
         std::shared_ptr<hifive::core::Node> e = edge->get_src();
-        // std::string name =
-        //     "end" + std::to_string(i) + "_from_" + e->get_op_name();
-        std::string name_h = edge->get_name() + "_h";
-        std::string name_d = edge->get_name() + "_d";
         std::string name_size = "sizeof(uint64_t) * " +
                                 std::to_string(edge->get_shape(0)) + " * " +
                                 std::to_string(edge->get_shape(1));
-        output_args.push_back(name_d);
         w << "// Edge: " << e->get_op_name() << " -> "
           << exit_node->get_op_name() << "\n";
-        w << "uint64_t *" << name_h << ";\n";
-        w << "uint64_t *" << name_d << ";\n";
-        w << "cudaMallocHost((void **)&" << name_h << ", " << name_size
+        w << "uint64_t *" << edge->get_name() << "_h;\n";
+        w << "uint64_t *" << edge->get_name() << "_d;\n";
+        w << "cudaMallocHost((void **)&" << edge->get_name() << "_h, "
+          << name_size << ");\n";
+        w << "cudaMalloc((void **)&" << edge->get_name() << "_d, " << name_size
           << ");\n";
-        w << "cudaMalloc((void **)&" << name_d << ", " << name_size << ");\n";
         i++;
     }
 
     w << "\n// Fill input arguments\n";
 
     std::string input_args_str = "&dc, N, L";
-    for (auto arg : input_args) {
-        input_args_str += ", " + arg;
+    for (auto edge : init_node->get_out_edges()) {
+        input_args_str += ", " + edge->get_name() + "_d";
     }
-    for (auto arg : output_args) {
-        input_args_str += ", " + arg;
+    for (auto edge : exit_node->get_in_edges()) {
+        input_args_str += ", " + edge->get_name() + "_d";
     }
 
     w << "\n";
