@@ -21,6 +21,7 @@ void Graph::add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
     std::shared_ptr<Edge> edge = std::make_shared<Edge>(src, dst);
     src->add_outgoing(edge);
     dst->add_incoming(edge);
+    edge->update_name();
 
     if (!label.empty()) {
         // label is {shape0}_{shape1}

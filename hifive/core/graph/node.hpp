@@ -20,25 +20,47 @@ enum class MemoryAccessPattern {
     ElementWise, // e.g., Add
 };
 
-class Node {
+class Node : public std::enable_shared_from_this<Node> {
 public:
     Node(){};
     explicit Node(std::string op_type);
     virtual ~Node() = default;
 
     // Edge
-    void add_incoming(std::shared_ptr<Edge> edge) { m_in_edges.insert(edge); }
-    void add_outgoing(std::shared_ptr<Edge> edge) { m_out_edges.insert(edge); }
-    std::set<std::shared_ptr<Edge>> &get_in_edges() { return m_in_edges; }
-    std::set<std::shared_ptr<Edge>> &get_out_edges() { return m_out_edges; }
+    void add_incoming(std::shared_ptr<Edge> edge) {
+        m_in_edges.push_back(edge);
+    }
+    void add_outgoing(std::shared_ptr<Edge> edge) {
+        m_out_edges.push_back(edge);
+    }
+    std::vector<std::shared_ptr<Edge>> &get_in_edges() { return m_in_edges; }
+    std::vector<std::shared_ptr<Edge>> &get_out_edges() { return m_out_edges; }
     std::vector<VariableType> get_input_types();
     std::vector<VariableType> get_output_types();
+    int get_idx_in_inedge(std::shared_ptr<Edge> edge) const {
+        for (size_t i = 0; i < m_in_edges.size(); i++) {
+            if (m_in_edges[i] == edge) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    int get_idx_in_outedge(std::shared_ptr<Edge> edge) const {
+        for (size_t i = 0; i < m_out_edges.size(); i++) {
+            if (m_out_edges[i] == edge) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
     // Operation
     virtual std::string get_op_type() { return m_op_type; }
-    virtual std::vector<std::string> get_ops() { return {m_op_type}; }
     void set_op_type(std::string op_type) { m_op_type = op_type; }
     std::string get_op_name() { return m_op_type + std::to_string(m_id); }
+    virtual std::vector<std::shared_ptr<Node>> get_nodes() {
+        return {shared_from_this()};
+    }
 
     // Access pattern
     void set_access_pattern(MemoryAccessPattern access_pattern) {
@@ -55,8 +77,8 @@ public:
 
 protected:
     std::string m_op_type;
-    std::set<std::shared_ptr<Edge>> m_in_edges;
-    std::set<std::shared_ptr<Edge>> m_out_edges;
+    std::vector<std::shared_ptr<Edge>> m_in_edges;
+    std::vector<std::shared_ptr<Edge>> m_out_edges;
     int m_id;
     MemoryAccessPattern m_access_pattern;
 };
@@ -66,7 +88,9 @@ public:
     FusedNode(std::string op_type) : Node(op_type) {}
     FusedNode() : Node() {}
     void add_fused_node(std::shared_ptr<Node> node) {
-        m_fused_nodes.push_back(node);
+        for (auto n : node->get_nodes()) {
+            m_fused_nodes.push_back(n);
+        }
         std::string op_type = get_op_type();
         set_op_type(op_type);
     }
@@ -80,13 +104,8 @@ public:
         n.pop_back();
         return n;
     }
-    std::vector<std::string> get_ops() override {
-        std::cout << "get_ops" << std::endl;
-        std::vector<std::string> ops;
-        for (auto node : m_fused_nodes) {
-            ops.push_back(node->get_op_type());
-        }
-        return ops;
+    std::vector<std::shared_ptr<Node>> get_nodes() override {
+        return m_fused_nodes;
     }
 
 private:
