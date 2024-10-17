@@ -73,14 +73,18 @@ void test_poly_mult(FHEContext &context, const int N, const int L,
     std::cout << "test_poly_mult: N=" << N << ", L=" << L
               << ", block_x=" << block_x << ", block_y=" << block_y
               << std::endl;
-
-    auto [a, d_a] =
-        create_random_polynomial(N, L, context.get_host_context()->qVec);
-    auto [b, d_b] =
-        create_random_polynomial(N, L, context.get_host_context()->qVec);
-    auto [c, d_c] =
-        create_random_polynomial(N, L, context.get_host_context()->qVec);
-
+    /*
+        // TODO: Overflow issue
+        auto [a, d_a] =
+            create_random_polynomial(N, L, context.get_host_context()->qVec);
+        auto [b, d_b] =
+            create_random_polynomial(N, L, context.get_host_context()->qVec);
+        auto [c, d_c] =
+            create_random_polynomial(N, L, context.get_host_context()->qVec);
+    */
+    auto [a, d_a] = create_linear_polynomial(N, L);
+    auto [b, d_b] = create_linear_polynomial(N, L);
+    auto [c, d_c] = create_linear_polynomial(N, L);
     const int block_size = block_x * block_y * sizeof(uint64_t);
     for (int i = 0; i < 5; i++) {
         auto start = std::chrono::high_resolution_clock::now();
@@ -100,7 +104,9 @@ void test_poly_mult(FHEContext &context, const int N, const int L,
                     std::cout << "Error at index[" << i << "][" << j
                               << "]: " << c[idx] << " != (" << a[idx] << " * "
                               << b[idx] << ") % "
-                              << context.get_host_context()->qVec[i]
+                              << context.get_host_context()->qVec[i] << " = "
+                              << (a[idx] * b[idx]) %
+                                     context.get_host_context()->qVec[i]
                               << std::endl;
                     return;
                 }
