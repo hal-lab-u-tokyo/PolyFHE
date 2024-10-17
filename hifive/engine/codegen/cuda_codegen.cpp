@@ -1,6 +1,6 @@
 #include "hifive/engine/codegen/cuda_codegen.hpp"
 
-#include <unordered_map>
+#include <string>
 
 #include "hifive/core/logger.hpp"
 #include "hifive/engine/codegen/codegen_writer.hpp"
@@ -96,10 +96,11 @@ void CudaCodegen::generate_kernel_defs(
               << " + blockIdx.x * block_x;\n";
         }
 
-        const std::vector<std::string> ops = node->get_ops();
+        const std::vector<std::shared_ptr<hifive::core::Node>> nodes =
+            node->get_nodes();
         int in_used = 0;
-        for (size_t i = 0; i < ops.size(); i++) {
-            if (ops[i] == "Add") {
+        for (size_t i = 0; i < nodes.size(); i++) {
+            if (nodes[i]->get_op_type() == "Add") {
                 std::string out, in0, in1;
                 bool if_dst_shared, if_a_shared, if_b_shared;
 
@@ -116,7 +117,7 @@ void CudaCodegen::generate_kernel_defs(
                     if_b_shared = false;
                     in_used++;
                 }
-                if (i == ops.size() - 1) {
+                if (i == nodes.size() - 1) {
                     out = "out_0i";
                     if_dst_shared = false;
                 } else {
