@@ -14,7 +14,8 @@ SRC_RUNTIME=\
 
 SRC_TEST=\
 	test/test_poly.cu \
-	test/main.cu
+	test/main.cu \
+	test/util.cu
 
 HDR=\
 	hifive/core/graph/graph.hpp \
@@ -48,6 +49,7 @@ $(BIN): $(SRC) $(HDR) $(OBJ)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 test: $(SRC_TEST) $(SRC_RUNTIME)
+	mkdir -p build
 	nvcc -o build/test $(SRC_TEST) $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./build/test
 

@@ -3,8 +3,8 @@
 #include <cuda_runtime.h>
 
 #include <cassert>
-#include <complex>
 #include <cstdint>
+#include <memory>
 
 #include "hifive/core/logger.hpp"
 #include "hifive/kernel/FullRNS-HEAAN/src/Context.h"
@@ -24,10 +24,11 @@ inline void __checkCudaErrors(cudaError_t err, const char* filename, int line) {
     }
 }
 
+using HEAANContext = Context;
 class DeviceContext {
 public:
-    // TODO: Add constructor receiving parameters
-    DeviceContext();
+    DeviceContext(HEAANContext& context);
+    ~DeviceContext() = default;
 
     // Encryption parameters
     long logN;  ///< Logarithm of Ring Dimension
@@ -113,7 +114,18 @@ public:
     uint64_t* p2coeff;
     uint64_t* pccoeff;
     uint64_t* p2hcoeff;
+};
+
+class FHEContext {
+public:
+    FHEContext();
+    ~FHEContext() = default;
+
+    DeviceContext* get_device_context() { return d_context_in_gpu; }
+    std::shared_ptr<HEAANContext> get_host_context() { return h_context; }
 
 private:
-    void set_params(Context& context);
+    std::shared_ptr<HEAANContext> h_context;
+    std::shared_ptr<DeviceContext> d_context_in_cpu;
+    DeviceContext* d_context_in_gpu;
 };

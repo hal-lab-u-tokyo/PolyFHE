@@ -4,8 +4,6 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/src/**",
-                "${workspaceFolder}/thirdparty/phantom-fhe/include/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
