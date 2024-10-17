@@ -8,6 +8,14 @@ SRC=\
 	hifive/frontend/parser.cpp \
 	hifive/tools/hifive.cpp
 
+SRC_RUNTIME=\
+	hifive/kernel/device_context.cu \
+	hifive/kernel/polynomial.cu
+
+SRC_TEST=\
+	test/test_poly.cu \
+	test/main.cu
+
 HDR=\
 	hifive/core/graph/graph.hpp \
 	hifive/core/graph/node.hpp \
@@ -27,6 +35,10 @@ CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph -lboost_program_options
 BIN=build/cc-hifive
 
+CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./hifive/kernel/FullRNS-HEAAN/src/ -I./  --relocatable-device-code true
+LDFLAGS_RUNTIME=-L./hifive/kernel/FullRNS-HEAAN/lib/ -lFRNSHEAAN
+BIN_RUNTIME=build/gen_cuda
+
 $(BIN): $(SRC) $(HDR) $(OBJ)
 	rm -rf ./build
 	mkdir -p build
@@ -35,16 +47,9 @@ $(BIN): $(SRC) $(HDR) $(OBJ)
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-dot:
-	dot -Tpng -o ./data/graph_poly.png ./data/graph_poly.dot
-	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;
-
-SRC_RUNTIME=\
-	hifive/kernel/device_context.cu \
-	hifive/kernel/polynomial.cu
-CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./hifive/kernel/FullRNS-HEAAN/src/ -I./  --relocatable-device-code true
-LDFLAGS_RUNTIME=-L./hifive/kernel/FullRNS-HEAAN/lib/ -lFRNSHEAAN
-BIN_RUNTIME=build/gen_cuda
+test: $(SRC_TEST) $(SRC_RUNTIME)
+	nvcc -o build/test $(SRC_TEST) $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./build/test
 
 run: $(BIN)
 	rm -f ./build/*.dot
@@ -62,9 +67,13 @@ run-noopt: $(BIN)
 	./$(BIN_RUNTIME)
 	make dot
 
+dot:
+	dot -Tpng -o ./data/graph_poly.png ./data/graph_poly.dot
+	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;
+
 format:
-	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i
-	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
+	find ./hifive ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i
+	find ./hifive ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
 
 clean:
 	rm -rf build
