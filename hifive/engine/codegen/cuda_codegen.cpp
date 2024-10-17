@@ -141,16 +141,14 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                                  const bool if_append) {
     LOG_INFO("Start Generate entry kernel\n");
     CodeWriter w, w_body;
-    const int n_inedge = graph->get_init_node()->get_out_edges().size();
-    const int n_outedge = graph->get_exit_node()->get_in_edges().size();
 
     // Signature
     std::string arg = "DeviceContext *dc, const int N, const int L";
-    for (int i = 0; i < n_inedge; i++) {
-        arg += ", uint64_t *in" + std::to_string(i);
+    for (auto edge : graph->get_init_node()->get_out_edges()) {
+        arg += ", uint64_t * in_" + edge->get_name();
     }
-    for (int i = 0; i < n_outedge; i++) {
-        arg += ", uint64_t *out" + std::to_string(i);
+    for (auto edge : graph->get_exit_node()->get_in_edges()) {
+        arg += ", uint64_t * out_" + edge->get_name();
     }
 
     w << "void entry_kernel(" << arg << "){\n";
@@ -165,9 +163,14 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     stack.push_back(graph->get_init_node_id());
 
     w << "// Define each node's output edges\n\n";
+
+    // Timer
+    w_body << "std::vector<double> elapsed_times;\n";
+    w_body << "for (int i = 0; i < 5; i++) {\n";
+    w_body.indent_inc();
+    w_body << "\n// Timer Start\n";
+    w_body << "auto start = std::chrono::high_resolution_clock::now();\n";
     w_body << "\n// Call kernels\n";
-    std::vector<std::string> graph_input_edges;
-    std::vector<std::string> graph_output_edges;
 
     while (!stack.empty()) {
         int node_idx = stack.back();
@@ -187,51 +190,20 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                << ")\n";
 
         // define output edge
-        std::unordered_map<std::string, int> inedge_map;
-        std::unordered_map<std::string, int> outedge_map;
-        std::vector<std::string> inedge_names;
-        std::vector<std::string> outedge_names;
         w_body << "//\t outputs: ";
         for (auto edge : node->get_out_edges()) {
-            auto src = edge->get_src();
-            auto dst = edge->get_dst();
-            std::string edge_name =
-                "edge_" + src->get_op_name() + "_" + dst->get_op_name();
-            if (outedge_map.contains(edge_name)) {
-                outedge_map[edge_name]++;
-                edge_name += "_" + std::to_string(outedge_map[edge_name]);
-            } else {
-                outedge_map[edge_name] = 1;
-            }
-            w << "uint64_t *" << edge_name << ";\n";
-            if (node->get_op_type() == "Init") {
-                graph_input_edges.push_back(edge_name);
-            } else {
-                w << "checkCudaErrors(cudaMalloc((void **)&" << edge_name
+            w << "uint64_t *" << edge->get_name() << ";\n";
+            if (node->get_op_type() != "Init") {
+                w << "checkCudaErrors(cudaMalloc((void **)&" << edge->get_name()
                   << ", sizeof(uint64_t) * " << edge->get_shape(0) << " * "
                   << edge->get_shape(1) << "));\n";
             }
-            w_body << edge_name << ", ";
-            outedge_names.push_back(edge_name);
+            w_body << edge->get_name() << ", ";
         }
         w_body << "\n";
         w_body << "//\t inputs: ";
         for (auto edge : node->get_in_edges()) {
-            auto src = edge->get_src();
-            auto dst = edge->get_dst();
-            std::string edge_name =
-                "edge_" + src->get_op_name() + "_" + dst->get_op_name();
-            if (inedge_map.contains(edge_name)) {
-                inedge_map[edge_name]++;
-                edge_name += "_" + std::to_string(inedge_map[edge_name]);
-            } else {
-                inedge_map[edge_name] = 1;
-            }
-            w_body << edge_name << ", ";
-            inedge_names.push_back(edge_name);
-            if (node->get_op_type() == "End") {
-                graph_output_edges.push_back(edge_name);
-            }
+            w_body << edge->get_name() << ", ";
         }
         w_body << "\n";
 
@@ -240,11 +212,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
             w_body << "// Nothing to call\n\n";
         } else {
             std::string args = "dc, N, L";
-            for (auto edge_name : inedge_names) {
-                args += ", " + edge_name;
+            for (auto edge : node->get_in_edges()) {
+                args += ", " + edge->get_name();
             }
-            for (auto edge_name : outedge_names) {
-                args += ", " + edge_name;
+            for (auto edge : node->get_out_edges()) {
+                args += ", " + edge->get_name();
             }
             w_body << "kernel_" << node->get_op_type()
                    << "<<<N/128, 128, L*128*sizeof(uint64_t)>>>"
@@ -259,26 +231,18 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     }
 
     w << "\n// Combine input edges\n";
-    for (int i = 0; i < n_inedge; i++) {
-        w << graph_input_edges[i] << " = in" << i << ";\n";
+    for (auto edge : graph->get_init_node()->get_out_edges()) {
+        w << edge->get_name() << " = in_" << edge->get_name() << ";\n";
     }
 
-    // TODO: Consider which buffer to use for output
     w << "\n// Combine output edges\n";
-    for (int i = 0; i < n_outedge; i++) {
-        // w_body << "out" << i << " = " << graph_output_edges[i] << ";\n";
-        w << "// " << graph_output_edges[i] << " = out" << i << ";\n";
+    for (auto edge : graph->get_exit_node()->get_in_edges()) {
+        w << "out_" << edge->get_name() << " = " << edge->get_name() << ";\n";
     }
+    w.write_to_file(filename, if_append);
 
     // Timer
-    w << "\n// Timer\n";
-    w << "std::vector<double> elapsed_times;\n";
-    w << "for (int i = 0; i < 5; i++) {\n";
-    w.indent_inc();
-    w << "auto start = std::chrono::high_resolution_clock::now();\n";
-    w.indent_dec();
-
-    w_body.indent_inc();
+    w_body << "// Timer Stop\n";
     w_body << "auto end = std::chrono::high_resolution_clock::now();\n";
     w_body << "auto elapsed_usec = "
               "std::chrono::duration_cast<std::chrono::microseconds>(end - "
@@ -292,11 +256,8 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         << "std::cout << \"Average time: \" << "
            "std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0) "
            "/ elapsed_times.size() << \"us\" << std::endl;\n";
-
-    w.indent_dec();
     w_body.indent_dec();
     w_body << "}\n\n";
-    w.write_to_file(filename, if_append);
     w_body.write_to_file(filename, true);
 }
 
@@ -341,10 +302,10 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     int i = 0;
     for (auto edge : init_node->get_out_edges()) {
         std::shared_ptr<hifive::core::Node> e = edge->get_dst();
-        std::string name =
-            "init" + std::to_string(i) + "_to_" + e->get_op_name();
-        std::string name_h = name + "_h";
-        std::string name_d = name + "_d";
+        // std::string name =
+        //     "init" + std::to_string(i) + "_to_" + e->get_op_name();
+        std::string name_h = edge->get_name() + "_h";
+        std::string name_d = edge->get_name() + "_d";
         std::string name_size = "sizeof(uint64_t) * " +
                                 std::to_string(edge->get_shape(0)) + " * " +
                                 std::to_string(edge->get_shape(1));
@@ -364,10 +325,10 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     i = 0;
     for (auto edge : exit_node->get_in_edges()) {
         std::shared_ptr<hifive::core::Node> e = edge->get_src();
-        std::string name =
-            "end" + std::to_string(i) + "_from_" + e->get_op_name();
-        std::string name_h = name + "_h";
-        std::string name_d = name + "_d";
+        // std::string name =
+        //     "end" + std::to_string(i) + "_from_" + e->get_op_name();
+        std::string name_h = edge->get_name() + "_h";
+        std::string name_d = edge->get_name() + "_d";
         std::string name_size = "sizeof(uint64_t) * " +
                                 std::to_string(edge->get_shape(0)) + " * " +
                                 std::to_string(edge->get_shape(1));
