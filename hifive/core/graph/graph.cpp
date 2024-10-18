@@ -25,7 +25,7 @@ void Graph::add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
 
     if (!label.empty()) {
         // label is {shape0}_{shape1}
-        const std::string delimiter = "_";
+        const std::string delimiter = "*";
         std::string shape0_str = label.substr(0, label.find(delimiter));
         std::string shape1_str =
             label.substr(label.find(delimiter) + 1, label.length());

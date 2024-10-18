@@ -100,7 +100,8 @@ void CudaCodegen::generate_kernel_defs(
             node->get_nodes();
         int in_used = 0;
         for (size_t i = 0; i < nodes.size(); i++) {
-            if (nodes[i]->get_op_type() == "Add") {
+            if ((nodes[i]->get_op_type() == "Add") |
+                (nodes[i]->get_op_type() == "Mult")) {
                 std::string out, in0, in1;
                 bool if_dst_shared, if_a_shared, if_b_shared;
 
@@ -125,9 +126,12 @@ void CudaCodegen::generate_kernel_defs(
                     if_dst_shared = true;
                 }
 
-                w << "Add(dc, N, block_x, block_y, " << out << ", " << in0
-                  << ", " << in1 << ", " << if_dst_shared << ", " << if_a_shared
-                  << ", " << if_b_shared << ");\n";
+                w << nodes[i]->get_op_type() << "(dc, N, block_x, block_y, "
+                  << out << ", " << in0 << ", " << in1 << ", " << if_dst_shared
+                  << ", " << if_a_shared << ", " << if_b_shared << ");\n";
+            } else {
+                LOG_ERROR("Unsupported operation type: %s\n",
+                          nodes[i]->get_op_type().c_str());
             }
         }
 
