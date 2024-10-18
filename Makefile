@@ -76,7 +76,7 @@ run-noopt: $(BIN)
 fhe: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i data/graph_fhe.dot
+	./$(BIN) -i data/graph_fhe.dot --noopt
 	make dot
 
 dot:

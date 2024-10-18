@@ -75,12 +75,31 @@ public:
     void set_id(int id) { m_id = id; }
     int get_id() { return m_id; }
 
+    // Only for lowerings
+    void add_top_poly_op(std::shared_ptr<Node> node) {
+        m_top_poly_ops.push_back(node);
+    }
+    void add_bottom_poly_op(std::shared_ptr<Node> node) {
+        m_bottom_poly_ops.push_back(node);
+    }
+    std::vector<std::shared_ptr<Node>> &get_top_poly_ops() {
+        return m_top_poly_ops;
+    }
+    std::vector<std::shared_ptr<Node>> &get_bottom_poly_ops() {
+        return m_bottom_poly_ops;
+    }
+
 protected:
     std::string m_op_type;
     std::vector<std::shared_ptr<Edge>> m_in_edges;
     std::vector<std::shared_ptr<Edge>> m_out_edges;
     int m_id;
     MemoryAccessPattern m_access_pattern;
+
+private:
+    // Only for lowerings
+    std::vector<std::shared_ptr<Node>> m_top_poly_ops;
+    std::vector<std::shared_ptr<Node>> m_bottom_poly_ops;
 };
 
 class FusedNode : public Node {
