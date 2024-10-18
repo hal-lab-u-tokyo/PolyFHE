@@ -4,6 +4,7 @@ SRC=\
 	hifive/engine/codegen/cuda_codegen.cpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
 	hifive/engine/pass/kernel_fusion_pass.cpp \
+	hifive/engine/pass/lowering_ckks_to_poly_pass.cpp \
 	hifive/frontend/exporter.cpp \
 	hifive/frontend/parser.cpp \
 	hifive/tools/hifive.cpp
@@ -27,6 +28,7 @@ HDR=\
 	hifive/engine/codegen/cuda_codegen.hpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.hpp \
 	hifive/engine/pass/kernel_fusion_pass.hpp \
+	hifive/engine/pass/lowering_ckks_to_poly_pass.hpp \
 	hifive/frontend/exporter.hpp \
 	hifive/frontend/parser.hpp
 
@@ -58,7 +60,7 @@ TARGET=data/graph_poly.dot
 run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i $(TARGET) -o 
+	./$(BIN) -i $(TARGET) 
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
@@ -66,9 +68,15 @@ run: $(BIN)
 run-noopt: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i $(TARGET)
+	./$(BIN) -i $(TARGET) --noopt
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
+	make dot
+
+fhe: $(BIN)
+	rm -f ./build/*.dot
+	rm -f ./build/*.png
+	./$(BIN) -i data/graph_fhe.dot --noopt
 	make dot
 
 dot:

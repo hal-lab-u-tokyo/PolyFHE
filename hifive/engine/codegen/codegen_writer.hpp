@@ -67,7 +67,6 @@ public:
         if (!out) {
             LOG_ERROR("Cannot open file: %s\n", filename.c_str());
         }
-        LOG_INFO("Writing to file: %s\n", filename.c_str());
         out << m_ss.str();
     }
 

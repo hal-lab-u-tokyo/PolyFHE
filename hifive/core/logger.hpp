@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdio.h>
-
 #define DEBUG_ON
 
 // 30 black, 31 red, 32 green, 33 yellow, 34 blue, 35 magenta, 36 cyan, 37 white
@@ -19,7 +17,7 @@
            __func__),                                                 \
         printf(__VA_ARGS__)
 #define LOG_IMPORTANT(...)                                                 \
-    printf("\x1b[35m[IMPORTANT][%s][%d][%s]\x1b[39m ", __FILE__, __LINE__, \
+    printf("\x1b[32m[IMPORTANT][%s][%d][%s]\x1b[39m ", __FILE__, __LINE__, \
            __func__),                                                      \
         printf(__VA_ARGS__)
 #define LOG_INFO(...)                                                 \
