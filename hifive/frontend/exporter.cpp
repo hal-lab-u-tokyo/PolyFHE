@@ -7,8 +7,6 @@ namespace frontend {
 
 void export_graph_to_dot(std::shared_ptr<hifive::core::Graph>& graph,
                          std::string filename) {
-    LOG_INFO("Exporting graph to %s\n", filename.c_str());
-
     graph_t g_dot;
 
     // Add nodes

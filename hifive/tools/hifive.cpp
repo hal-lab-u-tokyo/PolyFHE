@@ -6,6 +6,7 @@
 #include "hifive/engine/codegen/cuda_codegen.hpp"
 #include "hifive/engine/pass/calculate_memory_traffic_pass.hpp"
 #include "hifive/engine/pass/kernel_fusion_pass.hpp"
+#include "hifive/engine/pass/lowering_ckks_to_poly_pass.hpp"
 #include "hifive/engine/pass/pass_manager.hpp"
 #include "hifive/frontend/exporter.hpp"
 #include "hifive/frontend/parser.hpp"
@@ -69,16 +70,23 @@ int main(int argc, char** argv) {
     // Register Pass
     hifive::engine::PassManager pass_manager;
 
-    // Memory Traffic of original graph
+    // Pass: Lowering CKKS to Poly
+    if (config.type == hifive::core::GraphType::FHE) {
+        pass_manager.push_back(
+            std::make_shared<hifive::engine::LoweringCKKSToPolyPass>());
+    }
+
+    // Pass: Calculate nemory traffic of original graph
     pass_manager.push_back(
         std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
 
+    // Pass: Data reuse
     if (!config.if_not_optimize) {
-        LOG_INFO("Arg: Optimize graph\n");
-        // Kernel Fusion
+        LOG_INFO("Input config: Optimize graph\n");
+        // Pass: Kernel Fusion
         pass_manager.push_back(
             std::make_shared<hifive::engine::KernelFusionPass>());
-        // Memory Traffic of optimized graph
+        // Pass: Calculate memory traffic of optimized graph
         pass_manager.push_back(
             std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
     } else {

@@ -4,6 +4,7 @@ SRC=\
 	hifive/engine/codegen/cuda_codegen.cpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
 	hifive/engine/pass/kernel_fusion_pass.cpp \
+	hifive/engine/pass/lowering_ckks_to_poly_pass.cpp \
 	hifive/frontend/exporter.cpp \
 	hifive/frontend/parser.cpp \
 	hifive/tools/hifive.cpp
@@ -27,6 +28,7 @@ HDR=\
 	hifive/engine/codegen/cuda_codegen.hpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.hpp \
 	hifive/engine/pass/kernel_fusion_pass.hpp \
+	hifive/engine/pass/lowering_ckks_to_poly_pass.hpp \
 	hifive/frontend/exporter.hpp \
 	hifive/frontend/parser.hpp
 
@@ -71,10 +73,11 @@ run-noopt: $(BIN)
 	./$(BIN_RUNTIME)
 	make dot
 
-hmult: $(BIN)
+fhe: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i data/graph_hmult.dot -o 
+	./$(BIN) -i data/graph_fhe.dot
+	make dot
 
 dot:
 	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;

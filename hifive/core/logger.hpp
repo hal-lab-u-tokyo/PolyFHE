@@ -19,7 +19,7 @@
            __func__),                                                 \
         printf(__VA_ARGS__)
 #define LOG_IMPORTANT(...)                                                 \
-    printf("\x1b[35m[IMPORTANT][%s][%d][%s]\x1b[39m ", __FILE__, __LINE__, \
+    printf("\x1b[32m[IMPORTANT][%s][%d][%s]\x1b[39m ", __FILE__, __LINE__, \
            __func__),                                                      \
         printf(__VA_ARGS__)
 #define LOG_INFO(...)                                                 \
