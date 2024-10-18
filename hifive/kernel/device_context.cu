@@ -1,3 +1,4 @@
+#include "device_context.hpp"
 #include "hifive/kernel/FullRNS-HEAAN/src/Context.h"
 #include "hifive/kernel/FullRNS-HEAAN/src/EvaluatorUtils.h"
 #include "hifive/kernel/FullRNS-HEAAN/src/Numb.h"
@@ -8,7 +9,7 @@
 #include "hifive/kernel/FullRNS-HEAAN/src/TimeUtils.h"
 #include "hifive/kernel/device_context.hpp"
 
-DeviceContext::DeviceContext() {
+FHEContext::FHEContext() {
     LOG_INFO("Initializing DeviceContext\n");
     const int logN = 15;
     // const int N = (1 << logN);
@@ -16,15 +17,22 @@ DeviceContext::DeviceContext() {
     const uint64_t logp = 55;
     // const uint64_t logSlots = 3;
     // const uint64_t slots = (1 << logSlots);
-    Context context(logN, logp, L, L + 1);
-    SecretKey secretKey(context);
-    Scheme scheme(secretKey, context);
+    HEAANContext heaan_context(logN, logp, L, L + 1);
+    SecretKey secretKey(heaan_context);
+    Scheme scheme(secretKey, heaan_context);
     Key key = scheme.keyMap.at(MULTIPLICATION);
 
-    set_params(context);
+    d_context_in_cpu = std::make_shared<DeviceContext>(heaan_context);
+    h_context = std::make_shared<HEAANContext>(heaan_context);
+
+    // Copy context_d to device
+    checkCudaErrors(
+        cudaMalloc((void **) &d_context_in_gpu, sizeof(DeviceContext)));
+    checkCudaErrors(cudaMemcpy(d_context_in_gpu, d_context_in_cpu.get(),
+                               sizeof(DeviceContext), cudaMemcpyHostToDevice));
 }
 
-void DeviceContext::set_params(Context &context) {
+DeviceContext::DeviceContext(HEAANContext &context) {
     logN = context.logN;
     logNh = context.logNh;
     L = context.L;

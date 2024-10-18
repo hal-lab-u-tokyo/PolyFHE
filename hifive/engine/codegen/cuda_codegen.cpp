@@ -291,7 +291,7 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w << "int main(int argc, char *argv[])";
     w.block_begin();
     w << "std::cout << \"Starting Benchmarking...\" << std::endl;\n";
-    w << "DeviceContext dc;\n";
+    w << "FHEContext context;\n";
     w << "const int N = 65535;\n";
     w << "const int L = 20;\n\n";
 
@@ -335,7 +335,7 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
 
     w << "\n// Fill input arguments\n";
 
-    std::string input_args_str = "&dc, N, L";
+    std::string input_args_str = "context.get_device_context(), N, L";
     for (auto edge : init_node->get_out_edges()) {
         input_args_str += ", " + edge->get_name() + "_d";
     }

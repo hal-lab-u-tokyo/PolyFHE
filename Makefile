@@ -8,6 +8,15 @@ SRC=\
 	hifive/frontend/parser.cpp \
 	hifive/tools/hifive.cpp
 
+SRC_RUNTIME=\
+	hifive/kernel/device_context.cu \
+	hifive/kernel/polynomial.cu
+
+SRC_TEST=\
+	test/test_poly.cu \
+	test/main.cu \
+	test/util.cu
+
 HDR=\
 	hifive/core/graph/graph.hpp \
 	hifive/core/graph/node.hpp \
@@ -27,6 +36,10 @@ CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph -lboost_program_options
 BIN=build/cc-hifive
 
+CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./hifive/kernel/FullRNS-HEAAN/src/ -I./  --relocatable-device-code true
+LDFLAGS_RUNTIME=-L./hifive/kernel/FullRNS-HEAAN/lib/ -lFRNSHEAAN
+BIN_RUNTIME=build/gen_cuda
+
 $(BIN): $(SRC) $(HDR) $(OBJ)
 	rm -rf ./build
 	mkdir -p build
@@ -35,21 +48,17 @@ $(BIN): $(SRC) $(HDR) $(OBJ)
 %.o: %.cpp %.hpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-dot:
-	dot -Tpng -o ./data/graph_poly.png ./data/graph_poly.dot
-	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;
+test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
+	mkdir -p build
+	nvcc -o build/test $(SRC_TEST) $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./build/test
 
-SRC_RUNTIME=\
-	hifive/kernel/device_context.cu \
-	hifive/kernel/polynomial.cu
-CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./hifive/kernel/FullRNS-HEAAN/src/ -I./  --relocatable-device-code true
-LDFLAGS_RUNTIME=-L./hifive/kernel/FullRNS-HEAAN/lib/ -lFRNSHEAAN
-BIN_RUNTIME=build/gen_cuda
+TARGET=data/graph_poly.dot
 
 run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i ./data/graph_poly.dot -o
+	./$(BIN) -i $(TARGET) -o 
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
@@ -57,14 +66,18 @@ run: $(BIN)
 run-noopt: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i ./data/graph_poly.dot
+	./$(BIN) -i $(TARGET)
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
 
+dot:
+	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;
+	find ./data -iname *.dot -exec dot -Tpng -o {}.png {} \;
+
 format:
-	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i
-	find ./hifive -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
+	find ./hifive ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i
+	find ./hifive ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
 
 clean:
 	rm -rf build

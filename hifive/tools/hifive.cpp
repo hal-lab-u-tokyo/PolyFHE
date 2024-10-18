@@ -58,10 +58,13 @@ Config define_and_parse_arguments(int argc, char** argv) {
 
 int main(int argc, char** argv) {
     Config config = define_and_parse_arguments(argc, argv);
+    std::string input_file_tail = config.input_file.substr(
+        config.input_file.find_last_of("/") + 1, config.input_file.size());
+    LOG_INFO("Input file: %s\n", input_file_tail.c_str());
 
     std::shared_ptr<hifive::core::Graph> graph =
         hifive::frontend::ParseDotToGraph(config.input_file, config.type);
-    hifive::frontend::export_graph_to_dot(graph, "build/graph_input.dot");
+    hifive::frontend::export_graph_to_dot(graph, "build/" + input_file_tail);
 
     // Register Pass
     hifive::engine::PassManager pass_manager;
@@ -86,7 +89,8 @@ int main(int argc, char** argv) {
     pass_manager.run_on_graph(graph);
 
     // Code Generation
-    hifive::frontend::export_graph_to_dot(graph, "build/graph_final.dot");
+    hifive::frontend::export_graph_to_dot(graph,
+                                          "build/final_" + input_file_tail);
     hifive::engine::CodegenManager codegen_manager;
     codegen_manager.set(std::make_shared<hifive::engine::CudaCodegen>());
     codegen_manager.run_on_graph(graph);
