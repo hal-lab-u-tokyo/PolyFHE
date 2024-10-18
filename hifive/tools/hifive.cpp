@@ -13,14 +13,14 @@
 struct Config {
     std::string input_file;
     hifive::core::GraphType type;
-    bool if_optimize;
+    bool if_not_optimize;
 };
 
 Config define_and_parse_arguments(int argc, char** argv) {
     Config config;
     boost::program_options::options_description desc("Hifive Options");
-    desc.add_options()("opt,o", "Optimize graph")("help,h",
-                                                  "Print help message")(
+    desc.add_options()("noopt,n", "Not optimize graph")("help,h",
+                                                        "Print help message")(
         "input,i", boost::program_options::value<std::string>(),
         "Input dot file");
 
@@ -39,7 +39,7 @@ Config define_and_parse_arguments(int argc, char** argv) {
         exit(1);
     }
     config.input_file = vm["input"].as<std::string>();
-    config.if_optimize = vm.count("opt");
+    config.if_not_optimize = vm.count("noopt");
 
     // Set Graph Type
     // If `input` argument contains `fhe`, then the graph is
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
     pass_manager.push_back(
         std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
 
-    if (config.if_optimize) {
+    if (!config.if_not_optimize) {
         LOG_INFO("Arg: Optimize graph\n");
         // Kernel Fusion
         pass_manager.push_back(

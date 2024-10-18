@@ -58,7 +58,7 @@ TARGET=data/graph_poly.dot
 run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i $(TARGET) -o 
+	./$(BIN) -i $(TARGET) 
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
@@ -66,10 +66,15 @@ run: $(BIN)
 run-noopt: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i $(TARGET)
+	./$(BIN) -i $(TARGET) --noopt
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
+
+hmult: $(BIN)
+	rm -f ./build/*.dot
+	rm -f ./build/*.png
+	./$(BIN) -i data/graph_hmult.dot -o 
 
 dot:
 	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;
