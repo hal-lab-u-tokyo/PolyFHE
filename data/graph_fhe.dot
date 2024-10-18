@@ -1,0 +1,8 @@
+digraph G {
+Init[label="Init"];
+HMult0[label="HMult"];
+End[label="End"];
+Init->HMult0[label="65536*20"];
+Init->HMult0[label="65536*20"];
+HMult0->End[label="65536*20"];
+}
