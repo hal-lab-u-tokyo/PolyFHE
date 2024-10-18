@@ -53,10 +53,12 @@ test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
 	nvcc -o build/test $(SRC_TEST) $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./build/test
 
+TARGET=data/graph_poly.dot
+
 run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i ./data/graph_poly.dot -o
+	./$(BIN) -i $(TARGET) -o 
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
@@ -64,14 +66,14 @@ run: $(BIN)
 run-noopt: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i ./data/graph_poly.dot
+	./$(BIN) -i $(TARGET)
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
 
 dot:
-	dot -Tpng -o ./data/graph_poly.png ./data/graph_poly.dot
 	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;
+	find ./data -iname *.dot -exec dot -Tpng -o {}.png {} \;
 
 format:
 	find ./hifive ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i
