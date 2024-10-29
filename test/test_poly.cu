@@ -150,8 +150,22 @@ void test_poly_ntt(FHEContext &context, const int N, const int L,
             context.get_device_context(), d_in, first_stage_radix_size, L, N, 0,
             second_radix_size / per_thread_ntt_size);
 
+        cudaDeviceSynchronize();
+        CudaCheckError();
+
+        Intt8PointPerThreadPhase2OoP<<<gridDim, blockDim, per_thread_storage>>>(
+            context.get_device_context(), d_in, d_in, first_stage_radix_size, L,
+            N, 0, second_radix_size / per_thread_ntt_size);
+        /*
+        Intt8PointPerThreadPhase1OoP<<<
+            gridDim, (first_stage_radix_size / 8) * pad,
+            (first_stage_radix_size + pad + 1) * pad * sizeof(uint64_t)>>>(
+            context.get_device_context(), d_in, d_in, 1, L, N, 0, pad,
+            first_stage_radix_size / 8);
+            */
         CudaCheckError();
         cudaDeviceSynchronize();
+
         auto end = std::chrono::high_resolution_clock::now();
 
         cudaMemcpy(out, d_in, N * L * sizeof(uint64_t), cudaMemcpyDeviceToHost);
