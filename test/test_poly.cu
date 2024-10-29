@@ -42,8 +42,8 @@ void test_poly_add(FHEContext &context, const int N, const int L,
         gAdd<<<N / block_x, block_x, block_size>>>(
             context.get_device_context(), N, block_x, block_y, d_c, d_a, d_b,
             false, false, false);
-        CudaCheckError();
         cudaDeviceSynchronize();
+        CudaCheckError();
         auto end = std::chrono::high_resolution_clock::now();
 
         cudaMemcpy(c, d_c, N * L * sizeof(uint64_t), cudaMemcpyDeviceToHost);
@@ -91,8 +91,8 @@ void test_poly_mult(FHEContext &context, const int N, const int L,
         gMult<<<N / block_x, block_x, block_size>>>(
             context.get_device_context(), N, block_x, block_y, d_c, d_a, d_b,
             false, false, false);
-        CudaCheckError();
         cudaDeviceSynchronize();
+        CudaCheckError();
         auto end = std::chrono::high_resolution_clock::now();
 
         cudaMemcpy(c, d_c, N * L * sizeof(uint64_t), cudaMemcpyDeviceToHost);
@@ -156,15 +156,13 @@ void test_poly_ntt(FHEContext &context, const int N, const int L,
         Intt8PointPerThreadPhase2OoP<<<gridDim, blockDim, per_thread_storage>>>(
             context.get_device_context(), d_in, d_in, first_stage_radix_size, L,
             N, 0, second_radix_size / per_thread_ntt_size);
-        /*
         Intt8PointPerThreadPhase1OoP<<<
             gridDim, (first_stage_radix_size / 8) * pad,
             (first_stage_radix_size + pad + 1) * pad * sizeof(uint64_t)>>>(
             context.get_device_context(), d_in, d_in, 1, L, N, 0, pad,
             first_stage_radix_size / 8);
-            */
-        CudaCheckError();
         cudaDeviceSynchronize();
+        CudaCheckError();
 
         auto end = std::chrono::high_resolution_clock::now();
 
