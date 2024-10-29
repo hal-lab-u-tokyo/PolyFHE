@@ -79,4 +79,41 @@ DeviceContext::DeviceContext(HEAANContext &context) {
         cudaMemcpy(pkVec, context.pkVec, size_K, cudaMemcpyHostToDevice));
     checkCudaErrors(
         cudaMemcpy(pdVec, context.pdVec, size_K, cudaMemcpyHostToDevice));
+
+    // qRoots, qRootsInv, qRootPows, qRootPowsInv
+    // pRoots, pRootsInv, pRootPows, pRootPowsInv
+    const uint64_t size_NL = N * L * sizeof(uint64_t);
+    const uint64_t size_NK = N * K * sizeof(uint64_t);
+    checkCudaErrors(cudaMalloc((void **) &qRoots, size_L));
+    checkCudaErrors(cudaMalloc((void **) &qRootsInv, size_L));
+    checkCudaErrors(cudaMalloc((void **) &qRootPows, size_NL));
+    checkCudaErrors(cudaMalloc((void **) &qRootPowsInv, size_NL));
+    checkCudaErrors(cudaMalloc((void **) &pRoots, size_K));
+    checkCudaErrors(cudaMalloc((void **) &pRootsInv, size_K));
+    checkCudaErrors(cudaMalloc((void **) &pRootPows, size_NK));
+    checkCudaErrors(cudaMalloc((void **) &pRootPowsInv, size_NK));
+    checkCudaErrors(
+        cudaMemcpy(qRoots, context.qRoots, size_L, cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(qRootsInv, context.qRootsInv, size_L,
+                               cudaMemcpyHostToDevice));
+    checkCudaErrors(
+        cudaMemcpy(pRoots, context.pRoots, size_K, cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(pRootsInv, context.pRootsInv, size_L,
+                               cudaMemcpyHostToDevice));
+    for (int i = 0; i < L; i++) {
+        checkCudaErrors(cudaMemcpy(qRootPows + i * N, context.qRootPows[i],
+                                   N * sizeof(uint64_t),
+                                   cudaMemcpyHostToDevice));
+        checkCudaErrors(
+            cudaMemcpy(qRootPowsInv + i * N, context.qRootPowsInv[i],
+                       N * sizeof(uint64_t), cudaMemcpyHostToDevice));
+    }
+    for (int i = 0; i < K; i++) {
+        checkCudaErrors(cudaMemcpy(pRootPows + i * N, context.pRootPows[i],
+                                   N * sizeof(uint64_t),
+                                   cudaMemcpyHostToDevice));
+        checkCudaErrors(
+            cudaMemcpy(pRootPowsInv + i * N, context.pRootPowsInv[i],
+                       N * sizeof(uint64_t), cudaMemcpyHostToDevice));
+    }
 }
