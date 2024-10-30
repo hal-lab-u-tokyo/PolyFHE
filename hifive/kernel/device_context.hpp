@@ -73,8 +73,20 @@ public:
     uint64_t** qRootPows;
     uint64_t** pRootPows;
 
+    uint64_t** qRootPowsDivTwo;
+    uint64_t** pRootPowsDivTwo;
+
+    uint64_t** qRootPowsDivTwoShoup;
+    uint64_t** pRootPowsDivTwoShoup;
+
     uint64_t** qRootPowsInv;
     uint64_t** pRootPowsInv;
+
+    uint64_t** qRootPowsInvDivTwo;
+    uint64_t** pRootPowsInvDivTwo;
+
+    uint64_t** qRootPowsInvDivTwoShoup;
+    uint64_t** pRootPowsInvDivTwoShoup;
 
     uint64_t* NInvModq;
     uint64_t* NInvModp;

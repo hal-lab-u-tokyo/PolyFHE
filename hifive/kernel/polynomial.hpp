@@ -26,4 +26,28 @@ __device__ void Mult(DeviceContext *dc, const int N, const int block_x,
                      const int block_y, uint64_t *dst, const uint64_t *a,
                      const uint64_t *b, const bool if_dst_shared,
                      const bool if_a_shared, const bool if_b_shared);
+
+__global__ void Ntt8PointPerThreadPhase1(DeviceContext *dc, uint64_t *op,
+                                         const int num_prime, const int N,
+                                         const int start_prime_idx,
+                                         const int radix);
+
+__global__ void Ntt8PointPerThreadPhase2(DeviceContext *dc, uint64_t *op,
+                                         const int m, const int num_prime,
+                                         const int N, const int start_prime_idx,
+                                         const int radix);
+
+__global__ void Intt8PointPerThreadPhase2OoP(DeviceContext *dc,
+                                             const uint64_t *in, uint64_t *out,
+                                             const int m, const int num_prime,
+                                             const int N,
+                                             const int start_prime_idx,
+                                             const int radix);
+
+__global__ void Intt8PointPerThreadPhase1OoP(DeviceContext *dc,
+                                             const uint64_t *in, uint64_t *out,
+                                             const int m, const int num_prime,
+                                             const int N,
+                                             const int start_prime_idx, int pad,
+                                             int radix);
 }
