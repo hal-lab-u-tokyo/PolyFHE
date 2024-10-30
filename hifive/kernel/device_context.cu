@@ -124,16 +124,16 @@ DeviceContext::DeviceContext(HEAANContext &context) {
             Shoup(tmpN2[j], tmpN[j], context.qVec[i]);
         }
         checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
+        checkCudaErrors(cudaMalloc((void **) &tmp2[i], size_N));
         checkCudaErrors(
             cudaMemcpy(tmp[i], tmpN, size_N, cudaMemcpyHostToDevice));
-        checkCudaErrors(cudaMalloc((void **) &tmp2[i], size_N));
         checkCudaErrors(
             cudaMemcpy(tmp2[i], tmpN2, size_N, cudaMemcpyHostToDevice));
     }
     checkCudaErrors(cudaMalloc((void **) &qRootPowsDivTwo, size_L));
+    checkCudaErrors(cudaMalloc((void **) &qRootPowsDivTwoShoup, size_L));
     checkCudaErrors(
         cudaMemcpy(qRootPowsDivTwo, tmp, size_L, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMalloc((void **) &qRootPowsDivTwoShoup, size_L));
     checkCudaErrors(
         cudaMemcpy(qRootPowsDivTwoShoup, tmp2, size_L, cudaMemcpyHostToDevice));
 
@@ -157,12 +157,18 @@ DeviceContext::DeviceContext(HEAANContext &context) {
             Shoup(tmpN2[j], tmpN[j], context.qVec[i]);
         }
         checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
+        checkCudaErrors(cudaMalloc((void **) &tmp2[i], size_N));
         checkCudaErrors(
             cudaMemcpy(tmp[i], tmpN, size_N, cudaMemcpyHostToDevice));
-        checkCudaErrors(cudaMalloc((void **) &tmp2[i], size_N));
         checkCudaErrors(
             cudaMemcpy(tmp2[i], tmpN2, size_N, cudaMemcpyHostToDevice));
     }
+    checkCudaErrors(cudaMalloc((void **) &qRootPowsInvDivTwo, size_L));
+    checkCudaErrors(cudaMalloc((void **) &qRootPowsInvDivTwoShoup, size_L));
+    checkCudaErrors(
+        cudaMemcpy(qRootPowsInvDivTwo, tmp, size_L, cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(qRootPowsInvDivTwoShoup, tmp2, size_L,
+                               cudaMemcpyHostToDevice));
 
     tmp = new uint64_t *[K];
     // pRootPows

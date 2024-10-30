@@ -17,4 +17,5 @@ int main() {
         */
 
     test_poly_ntt(context, 1 << 14, 20, 1 << 7, 20);
+    // test_poly_ntt(context, 8, 1, 1 << 7, 20);
 }

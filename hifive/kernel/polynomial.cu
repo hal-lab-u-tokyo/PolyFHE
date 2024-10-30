@@ -166,7 +166,7 @@ __global__ void Ntt8PointPerThreadPhase1(DeviceContext *dc, uint64_t *op,
         uint64_t *a_np = op + np_idx * N;
         const uint64_t *prime_table = primes;
         const uint64_t *W = dc->qRootPowsDivTwo[np_idx];
-        const uint64_t *W_ = dc->qRootPowsInvDivTwoShoup[np_idx];
+        const uint64_t *W_ = dc->qRootPowsDivTwoShoup[np_idx];
         uint64_t prime = prime_table[np_idx];
         int N_init = 2 * m_idx * t + t / 4 / radix * WarpID + Warp_t +
                      pad * (t_idx / (radix * pad));
@@ -458,7 +458,7 @@ __global__ void Intt8PointPerThreadPhase2OoP(DeviceContext *dc,
         int tw_idx = m + m_idx;
         int tw_idx2 = (t / 4) * tw_idx + t_idx;
         const uint64_t *WInv = dc->qRootPowsInvDivTwo[np_idx];
-        const uint64_t *WInv_ = dc->qRootPowsDivTwoShoup[np_idx];
+        const uint64_t *WInv_ = dc->qRootPowsInvDivTwoShoup[np_idx];
         for (int j = 0; j < 4; j++) {
             butt_intt_local(local[2 * j], local[2 * j + 1],
                             WInv[4 * tw_idx2 + j], WInv_[4 * tw_idx2 + j],
