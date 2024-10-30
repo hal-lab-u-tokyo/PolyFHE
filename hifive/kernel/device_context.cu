@@ -32,6 +32,11 @@ FHEContext::FHEContext() {
                                sizeof(DeviceContext), cudaMemcpyHostToDevice));
 }
 
+uint64_t Inverse(const uint64_t op, const uint64_t prime) {
+    uint64_t tmp = op > prime ? (op % prime) : op;
+    return powMod(tmp, prime - 2, prime);
+}
+
 DeviceContext::DeviceContext(HEAANContext &context) {
     logN = context.logN;
     logNh = context.logNh;
@@ -97,7 +102,11 @@ DeviceContext::DeviceContext(HEAANContext &context) {
                                cudaMemcpyHostToDevice));
 
     uint64_t **tmp = new uint64_t *[L];
+    uint64_t **tmp2 = new uint64_t *[L];
+    uint64_t *tmpN = new uint64_t[N];
+    uint64_t *tmpN2 = new uint64_t[N];
 
+    // qRootPows
     for (int i = 0; i < L; i++) {
         checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
         checkCudaErrors(cudaMemcpy(tmp[i], context.qRootPows[i], size_N,
@@ -106,6 +115,29 @@ DeviceContext::DeviceContext(HEAANContext &context) {
     checkCudaErrors(cudaMalloc((void **) &qRootPows, size_L));
     checkCudaErrors(cudaMemcpy(qRootPows, tmp, size_L, cudaMemcpyHostToDevice));
 
+    // qRootPowsDivTwo
+    // qRootPowsDivTwoShoup
+    for (int i = 0; i < L; i++) {
+        const uint64_t two_inv = Inverse(2, context.qVec[i]);
+        for (int j = 0; j < N; j++) {
+            mulMod(tmpN[j], context.qRootPows[i][j], two_inv, context.qVec[i]);
+            Shoup(tmpN2[j], tmpN[j], context.qVec[i]);
+        }
+        checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
+        checkCudaErrors(
+            cudaMemcpy(tmp[i], tmpN, size_N, cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMalloc((void **) &tmp2[i], size_N));
+        checkCudaErrors(
+            cudaMemcpy(tmp2[i], tmpN2, size_N, cudaMemcpyHostToDevice));
+    }
+    checkCudaErrors(cudaMalloc((void **) &qRootPowsDivTwo, size_L));
+    checkCudaErrors(
+        cudaMemcpy(qRootPowsDivTwo, tmp, size_L, cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMalloc((void **) &qRootPowsDivTwoShoup, size_L));
+    checkCudaErrors(
+        cudaMemcpy(qRootPowsDivTwoShoup, tmp2, size_L, cudaMemcpyHostToDevice));
+
+    // qRootPowsInv
     for (int i = 0; i < L; i++) {
         checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
         checkCudaErrors(cudaMemcpy(tmp[i], context.qRootPowsInv[i], size_N,
@@ -115,7 +147,25 @@ DeviceContext::DeviceContext(HEAANContext &context) {
     checkCudaErrors(
         cudaMemcpy(qRootPowsInv, tmp, size_L, cudaMemcpyHostToDevice));
 
+    // qRootPowsInvDivTwo
+    // qRootPowsInvDivTwoShoup
+    for (int i = 0; i < L; i++) {
+        const uint64_t two_inv = Inverse(2, context.qVec[i]);
+        for (int j = 0; j < N; j++) {
+            mulMod(tmpN[j], context.qRootPowsInv[i][j], two_inv,
+                   context.qVec[i]);
+            Shoup(tmpN2[j], tmpN[j], context.qVec[i]);
+        }
+        checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
+        checkCudaErrors(
+            cudaMemcpy(tmp[i], tmpN, size_N, cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMalloc((void **) &tmp2[i], size_N));
+        checkCudaErrors(
+            cudaMemcpy(tmp2[i], tmpN2, size_N, cudaMemcpyHostToDevice));
+    }
+
     tmp = new uint64_t *[K];
+    // pRootPows
     for (int i = 0; i < K; i++) {
         checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
         checkCudaErrors(cudaMemcpy(tmp[i], context.pRootPows[i], size_N,
@@ -124,6 +174,7 @@ DeviceContext::DeviceContext(HEAANContext &context) {
     checkCudaErrors(cudaMalloc((void **) &pRootPows, size_K));
     checkCudaErrors(cudaMemcpy(pRootPows, tmp, size_K, cudaMemcpyHostToDevice));
 
+    // pRootPowsInv
     for (int i = 0; i < K; i++) {
         checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
         checkCudaErrors(cudaMemcpy(tmp[i], context.pRootPowsInv[i], size_N,

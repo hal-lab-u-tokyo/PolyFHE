@@ -125,10 +125,14 @@ void test_poly_ntt(FHEContext &context, const int N, const int L,
               << ", block_x=" << block_x << ", block_y=" << block_y
               << std::endl;
 
+    /*
     auto [in, d_in] =
         create_random_polynomial(N, L, context.get_host_context()->qVec);
     auto [out, d_out] =
         create_random_polynomial(N, L, context.get_host_context()->qVec);
+        */
+    auto [in, d_in] = create_linear_polynomial(N, L);
+    auto [out, d_out] = create_linear_polynomial(N, L);
 
     for (int i = 0; i < 5; i++) {
         auto start = std::chrono::high_resolution_clock::now();
