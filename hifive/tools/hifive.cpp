@@ -5,7 +5,7 @@
 #include "hifive/engine/codegen/codegen_manager.hpp"
 #include "hifive/engine/codegen/cuda_codegen.hpp"
 #include "hifive/engine/pass/calculate_memory_traffic_pass.hpp"
-#include "hifive/engine/pass/kernel_fusion_pass.hpp"
+#include "hifive/engine/pass/data_reuse_pass.hpp"
 #include "hifive/engine/pass/lowering_ckks_to_poly_pass.hpp"
 #include "hifive/engine/pass/pass_manager.hpp"
 #include "hifive/frontend/exporter.hpp"
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
     if (!config.if_not_optimize) {
         LOG_INFO("Input config: Optimize graph\n");
         pass_manager.push_back(
-            std::make_shared<hifive::engine::KernelFusionPass>());
+            std::make_shared<hifive::engine::DataReusePass>());
         pass_manager.push_back(
             std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
     } else {

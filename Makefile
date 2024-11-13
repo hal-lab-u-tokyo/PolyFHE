@@ -3,7 +3,7 @@ SRC=\
 	hifive/core/graph/node.cpp \
 	hifive/engine/codegen/cuda_codegen.cpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
-	hifive/engine/pass/kernel_fusion_pass.cpp \
+	hifive/engine/pass/data_reuse_pass.cpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.cpp \
 	hifive/frontend/exporter.cpp \
 	hifive/frontend/parser.cpp \
@@ -27,7 +27,7 @@ HDR=\
 	hifive/engine/codegen/codegen_writer.hpp \
 	hifive/engine/codegen/cuda_codegen.hpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.hpp \
-	hifive/engine/pass/kernel_fusion_pass.hpp \
+	hifive/engine/pass/data_reuse_pass.hpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.hpp \
 	hifive/frontend/exporter.hpp \
 	hifive/frontend/parser.hpp
@@ -58,6 +58,11 @@ test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
 TARGET=data/graph_poly.dot
 
 run: $(BIN)
+	rm -f ./build/*.dot
+	rm -f ./build/*.png
+	./$(BIN) -i $(TARGET) -p 
+	
+run-bk: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
 	./$(BIN) -i $(TARGET) -p 

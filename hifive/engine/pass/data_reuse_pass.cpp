@@ -1,15 +1,15 @@
-#include "hifive/engine/pass/kernel_fusion_pass.hpp"
+#include "hifive/engine/pass/data_reuse_pass.hpp"
 
 #include "hifive/core/logger.hpp"
 #include "hifive/frontend/exporter.hpp"
 
 namespace hifive {
 namespace engine {
-bool KernelFusionPass::run_on_graph(
+bool DataReusePass::run_on_graph(
     std::shared_ptr<hifive::core::Graph>& graph) {
-    LOG_INFO("Running KernelFusionPass\n");
+    LOG_INFO("Running DataReusePass\n");
     hifive::frontend::export_graph_to_dot(
-        graph, "build/graph_before_kernel_fusion_pass.dot");
+        graph, "build/graph_before_data_reuse_pass.dot");
 
     const int n = graph->get_nodes().size();
     LOG_INFO("Number of nodes before fusion: %d\n", graph->get_nodes_size());
@@ -92,7 +92,7 @@ bool KernelFusionPass::run_on_graph(
     LOG_IMPORTANT("Number of nodes after fusion: %d\n",
                   graph->get_nodes_size());
     hifive::frontend::export_graph_to_dot(
-        graph, "build/graph_after_kernel_fusion_pass.dot");
+        graph, "build/graph_after_data_reuse_pass.dot");
     return true;
 }
 } // namespace engine

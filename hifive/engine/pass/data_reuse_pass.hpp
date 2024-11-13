@@ -4,7 +4,7 @@
 
 namespace hifive {
 namespace engine {
-class KernelFusionPass : public PassBase {
+class DataReusePass : public PassBase {
 public:
     bool run_on_graph(std::shared_ptr<hifive::core::Graph>& /*graph*/) override;
 };
