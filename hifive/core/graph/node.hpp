@@ -18,6 +18,7 @@ enum class MemoryAccessPattern {
     LimbWise,    // e.g., NTT
     SlotWise,    // e.g., BConv
     ElementWise, // e.g., Add
+    NotDefined   // e.g., Init, End
 };
 
 class Node : public std::enable_shared_from_this<Node> {

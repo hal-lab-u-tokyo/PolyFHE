@@ -20,8 +20,8 @@ struct Config {
 Config define_and_parse_arguments(int argc, char** argv) {
     Config config;
     boost::program_options::options_description desc("Hifive Options");
-    desc.add_options()("noopt,n", "Not optimize graph")("help,h",
-                                                        "Print help message")(
+    desc.add_options()("noopt,n", "Not optimize graph")(
+        "poly,p", "Input *.dot if poly graph")("help,h", "Print help message")(
         "input,i", boost::program_options::value<std::string>(),
         "Input dot file");
 
@@ -40,18 +40,13 @@ Config define_and_parse_arguments(int argc, char** argv) {
         exit(1);
     }
     config.input_file = vm["input"].as<std::string>();
+
     config.if_not_optimize = vm.count("noopt");
 
-    // Set Graph Type
-    // If `input` argument contains `fhe`, then the graph is
-    // core::GraphType::FHE Else if it contains `poly`, then the graph is
-    // core::GraphType::Poly Otherwise, the graph is core::GraphType::Other
-    if (config.input_file.find("fhe") != std::string::npos) {
-        config.type = hifive::core::GraphType::FHE;
-    } else if (config.input_file.find("poly") != std::string::npos) {
+    if (vm.count("poly")) {
         config.type = hifive::core::GraphType::Poly;
     } else {
-        config.type = hifive::core::GraphType::Other;
+        config.type = hifive::core::GraphType::FHE;
     }
 
     return config;
@@ -67,15 +62,20 @@ int main(int argc, char** argv) {
         hifive::frontend::ParseDotToGraph(config.input_file, config.type);
     hifive::frontend::export_graph_to_dot(graph, "build/" + input_file_tail);
 
-    // Register Pass
+    // PassManager
     hifive::engine::PassManager pass_manager;
 
-    // Pass: Lowering CKKS to Poly
+    // ==================================================
+    //    Pass to FHE graph
+    // ==================================================
     if (config.type == hifive::core::GraphType::FHE) {
         pass_manager.push_back(
             std::make_shared<hifive::engine::LoweringCKKSToPolyPass>());
     }
 
+    // ==================================================
+    // Pass to Poly graph
+    // ==================================================
     // Pass: Calculate nemory traffic of original graph
     pass_manager.push_back(
         std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
@@ -83,10 +83,8 @@ int main(int argc, char** argv) {
     // Pass: Data reuse
     if (!config.if_not_optimize) {
         LOG_INFO("Input config: Optimize graph\n");
-        // Pass: Kernel Fusion
         pass_manager.push_back(
             std::make_shared<hifive::engine::KernelFusionPass>());
-        // Pass: Calculate memory traffic of optimized graph
         pass_manager.push_back(
             std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
     } else {
@@ -96,7 +94,9 @@ int main(int argc, char** argv) {
     // Run PassManager
     pass_manager.run_on_graph(graph);
 
+    // ==================================================
     // Code Generation
+    // ==================================================
     hifive::frontend::export_graph_to_dot(graph,
                                           "build/final_" + input_file_tail);
     hifive::engine::CodegenManager codegen_manager;

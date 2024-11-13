@@ -11,6 +11,8 @@ Node::Node(std::string op_type) : m_op_type(op_type), m_id(-1) {
         m_access_pattern = MemoryAccessPattern::SlotWise;
     } else if (m_op_type == "NTT") {
         m_access_pattern = MemoryAccessPattern::LimbWise;
+    } else if (m_op_type == "Init" or m_op_type == "End") {
+        m_access_pattern = MemoryAccessPattern::NotDefined;
     } else {
         LOG_ERROR("Unknown access pattern for %s\n", m_op_type.c_str());
     }
