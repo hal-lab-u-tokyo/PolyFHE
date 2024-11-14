@@ -20,6 +20,10 @@ enum class MemoryAccessPattern {
     ElementWise, // e.g., Add
     NotDefined   // e.g., Init, End
 };
+enum class BlockPhase {
+    NTTPhase1,
+    NTTPhase2,
+};
 
 class Node : public std::enable_shared_from_this<Node> {
 public:
@@ -90,12 +94,19 @@ public:
         return m_bottom_poly_ops;
     }
 
+    // Block phase
+    void set_block_phase(BlockPhase block_phase) {
+        m_block_phase = block_phase;
+    }
+    BlockPhase get_block_phase() { return m_block_phase; }
+
 protected:
     std::string m_op_type;
     std::vector<std::shared_ptr<Edge>> m_in_edges;
     std::vector<std::shared_ptr<Edge>> m_out_edges;
     int m_id;
     MemoryAccessPattern m_access_pattern;
+    BlockPhase m_block_phase;
 
 private:
     // Only for lowerings

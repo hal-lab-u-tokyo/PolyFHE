@@ -9,6 +9,7 @@
 #include "hifive/engine/pass/lowering_ckks_to_poly_pass.hpp"
 #include "hifive/engine/pass/pass_manager.hpp"
 #include "hifive/engine/pass/rewrite_ntt_pass.hpp"
+#include "hifive/engine/pass/set_block_phase_pass.hpp"
 #include "hifive/frontend/exporter.hpp"
 #include "hifive/frontend/parser.hpp"
 
@@ -81,6 +82,8 @@ int main(int argc, char** argv) {
     pass_manager.push_back(
         std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
     pass_manager.push_back(std::make_shared<hifive::engine::RewriteNTTPass>());
+    pass_manager.push_back(
+        std::make_shared<hifive::engine::SetBlockPhasePass>());
 
     // Pass: Data reuse
     if (!config.if_not_optimize) {

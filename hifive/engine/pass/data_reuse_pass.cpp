@@ -94,10 +94,10 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
                 CalculateSubgraphSharedMemFootprint(node, visited);
             LOG_INFO("Total shared mem %s: %lu KB\n",
                      node->get_op_name().c_str(), footprint / 1000);
-            // if (CalculateSubgraphSharedMemFootprint(edge->get_dst()) > 32) {
-            //     edge->set_level(hifive::core::EdgeLevel::Global);
-            //     continue;
-            // }
+            if (footprint > 44) {
+                edge->set_level(hifive::core::EdgeLevel::Global);
+                continue;
+            }
             LOG_INFO("Reuse %s -> %s\n", node->get_op_name().c_str(),
                      edge->get_dst()->get_op_name().c_str());
         }

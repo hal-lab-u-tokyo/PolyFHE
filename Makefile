@@ -6,6 +6,7 @@ SRC=\
 	hifive/engine/pass/data_reuse_pass.cpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.cpp \
 	hifive/engine/pass/rewrite_ntt_pass.cpp \
+	hifive/engine/pass/set_block_phase_pass.cpp \
 	hifive/frontend/exporter.cpp \
 	hifive/frontend/parser.cpp \
 	hifive/tools/hifive.cpp
@@ -20,6 +21,7 @@ SRC_TEST=\
 	test/util.cu
 
 HDR=\
+	hifive/core/graph/edge.hpp \
 	hifive/core/graph/graph.hpp \
 	hifive/core/graph/node.hpp \
 	hifive/core/logger.hpp \
@@ -31,6 +33,7 @@ HDR=\
 	hifive/engine/pass/data_reuse_pass.hpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.hpp \
 	hifive/engine/pass/rewrite_ntt_pass.hpp \
+	hifive/engine/pass/set_block_phase_pass.hpp \
 	hifive/frontend/exporter.hpp \
 	hifive/frontend/parser.hpp
 
