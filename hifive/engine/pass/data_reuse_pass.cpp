@@ -28,7 +28,6 @@ uint64_t CalculateSubgraphSharedMemFootprint(
     std::shared_ptr<hifive::core::Node> node,
     std::vector<std::shared_ptr<hifive::core::Edge>>& visited) {
     uint64_t footprint = 0;
-    LOG_INFO("Footprint: %s\n", node->get_op_name().c_str());
     for (auto edge : node->get_out_edges()) {
         auto found = std::find(visited.begin(), visited.end(), edge);
         if (found != visited.end()) {
@@ -81,6 +80,7 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
         }
 
         LOG_INFO("Visiting %s\n", node->get_op_name().c_str());
+
         for (auto edge : node->get_out_edges()) {
             edge->set_level(hifive::core::EdgeLevel::Shared);
             // if (!CanReuse(node, edge->get_dst())) {
@@ -102,62 +102,44 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
                      edge->get_dst()->get_op_name().c_str());
         }
 
-        /*
-                // Fuse if one-to-one
-                if (node->get_access_pattern() ==
-                    hifive::core::MemoryAccessPattern::ElementWise) {
-                    auto edge_to_next = *node->get_out_edges().begin();
-                    auto next_node = edge_to_next->get_dst();
-
-                    // Check if next node is element-wise
-                    if (next_node->get_access_pattern() !=
-                        hifive::core::MemoryAccessPattern::ElementWise) {
-                        continue;
-                    }
-
-                    // Fuse
-                    auto fused_node =
-           std::make_shared<hifive::core::FusedNode>();
-                    fused_node->add_fused_node(node);
-                    fused_node->add_fused_node(next_node);
-                    fused_node->set_access_pattern(
-                        hifive::core::MemoryAccessPattern::ElementWise);
-
-                    // TODO: rethinking the edge management
-                    for (auto edge : node->get_in_edges()) {
-                        fused_node->add_incoming(edge);
-                        edge->set_dst(fused_node);
-                    }
-                    for (auto edge : next_node->get_in_edges()) {
-                        if (edge->get_src() != node) {
-                            fused_node->add_incoming(edge);
-                            edge->set_dst(fused_node);
-                        }
-                    }
-                    for (auto edge : node->get_out_edges()) {
-                        if (edge->get_dst() != next_node) {
-                            fused_node->add_outgoing(edge);
-                            edge->set_src(fused_node);
-                        }
-                    }
-                    for (auto edge : next_node->get_out_edges()) {
-                        fused_node->add_outgoing(edge);
-                        edge->set_src(fused_node);
-                    }
-
-                    // Update graph
-                    graph->add_node(fused_node);
-                    graph->remove_node(node);
-                    graph->remove_node(next_node);
-                    LOG_INFO("Fused %s + %s -> %s\n",
-           node->get_op_name().c_str(), next_node->get_op_name().c_str(),
-                             fused_node->get_op_name().c_str());
-
-                    // Update DFS stack
-                    visited.push_back(false);
-                    stack.push_back(fused_node->get_id());
+        if (node->get_op_type() == "NTT") {
+            // Partision NTT Node into NTTPhase1 and NTTPhase2
+            auto ntt_phase1 = std::make_shared<hifive::core::Node>();
+            auto ntt_phase2 = std::make_shared<hifive::core::Node>();
+            ntt_phase1->set_op_type("NTTPhase1");
+            ntt_phase2->set_op_type("NTTPhase2");
+            ntt_phase1->set_access_pattern(
+                hifive::core::MemoryAccessPattern::LimbWise);
+            ntt_phase2->set_access_pattern(
+                hifive::core::MemoryAccessPattern::LimbWise);
+            // Update graph
+            graph->add_node(ntt_phase1);
+            graph->add_node(ntt_phase2);
+            assert(node->get_out_edges().size() == 1);
+            assert(node->get_in_edges().size() == 1);
+            auto inedge = node->get_in_edges()[0];
+            auto outedge = node->get_out_edges()[0];
+            inedge->set_dst(ntt_phase1);
+            ntt_phase1->add_incoming(inedge);
+            outedge->set_src(ntt_phase2);
+            ntt_phase2->add_outgoing(outedge);
+            auto new_edge =
+                std::make_shared<hifive::core::Edge>(ntt_phase1, ntt_phase2);
+            // TODO: support if shape of inedge and outedge is different
+            for (size_t i = 0; i < inedge->get_shape().size(); i++) {
+                if (inedge->get_shape(i) != outedge->get_shape(i)) {
+                    LOG_ERROR("Shape of inedge and outedge is different\n");
                 }
-        */
+            }
+            new_edge->set_shape(inedge->get_shape());
+            new_edge->update_name();
+            new_edge->set_level(hifive::core::EdgeLevel::Global);
+            ntt_phase1->add_outgoing(new_edge);
+            ntt_phase2->add_incoming(new_edge);
+
+            graph->remove_node(node);
+            node = ntt_phase2;
+        }
 
         for (auto edge : node->get_out_edges()) {
             stack.push_back(edge->get_dst()->get_id());

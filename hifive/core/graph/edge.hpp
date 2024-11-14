@@ -27,7 +27,13 @@ public:
     // shape
     void set_shape(std::vector<int> shape) { m_shape = shape; }
     std::vector<int> get_shape() { return m_shape; }
-    int get_shape(int idx) { return m_shape[idx]; }
+    int get_shape(size_t idx) {
+        if (idx >= m_shape.size()) {
+            LOG_ERROR("Index out of bound\n");
+            return 1;
+        }
+        return m_shape[idx];
+    }
     int get_size_in_byte() { return get_size() * sizeof(uint64_t); }
 
     // name

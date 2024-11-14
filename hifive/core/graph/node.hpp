@@ -58,7 +58,7 @@ public:
     // Operation
     virtual std::string get_op_type() { return m_op_type; }
     void set_op_type(std::string op_type) { m_op_type = op_type; }
-    std::string get_op_name() { return m_op_type + std::to_string(m_id); }
+    std::string get_op_name() { return m_op_type + "_" + std::to_string(m_id); }
     virtual std::vector<std::shared_ptr<Node>> get_nodes() {
         return {shared_from_this()};
     }
