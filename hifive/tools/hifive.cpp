@@ -6,6 +6,7 @@
 #include "hifive/engine/codegen/cuda_codegen.hpp"
 #include "hifive/engine/pass/calculate_memory_traffic_pass.hpp"
 #include "hifive/engine/pass/data_reuse_pass.hpp"
+#include "hifive/engine/pass/extract_subgraph_pass.hpp"
 #include "hifive/engine/pass/lowering_ckks_to_poly_pass.hpp"
 #include "hifive/engine/pass/pass_manager.hpp"
 #include "hifive/engine/pass/rewrite_ntt_pass.hpp"
@@ -92,6 +93,8 @@ int main(int argc, char** argv) {
             std::make_shared<hifive::engine::DataReusePass>());
         pass_manager.push_back(
             std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
+        pass_manager.push_back(
+            std::make_shared<hifive::engine::ExtractSubgraphPass>());
     } else {
         LOG_INFO("Arg: Do not optimize graph\n");
     }

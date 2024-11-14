@@ -30,6 +30,14 @@ bool CanReuse(std::shared_ptr<hifive::core::Node> src,
 
 uint64_t CalculateSharedMemSizePerEdge(
     std::shared_ptr<hifive::core::Edge> edge) {
+    // Check if the edge can be inplaced with the previous edge
+    auto src = edge->get_src();
+    if (src->get_out_edges().size() == 1 &&
+        src->get_out_edges()[0]->get_level() ==
+            hifive::core::EdgeLevel::Shared) {
+        return 0;
+    }
+
     uint64_t size = 1;
     // width
     switch (edge->get_src()->get_block_phase()) {
