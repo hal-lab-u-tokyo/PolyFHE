@@ -1,9 +1,24 @@
 #include "hifive/frontend/exporter.hpp"
 
+#include "hifive/core/graph/edge.hpp"
 #include "hifive/core/logger.hpp"
 
 namespace hifive {
 namespace frontend {
+
+std::string EdgeLevelColor(hifive::core::EdgeLevel level) {
+    switch (level) {
+    case hifive::core::EdgeLevel::Shared:
+        return "blue";
+    case hifive::core::EdgeLevel::Global:
+        return "red";
+    case hifive::core::EdgeLevel::YetToDetermine:
+        return "black";
+    default:
+        LOG_ERROR("Unknown edge level\n");
+        return "black";
+    }
+}
 
 void export_graph_to_dot(std::shared_ptr<hifive::core::Graph>& graph,
                          std::string filename) {
@@ -32,6 +47,7 @@ void export_graph_to_dot(std::shared_ptr<hifive::core::Graph>& graph,
         for (auto edge : node->get_out_edges()) {
             DotEdge de;
             de.label = "";
+            de.color = EdgeLevelColor(edge->get_level());
             auto src = v_descs[node_id];
             auto dst = v_descs[edge->get_dst()->get_id()];
             boost::add_edge(src, dst, de, g_dot);
@@ -42,6 +58,7 @@ void export_graph_to_dot(std::shared_ptr<hifive::core::Graph>& graph,
     boost::dynamic_properties dp;
     dp.property("node_id", get(&DotNode::name, g_dot));
     dp.property("label", get(&DotNode::label, g_dot));
+    dp.property("color", get(&DotEdge::color, g_dot));
     dp.property("peripheries", get(&DotNode::peripheries, g_dot));
     std::ofstream file(filename);
     boost::write_graphviz_dp(file, g_dot, dp);
