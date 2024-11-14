@@ -18,7 +18,8 @@ enum class MemoryAccessPattern {
     LimbWise,    // e.g., NTT
     SlotWise,    // e.g., BConv
     ElementWise, // e.g., Add
-    NotDefined   // e.g., Init, End
+    NotDefined,  // e.g., Init, End
+    YetSet,
 };
 enum class BlockPhase {
     NTTPhase1,
@@ -105,7 +106,7 @@ protected:
     std::vector<std::shared_ptr<Edge>> m_in_edges;
     std::vector<std::shared_ptr<Edge>> m_out_edges;
     int m_id;
-    MemoryAccessPattern m_access_pattern;
+    MemoryAccessPattern m_access_pattern = MemoryAccessPattern::YetSet;
     BlockPhase m_block_phase;
 
 private:

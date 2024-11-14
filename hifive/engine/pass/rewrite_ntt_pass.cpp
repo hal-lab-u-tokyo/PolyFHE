@@ -28,8 +28,6 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
             continue;
         }
 
-        LOG_INFO("Visiting %s\n", node->get_op_name().c_str());
-
         if (node->get_op_type() == "NTT") {
             // Partision NTT Node into NTTPhase1 and NTTPhase2
             auto ntt_phase1 = std::make_shared<hifive::core::Node>();
@@ -43,19 +41,19 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
             // Update graph
             graph->add_node(ntt_phase1);
             graph->add_node(ntt_phase2);
-            assert(node->get_out_edges().size() == 1);
             assert(node->get_in_edges().size() == 1);
             auto inedge = node->get_in_edges()[0];
-            auto outedge = node->get_out_edges()[0];
             inedge->set_dst(ntt_phase1);
             ntt_phase1->add_incoming(inedge);
-            outedge->set_src(ntt_phase2);
-            ntt_phase2->add_outgoing(outedge);
+            for (auto edge : node->get_out_edges()) {
+                edge->set_src(ntt_phase2);
+                ntt_phase2->add_outgoing(edge);
+            }
             auto new_edge =
                 std::make_shared<hifive::core::Edge>(ntt_phase1, ntt_phase2);
             // TODO: support if shape of inedge and outedge is different
             for (size_t i = 0; i < inedge->get_shape().size(); i++) {
-                if (inedge->get_shape(i) != outedge->get_shape(i)) {
+                if (inedge->get_shape(i) != inedge->get_shape(i)) {
                     LOG_ERROR("Shape of inedge and outedge is different\n");
                 }
             }

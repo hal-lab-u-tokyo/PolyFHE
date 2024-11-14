@@ -19,6 +19,9 @@ bool CanReuse(std::shared_ptr<hifive::core::Node> src,
                hifive::core::MemoryAccessPattern::LimbWise;
     case hifive::core::MemoryAccessPattern::NotDefined:
         return false;
+    case hifive::core::MemoryAccessPattern::YetSet:
+        LOG_ERROR("Yetset access pattern\n");
+        return false;
     default:
         LOG_ERROR("Unknown access pattern\n");
         return false;

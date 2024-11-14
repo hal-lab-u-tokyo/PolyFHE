@@ -5,11 +5,13 @@ namespace hifive {
 namespace core {
 
 Node::Node(std::string op_type) : m_op_type(op_type), m_id(-1) {
-    if (m_op_type == "Add") {
+    if (m_op_type == "Add" || m_op_type == "Sub" || m_op_type == "Mult" ||
+        m_op_type == "Accum") {
         m_access_pattern = MemoryAccessPattern::ElementWise;
-    } else if (m_op_type == "BConv") {
+    } else if (m_op_type == "BConv" || m_op_type == "ModDown" ||
+               m_op_type == "ModUp") {
         m_access_pattern = MemoryAccessPattern::SlotWise;
-    } else if (m_op_type == "NTT") {
+    } else if (m_op_type == "NTT" || m_op_type == "iNTT") {
         m_access_pattern = MemoryAccessPattern::LimbWise;
     } else if (m_op_type == "Init" or m_op_type == "End") {
         m_access_pattern = MemoryAccessPattern::NotDefined;
