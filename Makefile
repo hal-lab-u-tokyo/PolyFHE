@@ -61,6 +61,7 @@ run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
 	./$(BIN) -i $(TARGET) -p 
+	make dot
 	
 run-bk: $(BIN)
 	rm -f ./build/*.dot
