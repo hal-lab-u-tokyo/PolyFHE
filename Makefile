@@ -25,6 +25,7 @@ HDR=\
 	hifive/core/graph/graph.hpp \
 	hifive/core/graph/node.hpp \
 	hifive/core/logger.hpp \
+	hifive/core/param.hpp \
 	hifive/engine/codegen/codegen_base.hpp \
 	hifive/engine/codegen/codegen_manager.hpp \
 	hifive/engine/codegen/codegen_writer.hpp \
