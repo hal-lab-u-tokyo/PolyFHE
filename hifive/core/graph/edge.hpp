@@ -7,6 +7,12 @@
 namespace hifive {
 namespace core {
 
+enum class EdgeLevel {
+    Shared,
+    Global,
+    YetToDetermine,
+};
+
 class Edge : public std::enable_shared_from_this<Edge> {
 public:
     Edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst)
@@ -21,7 +27,13 @@ public:
     // shape
     void set_shape(std::vector<int> shape) { m_shape = shape; }
     std::vector<int> get_shape() { return m_shape; }
-    int get_shape(int idx) { return m_shape[idx]; }
+    int get_shape(size_t idx) {
+        if (idx >= m_shape.size()) {
+            LOG_ERROR("Index out of bound\n");
+            return 1;
+        }
+        return m_shape[idx];
+    }
     int get_size_in_byte() { return get_size() * sizeof(uint64_t); }
 
     // name
@@ -33,11 +45,16 @@ public:
     }
     std::string get_name() { return m_name; }
 
+    // level
+    void set_level(EdgeLevel level) { m_level = level; }
+    EdgeLevel get_level() { return m_level; }
+
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;
     std::vector<int> m_shape;
     std::string m_name;
+    EdgeLevel m_level = EdgeLevel::YetToDetermine;
 
     int get_size() {
         int size = 1;

@@ -3,3 +3,4 @@ build/*
 *.o
 *.nsys-rep
 *.sqlite
+log.txt

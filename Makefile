@@ -3,8 +3,10 @@ SRC=\
 	hifive/core/graph/node.cpp \
 	hifive/engine/codegen/cuda_codegen.cpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
-	hifive/engine/pass/kernel_fusion_pass.cpp \
+	hifive/engine/pass/data_reuse_pass.cpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.cpp \
+	hifive/engine/pass/rewrite_ntt_pass.cpp \
+	hifive/engine/pass/set_block_phase_pass.cpp \
 	hifive/frontend/exporter.cpp \
 	hifive/frontend/parser.cpp \
 	hifive/tools/hifive.cpp
@@ -19,16 +21,20 @@ SRC_TEST=\
 	test/util.cu
 
 HDR=\
+	hifive/core/graph/edge.hpp \
 	hifive/core/graph/graph.hpp \
 	hifive/core/graph/node.hpp \
 	hifive/core/logger.hpp \
+	hifive/core/param.hpp \
 	hifive/engine/codegen/codegen_base.hpp \
 	hifive/engine/codegen/codegen_manager.hpp \
 	hifive/engine/codegen/codegen_writer.hpp \
 	hifive/engine/codegen/cuda_codegen.hpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.hpp \
-	hifive/engine/pass/kernel_fusion_pass.hpp \
+	hifive/engine/pass/data_reuse_pass.hpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.hpp \
+	hifive/engine/pass/rewrite_ntt_pass.hpp \
+	hifive/engine/pass/set_block_phase_pass.hpp \
 	hifive/frontend/exporter.hpp \
 	hifive/frontend/parser.hpp
 
@@ -55,12 +61,18 @@ test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
 	nvcc -o build/test $(SRC_TEST) $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./build/test
 
-TARGET=data/graph_poly.dot
+TARGET=data/graph_poly_hmult.dot
 
 run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i $(TARGET) 
+	./$(BIN) -i $(TARGET) -p 
+	make dot
+	
+run-bk: $(BIN)
+	rm -f ./build/*.dot
+	rm -f ./build/*.png
+	./$(BIN) -i $(TARGET) -p 
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot

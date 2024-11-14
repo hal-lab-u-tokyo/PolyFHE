@@ -18,6 +18,7 @@ struct DotNode {
 
 struct DotEdge {
     std::string label;
+    std::string color;
 };
 
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,
