@@ -5,6 +5,7 @@ SRC=\
 	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
 	hifive/engine/pass/data_reuse_pass.cpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.cpp \
+	hifive/engine/pass/rewrite_ntt_pass.cpp \
 	hifive/frontend/exporter.cpp \
 	hifive/frontend/parser.cpp \
 	hifive/tools/hifive.cpp
@@ -29,6 +30,7 @@ HDR=\
 	hifive/engine/pass/calculate_memory_traffic_pass.hpp \
 	hifive/engine/pass/data_reuse_pass.hpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.hpp \
+	hifive/engine/pass/rewrite_ntt_pass.hpp \
 	hifive/frontend/exporter.hpp \
 	hifive/frontend/parser.hpp
 

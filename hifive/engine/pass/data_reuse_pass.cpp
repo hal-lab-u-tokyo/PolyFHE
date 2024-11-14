@@ -14,7 +14,7 @@ bool CanReuse(std::shared_ptr<hifive::core::Node> src,
     case hifive::core::MemoryAccessPattern::SlotWise:
         return true;
     case hifive::core::MemoryAccessPattern::LimbWise:
-        return src->get_access_pattern() ==
+        return src->get_access_pattern() !=
                hifive::core::MemoryAccessPattern::LimbWise;
     case hifive::core::MemoryAccessPattern::NotDefined:
         return false;
@@ -83,10 +83,10 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
 
         for (auto edge : node->get_out_edges()) {
             edge->set_level(hifive::core::EdgeLevel::Shared);
-            // if (!CanReuse(node, edge->get_dst())) {
-            //     edge->set_level(hifive::core::EdgeLevel::Global);
-            //     continue;
-            // }
+            if (!CanReuse(node, edge->get_dst())) {
+                edge->set_level(hifive::core::EdgeLevel::Global);
+                continue;
+            }
             LOG_INFO("Calculating footprint around.... %s\n",
                      node->get_op_name().c_str());
             std::vector<std::shared_ptr<hifive::core::Edge>> visited;
@@ -100,45 +100,6 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
             // }
             LOG_INFO("Reuse %s -> %s\n", node->get_op_name().c_str(),
                      edge->get_dst()->get_op_name().c_str());
-        }
-
-        if (node->get_op_type() == "NTT") {
-            // Partision NTT Node into NTTPhase1 and NTTPhase2
-            auto ntt_phase1 = std::make_shared<hifive::core::Node>();
-            auto ntt_phase2 = std::make_shared<hifive::core::Node>();
-            ntt_phase1->set_op_type("NTTPhase1");
-            ntt_phase2->set_op_type("NTTPhase2");
-            ntt_phase1->set_access_pattern(
-                hifive::core::MemoryAccessPattern::LimbWise);
-            ntt_phase2->set_access_pattern(
-                hifive::core::MemoryAccessPattern::LimbWise);
-            // Update graph
-            graph->add_node(ntt_phase1);
-            graph->add_node(ntt_phase2);
-            assert(node->get_out_edges().size() == 1);
-            assert(node->get_in_edges().size() == 1);
-            auto inedge = node->get_in_edges()[0];
-            auto outedge = node->get_out_edges()[0];
-            inedge->set_dst(ntt_phase1);
-            ntt_phase1->add_incoming(inedge);
-            outedge->set_src(ntt_phase2);
-            ntt_phase2->add_outgoing(outedge);
-            auto new_edge =
-                std::make_shared<hifive::core::Edge>(ntt_phase1, ntt_phase2);
-            // TODO: support if shape of inedge and outedge is different
-            for (size_t i = 0; i < inedge->get_shape().size(); i++) {
-                if (inedge->get_shape(i) != outedge->get_shape(i)) {
-                    LOG_ERROR("Shape of inedge and outedge is different\n");
-                }
-            }
-            new_edge->set_shape(inedge->get_shape());
-            new_edge->update_name();
-            new_edge->set_level(hifive::core::EdgeLevel::Global);
-            ntt_phase1->add_outgoing(new_edge);
-            ntt_phase2->add_incoming(new_edge);
-
-            graph->remove_node(node);
-            node = ntt_phase2;
         }
 
         for (auto edge : node->get_out_edges()) {
