@@ -101,6 +101,10 @@ public:
     }
     BlockPhase get_block_phase() { return m_block_phase; }
 
+    // Subgraph
+    void set_idx_subgraph(int idx) { idx_subgraph = idx; }
+    int get_idx_subgraph() { return idx_subgraph; }
+
 protected:
     std::string m_op_type;
     std::vector<std::shared_ptr<Edge>> m_in_edges;
@@ -108,6 +112,7 @@ protected:
     int m_id;
     MemoryAccessPattern m_access_pattern = MemoryAccessPattern::YetSet;
     BlockPhase m_block_phase;
+    int idx_subgraph = -1;
 
 private:
     // Only for lowerings

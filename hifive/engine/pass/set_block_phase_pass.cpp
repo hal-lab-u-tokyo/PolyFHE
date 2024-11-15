@@ -32,8 +32,6 @@ bool SetBlockPhasePass::run_on_graph(
             continue;
         }
 
-        LOG_INFO("Visiting %s\n", node->get_op_name().c_str());
-
         hifive::core::BlockPhase next_block_phase = node->get_block_phase();
         if (node->get_op_type() == "NTTPhase1") {
             next_block_phase = core::BlockPhase::NTTPhase1;

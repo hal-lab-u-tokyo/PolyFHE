@@ -11,6 +11,20 @@ namespace core {
 
 enum class GraphType { FHE, Poly, Other };
 
+class SubGraph {
+public:
+    void add_node(std::shared_ptr<Node> node) { m_nodes.push_back(node); }
+    std::vector<std::shared_ptr<Node>> &get_nodes() { return m_nodes; }
+
+    // idx
+    void set_idx(int idx) { m_idx = idx; }
+    int get_idx() { return m_idx; }
+
+private:
+    std::vector<std::shared_ptr<Node>> m_nodes;
+    int m_idx;
+};
+
 class Graph {
 public:
     void add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst);
@@ -46,11 +60,23 @@ public:
     GraphType get_graph_type() { return m_graph_type; }
     void set_graph_type(GraphType graph_type) { m_graph_type = graph_type; }
 
+    // Subgraph
+    void add_subgraph(std::shared_ptr<SubGraph> subgraph) {
+        subgraph->set_idx(m_subgraphs.size());
+        m_subgraphs.push_back(subgraph);
+    }
+    std::vector<std::shared_ptr<SubGraph>> &get_subgraphs() {
+        return m_subgraphs;
+    }
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     std::shared_ptr<Node> m_init_node;
     std::shared_ptr<Node> m_exit_node;
     GraphType m_graph_type;
+
+    std::vector<std::shared_ptr<SubGraph>> m_subgraphs;
 };
+
 } // namespace core
 } // namespace hifive
