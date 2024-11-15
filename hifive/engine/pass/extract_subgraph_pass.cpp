@@ -21,7 +21,6 @@ void ExtractSubgraph(
             continue;
         }
         if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
-            subgraph.push_back(edge->get_dst());
             ExtractSubgraph(edge->get_dst(), subgraph);
         }
     }
@@ -32,7 +31,6 @@ void ExtractSubgraph(
             continue;
         }
         if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
-            subgraph.push_back(edge->get_src());
             ExtractSubgraph(edge->get_src(), subgraph);
         }
     }
@@ -78,15 +76,13 @@ bool ExtractSubgraphPass::run_on_graph(
             continue;
         }
         visited[node_idx] = true;
-        LOG_INFO("Visiting node %s\n",
-                 graph->get_nodes()[node_idx]->get_op_name().c_str());
         auto node = graph->get_nodes()[node_idx];
         if (node == nullptr) {
             LOG_ERROR("Node is nullptr\n");
             continue;
         }
 
-        // Check if subgraph nodes are visited and define larger node
+        // Check if all of subgraph nodes are visited
         std::optional<std::vector<std::shared_ptr<hifive::core::Node>>>
             has_visited_subnodes = CheckIfSubgraphNodesVisited(node, visited);
         if (has_visited_subnodes) {
