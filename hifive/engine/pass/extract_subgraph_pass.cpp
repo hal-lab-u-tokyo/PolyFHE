@@ -13,6 +13,7 @@ namespace engine {
 void ExtractSubgraph(
     std::shared_ptr<hifive::core::Node> node,
     std::vector<std::shared_ptr<hifive::core::Node>>& subgraph) {
+    subgraph.push_back(node);
     for (auto edge : node->get_out_edges()) {
         auto found =
             std::find(subgraph.begin(), subgraph.end(), edge->get_dst());
@@ -89,11 +90,15 @@ bool ExtractSubgraphPass::run_on_graph(
         std::optional<std::vector<std::shared_ptr<hifive::core::Node>>>
             has_visited_subnodes = CheckIfSubgraphNodesVisited(node, visited);
         if (has_visited_subnodes) {
-            LOG_INFO("Subgraph visited around %s\n",
+            LOG_INFO("Subgraph[%d] visited around %s\n", idx_subgraph,
                      node->get_op_name().c_str());
+            hifive::core::SubGraph subgraph;
             for (auto subnode : *has_visited_subnodes) {
                 subnode->set_idx_subgraph(idx_subgraph);
+                subgraph.add_node(subnode);
             }
+            graph->add_subgraph(
+                std::make_shared<hifive::core::SubGraph>(subgraph));
             idx_subgraph += 1;
         }
 
@@ -106,6 +111,12 @@ bool ExtractSubgraphPass::run_on_graph(
         }
     }
 
+    for (auto subgraph : graph->get_subgraphs()) {
+        LOG_INFO("Subgraph[%d]:\n", subgraph->get_idx());
+        for (auto node : subgraph->get_nodes()) {
+            LOG_INFO("  %s\n", node->get_op_name().c_str());
+        }
+    }
     hifive::frontend::export_graph_to_dot(
         graph, "build/graph_extract_subgraph_pass.dot");
     return true;
