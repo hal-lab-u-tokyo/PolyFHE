@@ -57,7 +57,7 @@ void export_graph_to_dot(std::shared_ptr<hifive::core::Graph>& graph,
     // Write to file
     boost::dynamic_properties dp;
     dp.property("node_id", get(&DotNode::name, g_dot));
-    dp.property("label", get(&DotNode::label, g_dot));
+    dp.property("label", get(&DotNode::name, g_dot));
     dp.property("color", get(&DotEdge::color, g_dot));
     dp.property("peripheries", get(&DotNode::peripheries, g_dot));
     std::ofstream file(filename);

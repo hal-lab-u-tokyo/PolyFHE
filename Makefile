@@ -69,6 +69,7 @@ run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
 	./$(BIN) -i $(TARGET) -p 
+	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	make dot
 	
 run-bk: $(BIN)
