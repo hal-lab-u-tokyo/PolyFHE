@@ -71,40 +71,33 @@ __device__ uint64_t modmul(uint64_t a, uint64_t b, uint64_t q, uint64_t mr,
     return modBarrett(ab, q, mr, twok);
 }
 
-__device__ void Add(DeviceContext *dc, const int N, const int block_x,
-                    const int block_y, uint64_t *dst, const uint64_t *a,
-                    const uint64_t *b, const bool if_dst_shared,
-                    const bool if_a_shared, const bool if_b_shared) {
-    const int idx = threadIdx.x;
-    if (idx < block_x) {
-        for (int i = 0; i < block_y; i++) {
-            const uint64_t qi = dc->qVec[i];
-            const int dst_idx = if_dst_shared ? i * block_x + idx : i * N + idx;
-            const int a_idx = if_a_shared ? i * block_x + idx : i * N + idx;
-            const int b_idx = if_b_shared ? i * block_x + idx : i * N + idx;
-            uint64_t result = a[a_idx] + b[b_idx];
-            dst[dst_idx] = (result >= qi) ? result - qi : result;
+__device__ void Add(DeviceContext *dc, const int l, uint64_t *dst,
+                    const uint64_t *a, const uint64_t *b, const int n_dst,
+                    const int n_a, const int n_b) {
+    for (int i = 0; i < l; i++) {
+        const uint64_t qi = dc->qVec[i];
+        const int dst_idx = i * n_dst + threadIdx.x;
+        const int a_idx = i * n_a + threadIdx.x;
+        const int b_idx = i * n_b + threadIdx.x;
+        uint64_t res = a[a_idx] + b[b_idx];
+        if (res >= qi) {
+            res -= qi;
         }
+        dst[dst_idx] = res;
     }
 }
 
-__device__ void Mult(DeviceContext *dc, const int N, const int block_x,
-                     const int block_y, uint64_t *dst, const uint64_t *a,
-                     const uint64_t *b, const bool if_dst_shared,
-                     const bool if_a_shared, const bool if_b_shared) {
-    const int idx = threadIdx.x;
-    if (idx < block_x) {
-        for (int i = 0; i < block_y; i++) {
-            const int dst_idx = if_dst_shared ? i * block_x + idx : i * N + idx;
-            const int a_idx = if_a_shared ? i * block_x + idx : i * N + idx;
-            const int b_idx = if_b_shared ? i * block_x + idx : i * N + idx;
-
-            // barret reduction
-            const uint64_t qi = dc->qVec[i];
-            const uint64_t mu = dc->qrVec[i];
-            const uint64_t twok = dc->qTwok[i];
-            dst[dst_idx] = modmul(a[a_idx], b[b_idx], qi, mu, twok);
-        }
+__device__ void Mult(DeviceContext *dc, const int l, uint64_t *dst,
+                     const uint64_t *a, const uint64_t *b, const int n_dst,
+                     const int n_a, const int n_b) {
+    for (int i = 0; i < l; i++) {
+        const uint64_t qi = dc->qVec[i];
+        const uint64_t mu = dc->qrVec[i];
+        const uint64_t twok = dc->qTwok[i];
+        const int dst_idx = i * n_dst + threadIdx.x;
+        const int a_idx = i * n_a + threadIdx.x;
+        const int b_idx = i * n_b + threadIdx.x;
+        dst[dst_idx] = modmul(a[a_idx], b[b_idx], qi, mu, twok);
     }
 }
 
