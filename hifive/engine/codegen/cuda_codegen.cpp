@@ -190,9 +190,24 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "// =====================================\n";
     w << "// Call kernels\n";
     w << "// =====================================\n";
+    w << "dim3 gridPhase1(" << hifive::N1 << ");\n";
+    w << "dim3 gridPhase2(" << hifive::N2 << ");\n";
+    w << "dim3 blockPhase1(" << hifive::N2 / 8 << ");\n";
+    w << "dim3 blockPhase2(" << hifive::N2 / 8 << ");\n";
+    w << "const int shared_size_phase1 = "
+      << hifive::N1 * hifive::L * sizeof(uint64_t) << ";\n";
+    w << "const int shared_size_phase2 = "
+      << hifive::N2 * hifive::L * sizeof(uint64_t) << ";\n";
     for (auto subgraph : graph->get_subgraphs()) {
-        w << subgraph->get_name() << "<<<N/128, 128, L*128*sizeof(uint64_t)>>>"
-          << "(dc";
+        if (subgraph->get_block_phase() ==
+            hifive::core::BlockPhase::NTTPhase1) {
+            w << subgraph->get_name()
+              << "<<<gridPhase1, blockPhase1, shared_size_phase1>>>";
+        } else {
+            w << subgraph->get_name()
+              << "<<<gridPhase2, blockPhase2, shared_size_phase2>>>";
+        }
+        w << "(dc";
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
