@@ -171,14 +171,14 @@ __device__ void d_fntt_remaining4(DeviceContext *dc, uint64_t *buff,
     }
 }
 
-__device__ void NTTPhase1Batched(DeviceContext *dc, uint64_t *buff,
-                                 NTTParams *params) {
+__device__ void NTTPhase1Batched(DeviceContext *dc, const int batch,
+                                 uint64_t *smem, uint64_t *gmem) {
     uint64_t local[8];
 
-    for (int i = threadIdx.x; i < params->batch * dc->N1 / 8; i += blockDim.x) {
+    for (int i = threadIdx.x; i < batch * dc->N1 / 8; i += blockDim.x) {
         const int batch_idx = i / (dc->N1 / 8);
         const int thread_idx = i % (dc->N1 / 8);
-        uint64_t *buff_base = buff + batch_idx * dc->N1;
+        uint64_t *smem_base = smem + batch_idx * dc->N1;
 
         int t = dc->N1;
         int last_m = 1;
@@ -188,13 +188,13 @@ __device__ void NTTPhase1Batched(DeviceContext *dc, uint64_t *buff,
             const int j1 = 8 * i * t;
             const int j = j1 + thread_idx % t;
             for (int k = 0; k < 8; k++) {
-                local[k] = buff_base[j + k * t];
+                local[k] = smem_base[j + k * t];
             }
             d_fntt8_shoup(local, dc->qRootPows[batch_idx],
                           dc->qRootPowsShoup[batch_idx], i + m,
                           dc->qVec[batch_idx]);
             for (int k = 0; k < 8; k++) {
-                buff_base[j + k * t] = local[k];
+                smem_base[j + k * t] = local[k];
             }
             last_m = m;
             __syncthreads();
@@ -204,22 +204,36 @@ __device__ void NTTPhase1Batched(DeviceContext *dc, uint64_t *buff,
         const int remaining = dc->N1 / last_m;
         const int root_pow_idx = last_m;
         if (remaining == 2) {
-            d_fntt_remaining2(dc, buff_base, dc->N1, root_pow_idx, batch_idx,
+            d_fntt_remaining2(dc, smem_base, dc->N1, root_pow_idx, batch_idx,
                               thread_idx);
         } else if (remaining == 4) {
-            d_fntt_remaining4(dc, buff_base, dc->N1, root_pow_idx, batch_idx,
+            d_fntt_remaining4(dc, smem_base, dc->N1, root_pow_idx, batch_idx,
                               thread_idx);
+        }
+
+        for (int i = 0; i < 8; i++) {
+            const int smem_offset = thread_idx + i * dc->N1 / 8;
+            const int gmem_offset = blockIdx.x + smem_offset * dc->N2;
+            gmem[gmem_offset + batch_idx * dc->N] =
+                smem[smem_offset + batch_idx * dc->N1];
         }
     }
 }
 
-__device__ void NTTPhase2Batched(DeviceContext *dc, uint64_t *buff,
-                                 NTTParams *params) {
+__device__ void NTTPhase2Batched(DeviceContext *dc, const int batch,
+                                 uint64_t *smem, uint64_t *gmem) {
     uint64_t local[8];
-    for (int i = threadIdx.x; i < params->batch * dc->N2 / 8; i += blockDim.x) {
+    for (int i = threadIdx.x; i < batch * dc->N2 / 8; i += blockDim.x) {
         const int batch_idx = i / (dc->N2 / 8);
         const int thread_idx = i % (dc->N2 / 8);
-        uint64_t *buff_base = buff + batch_idx * dc->N2;
+        uint64_t *smem_base = smem + batch_idx * dc->N2;
+
+        for (int i = 0; i < 8; i++) {
+            const int smem_offset = thread_idx + i * dc->N2 / 8;
+            const int gmem_offset = blockIdx.x * dc->N2 + smem_offset;
+            smem[smem_offset + batch_idx * dc->N2] =
+                gmem[gmem_offset + batch_idx * dc->N];
+        }
 
         int t = dc->N2;
         const int root_idx_base = dc->N1 + blockIdx.x;
@@ -231,13 +245,13 @@ __device__ void NTTPhase2Batched(DeviceContext *dc, uint64_t *buff,
             const int j = j1 + thread_idx % t;
             const int root_idx = root_idx_base * m + i;
             for (int k = 0; k < 8; k++) {
-                local[k] = buff_base[j + k * t];
+                local[k] = smem_base[j + k * t];
             }
             d_fntt8_shoup(local, dc->qRootPows[batch_idx],
                           dc->qRootPowsShoup[batch_idx], root_idx,
                           dc->qVec[batch_idx]);
             for (int k = 0; k < 8; k++) {
-                buff_base[j + k * t] = local[k];
+                smem_base[j + k * t] = local[k];
             }
             last_m = m;
             __syncthreads();
@@ -247,10 +261,10 @@ __device__ void NTTPhase2Batched(DeviceContext *dc, uint64_t *buff,
         const int remaining = dc->N2 / last_m;
         const int root_pow_idx = root_idx_base * last_m;
         if (remaining == 2) {
-            d_fntt_remaining2(dc, buff_base, dc->N2, root_pow_idx, batch_idx,
+            d_fntt_remaining2(dc, smem_base, dc->N2, root_pow_idx, batch_idx,
                               thread_idx);
         } else if (remaining == 4) {
-            d_fntt_remaining4(dc, buff_base, dc->N2, root_pow_idx, batch_idx,
+            d_fntt_remaining4(dc, smem_base, dc->N2, root_pow_idx, batch_idx,
                               thread_idx);
         }
     }

@@ -356,6 +356,7 @@ void CudaCodegen::generate_include(
     w << "#include <numeric>\n";
     w << "#include \"hifive/kernel/device_context.hpp\"\n\n";
     w << "#include \"hifive/kernel/polynomial.hpp\"\n\n";
+    w << "#include \"hifive/kernel/ntt.hpp\"\n\n";
     w << "const int N = " << hifive::N << ";\n";
     w << "const int N1 = " << hifive::N1 << ";\n";
     w << "const int N2 = " << hifive::N2 << ";\n";
