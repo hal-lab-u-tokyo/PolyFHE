@@ -300,47 +300,42 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w << "const int N = " << hifive::N << ";\n";
     w << "const int L = " << hifive::L << ";\n";
 
+    w << "// Input arguments\n";
+    std::shared_ptr<hifive::core::Node> init_node = graph->get_init_node();
+    int i = 0;
+    for (auto edge : init_node->get_out_edges()) {
+        std::shared_ptr<hifive::core::Node> e = edge->get_dst();
+        w << "// Edge: " << init_node->get_op_name() << " -> "
+          << e->get_op_name() << "\n";
+        w << "uint64_t *" << edge->get_name() << "_h;\n";
+        w << "uint64_t *" << edge->get_name() << "_d;\n";
+        w << "cudaMallocHost((void **)&" << edge->get_name()
+          << "_h, N * L * sizeof(uint64_t));\n";
+        w << "cudaMalloc((void **)&" << edge->get_name()
+          << "_d, N * L * sizeof(uint64_t));\n";
+        i++;
+    }
+
+    // Define Global edge of each subgraph
+    for (auto subgraph : graph->get_subgraphs()) {
+        for (auto node : subgraph->get_nodes()) {
+            for (auto edge : node->get_out_edges()) {
+                // TODO: treat Init as a alone subgraph
+                if (edge->get_src()->get_op_type() == "Init") {
+                    continue;
+                }
+                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                    w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
+                      << edge->get_dst()->get_op_name() << "\n";
+                    w << "uint64_t *" << edge->get_name() << "_d;\n";
+                    w << "cudaMalloc((void **)&" << edge->get_name()
+                      << "_d, N * L * sizeof(uint64_t));\n";
+                }
+            }
+        }
+    }
+
     /*
-        w << "// Input arguments\n";
-        std::shared_ptr<hifive::core::Node> init_node = graph->get_init_node();
-        int i = 0;
-        for (auto edge : init_node->get_out_edges()) {
-            std::shared_ptr<hifive::core::Node> e = edge->get_dst();
-            std::string name_size = "sizeof(uint64_t) * " +
-                                    std::to_string(edge->get_shape(0)) + " * " +
-                                    std::to_string(edge->get_shape(1));
-            w << "// Edge: " << init_node->get_op_name() << " -> "
-              << e->get_op_name() << "\n";
-            w << "uint64_t *" << edge->get_name() << "_h;\n";
-            w << "uint64_t *" << edge->get_name() << "_d;\n";
-            w << "cudaMallocHost((void **)&" << edge->get_name() << "_h, "
-              << name_size << ");\n";
-            w << "cudaMalloc((void **)&" << edge->get_name() << "_d, " <<
-       name_size
-              << ");\n";
-            i++;
-        }
-
-        w << "\n// Output arguments\n";
-        std::shared_ptr<hifive::core::Node> exit_node = graph->get_exit_node();
-        i = 0;
-        for (auto edge : exit_node->get_in_edges()) {
-            std::shared_ptr<hifive::core::Node> e = edge->get_src();
-            std::string name_size = "sizeof(uint64_t) * " +
-                                    std::to_string(edge->get_shape(0)) + " * " +
-                                    std::to_string(edge->get_shape(1));
-            w << "// Edge: " << e->get_op_name() << " -> "
-              << exit_node->get_op_name() << "\n";
-            w << "uint64_t *" << edge->get_name() << "_h;\n";
-            w << "uint64_t *" << edge->get_name() << "_d;\n";
-            w << "cudaMallocHost((void **)&" << edge->get_name() << "_h, "
-              << name_size << ");\n";
-            w << "cudaMalloc((void **)&" << edge->get_name() << "_d, " <<
-       name_size
-              << ");\n";
-            i++;
-        }
-
         w << "\n// Fill input arguments\n";
 
         std::string input_args_str = "context.get_device_context(), N, L";

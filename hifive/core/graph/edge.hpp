@@ -43,7 +43,10 @@ public:
         m_name = "edge_" + m_src->get_op_name() + "_" + std::to_string(src_id) +
                  "_" + m_dst->get_op_name() + "_" + std::to_string(dst_id);
     }
-    std::string get_name() { return m_name; }
+    std::string get_name() {
+        update_name();
+        return m_name;
+    }
 
     // level
     void set_level(EdgeLevel level) { m_level = level; }
