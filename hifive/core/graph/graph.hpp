@@ -20,9 +20,21 @@ public:
     void set_idx(int idx) { m_idx = idx; }
     int get_idx() { return m_idx; }
 
+    // name
+    std::string get_name() {
+        if (m_name.empty()) {
+            for (auto node : m_nodes) {
+                m_name += node->get_op_type() + "_";
+            }
+            m_name.pop_back();
+        }
+        return m_name;
+    }
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;
+    std::string m_name;
 };
 
 class Graph {

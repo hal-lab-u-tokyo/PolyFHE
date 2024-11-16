@@ -10,6 +10,66 @@
 namespace hifive {
 namespace engine {
 
+void SortSubgraphNodes(
+    std::vector<std::shared_ptr<hifive::core::Node>>& subgraph) {
+    // Check number of inedges which level is Shared
+    std::vector<std::shared_ptr<hifive::core::Node>> sorted_subgraph;
+    std::map<std::shared_ptr<hifive::core::Node>, bool> sorted;
+
+    // Sort nodes which have no dependent inedges
+    for (size_t i = 0; i < subgraph.size(); i++) {
+        bool has_dependent_inedges = false;
+        for (auto inedge : subgraph[i]->get_in_edges()) {
+            if (inedge->get_level() == hifive::core::EdgeLevel::Shared) {
+                has_dependent_inedges = true;
+            }
+        }
+        if (!has_dependent_inedges) {
+            sorted_subgraph.push_back(subgraph[i]);
+            sorted[subgraph[i]] = true;
+            LOG_INFO("Node %s has no dependent inedges\n",
+                     subgraph[i]->get_op_name().c_str());
+        } else {
+            LOG_INFO("Node %s has dependent inedges\n",
+                     subgraph[i]->get_op_name().c_str());
+        }
+    }
+
+    // Sort other nodes
+    while (sorted_subgraph.size() < subgraph.size()) {
+        for (size_t i = 0; i < subgraph.size(); i++) {
+            if (sorted[subgraph[i]]) {
+                continue;
+            }
+            auto node = subgraph[i];
+            bool all_inedges_sorted = true;
+            for (auto inedge : node->get_in_edges()) {
+                if (inedge->get_level() != hifive::core::EdgeLevel::Shared) {
+                    continue;
+                }
+                if (!sorted[inedge->get_src()]) {
+                    LOG_INFO("Wait for %s\n",
+                             inedge->get_src()->get_op_name().c_str());
+                    all_inedges_sorted = false;
+                    break;
+                }
+            }
+            if (all_inedges_sorted) {
+                LOG_INFO("Sorted Node %s [%d], i:%ld\n",
+                         node->get_op_name().c_str(), node->get_id(), i);
+                sorted_subgraph.push_back(node);
+                sorted[node] = true;
+            } else {
+                LOG_INFO("Cannot Sort %s\n", node->get_op_name().c_str());
+            }
+        }
+    }
+    subgraph.erase(subgraph.begin(), subgraph.end());
+    for (auto node : sorted_subgraph) {
+        subgraph.push_back(node);
+    }
+}
+
 void ExtractSubgraph(
     std::shared_ptr<hifive::core::Node> node,
     std::vector<std::shared_ptr<hifive::core::Node>>& subgraph) {
@@ -41,6 +101,7 @@ CheckIfSubgraphNodesVisited(std::shared_ptr<hifive::core::Node> node,
                             std::vector<bool>& visited) {
     std::vector<std::shared_ptr<hifive::core::Node>> subgraph;
     ExtractSubgraph(node, subgraph);
+    SortSubgraphNodes(subgraph);
     for (auto subnode : subgraph) {
         if (!visited[subnode->get_id()]) {
             return std::nullopt;
@@ -62,7 +123,8 @@ bool ExtractSubgraphPass::run_on_graph(
     for (int i = 0; i < n; i++) {
         auto node = graph->get_nodes()[i];
         if (node == nullptr) {
-            LOG_ERROR("Node is nullptr\n");
+            // Some node can be nullptr, i.e., NTT node is replaced with
+            // NTTPhase1 and NTTPhase2 nodes
             continue;
         }
         indegree[i] = node->get_in_edges().size();
@@ -78,7 +140,6 @@ bool ExtractSubgraphPass::run_on_graph(
         visited[node_idx] = true;
         auto node = graph->get_nodes()[node_idx];
         if (node == nullptr) {
-            LOG_ERROR("Node is nullptr\n");
             continue;
         }
 

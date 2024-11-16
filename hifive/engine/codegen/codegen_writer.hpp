@@ -9,14 +9,6 @@
 namespace hifive {
 namespace engine {
 
-class CodeUnitKernel {
-public:
-    std::string op_type;
-    std::string func_name;
-    std::string input_signature;
-    std::string output_signature;
-};
-
 class CodeWriter {
 public:
     CodeWriter() : indent(0), m_pending_indent(true) {}
