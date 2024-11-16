@@ -68,18 +68,11 @@ TARGET=data/graph_poly_hmult.dot
 run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i $(TARGET) -p 
-	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
-	make dot
-	
-run-bk: $(BIN)
-	rm -f ./build/*.dot
-	rm -f ./build/*.png
-	./$(BIN) -i $(TARGET) -p 
+	./$(BIN) -i data/graph_poly_hmult.dot -p 
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
-
+	
 run-noopt: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
