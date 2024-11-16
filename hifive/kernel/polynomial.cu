@@ -101,6 +101,24 @@ __device__ void Mult(DeviceContext *dc, const int l, uint64_t *dst,
     }
 }
 
+__device__ void MultOutputTwo(DeviceContext *dc, const int l, uint64_t *dst0,
+                              uint64_t *dst1, const uint64_t *a,
+                              const uint64_t *b, const int n_dst0,
+                              const int n_dst1, const int n_a, const int n_b) {
+    for (int i = 0; i < l; i++) {
+        const uint64_t qi = dc->qVec[i];
+        const uint64_t mu = dc->qrVec[i];
+        const uint64_t twok = dc->qTwok[i];
+        const int dst0_idx = i * n_dst0 + threadIdx.x;
+        const int dst1_idx = i * n_dst1 + threadIdx.x;
+        const int a_idx = i * n_a + threadIdx.x;
+        const int b_idx = i * n_b + threadIdx.x;
+        const uint64_t res = modmul(a[a_idx], b[b_idx], qi, mu, twok);
+        dst0[dst0_idx] = res;
+        dst1[dst1_idx] = res;
+    }
+}
+
 __inline__ __device__ uint64_t mul_and_reduce_shoup(const uint64_t op1,
                                                     const uint64_t op2,
                                                     const uint64_t scaled_op2,

@@ -82,9 +82,9 @@ void CudaCodegen::generate_kernel_defs(
         for (auto node : subgraph->get_nodes()) {
             w << "// " << node->get_op_name() << "\n";
             if (node->get_op_type() == "Add") {
-                // __device__ void Add(DeviceContext *dc, const int l, uint64_t
-                // *dst, const uint64_t *a, const uint64_t *b, const int n_dst,
-                // const int n_a, const int n_b);
+                // ==============================
+                // Add
+                // ==============================
                 w << "Add(dc, L";
                 assert(node->get_out_edges().size() == 1);
                 assert(node->get_in_edges().size() == 2);
@@ -107,6 +107,72 @@ void CudaCodegen::generate_kernel_defs(
                 w << ", "
                   << GenerateNByLevel(node->get_out_edges()[0],
                                       node->get_block_phase());
+                w << ", "
+                  << GenerateNByLevel(node->get_in_edges()[0],
+                                      node->get_block_phase());
+                w << ", "
+                  << GenerateNByLevel(node->get_in_edges()[1],
+                                      node->get_block_phase());
+                w << ");\n";
+            } else if (node->get_op_type() == "Mult") {
+                // ==============================
+                // Mult
+                // ==============================
+                std::shared_ptr<hifive::core::Edge> global_output = nullptr;
+                // output
+                if (node->get_out_edges().size() == 1) {
+                    w << "Mult(dc, L, ";
+                    auto outedge = node->get_out_edges()[0];
+                    if (outedge->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        w << outedge->get_name();
+                    } else {
+                        w << "shared";
+                    }
+                } else {
+                    for (auto edge : node->get_out_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            if (global_output != nullptr) {
+                                LOG_ERROR(
+                                    "Mult node has more than one global "
+                                    "edge\n");
+                                assert(false);
+                            }
+                            global_output = edge;
+                        }
+                    }
+                    if (global_output == nullptr) {
+                        w << "Mult(dc, L, shared";
+                    } else {
+                        w << "MultOutputTwo(dc, L, shared";
+                        w << ", " << global_output->get_name();
+                    }
+                }
+                // input
+                assert(node->get_in_edges().size() == 2);
+                for (auto edge : node->get_in_edges()) {
+                    w << ", ";
+                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                        w << edge->get_name();
+                    } else {
+                        w << "shared";
+                    }
+                }
+
+                // N
+                if (global_output == nullptr) {
+                    w << ", "
+                      << GenerateNByLevel(node->get_out_edges()[0],
+                                          node->get_block_phase());
+                } else {
+                    if (subgraph->get_block_phase() ==
+                        hifive::core::BlockPhase::NTTPhase1) {
+                        w << ", N1, N";
+                    } else {
+                        w << ", N2, N";
+                    }
+                }
                 w << ", "
                   << GenerateNByLevel(node->get_in_edges()[0],
                                       node->get_block_phase());
