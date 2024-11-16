@@ -208,6 +208,68 @@ void CudaCodegen::generate_kernel_defs(
                 args.push_back(GenerateNByLevel(node->get_in_edges()[1],
                                                 node->get_block_phase()));
                 w << "(" << GenerateArgs(args) << ");\n";
+            } else if (node->get_op_type() == "NTTPhase1") {
+                // ==============================
+                // NTTPhase1
+                // ==============================
+                std::vector<std::string> args;
+                args.push_back("dc");
+                args.push_back("L");
+                args.push_back("shared");
+                // Inedge.size() and Outedge.size() should be 1
+                // Outedge must be Global
+                assert(node->get_in_edges().size() == 1);
+                assert(node->get_out_edges().size() == 1);
+                assert(node->get_out_edges()[0]->get_level() ==
+                       hifive::core::EdgeLevel::Global);
+
+                // If inedge is Global, load from global at first
+                if (node->get_in_edges()[0]->get_level() ==
+                    hifive::core::EdgeLevel::Global) {
+                    std::vector<std::string> args_load;
+                    args_load.push_back("dc");
+                    args_load.push_back("L");
+                    args_load.push_back("shared");
+                    args_load.push_back(node->get_in_edges()[0]->get_name());
+                    w << "LoadPhase1FromGmem(" << GenerateArgs(args_load)
+                      << ");\n";
+                }
+                // Call NTTPhase1
+                w << "NTTPhase1Batched(" << GenerateArgs(args) << ");\n";
+
+                // Store to global
+                std::vector<std::string> args_store;
+                args_store.push_back("dc");
+                args_store.push_back("L");
+                args_store.push_back("shared");
+                args_store.push_back(node->get_out_edges()[0]->get_name());
+                // w << "StorePhase1ToGmem(" << GenerateArgs(args_store) <<
+                // ");\n";
+            } else if (node->get_op_type() == "NTTPhase2") {
+                // ==============================
+                // NTTPhase2
+                // ==============================
+                // Inedge.size() must be 1 and Global
+                assert(node->get_in_edges().size() == 1);
+                assert(node->get_in_edges()[0]->get_level() ==
+                       hifive::core::EdgeLevel::Global);
+
+                std::vector<std::string> args_load;
+                args_load.push_back("dc");
+                args_load.push_back("L");
+                args_load.push_back("shared");
+                args_load.push_back(node->get_in_edges()[0]->get_name());
+                // w << "LoadPhase2FromGmem(" << GenerateArgs(args_load) <<
+                // ");\n";
+
+                // Call NTTPhase2
+                std::vector<std::string> args;
+                args.push_back("dc");
+                args.push_back("L");
+                args.push_back("shared");
+                w << "NTTPhase2Batched(" << GenerateArgs(args) << ");\n";
+
+                // Store?
             }
         }
 

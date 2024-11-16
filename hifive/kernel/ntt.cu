@@ -171,8 +171,56 @@ __device__ void d_fntt_remaining4(DeviceContext *dc, uint64_t *buff,
     }
 }
 
+__device__ void LoadPhase1FromGmem(DeviceContext *dc, const int batch,
+                                   uint64_t *smem, const uint64_t *gmem) {
+    for (int i = threadIdx.x; i < batch * dc->N1 / 8; i += blockDim.x) {
+        const int batch_idx = i / (dc->N1 / 8);
+        const int thread_idx = i % (dc->N1 / 8);
+        const int smem_offset = thread_idx + i * dc->N1 / 8;
+        const int gmem_offset = blockIdx.x + smem_offset * dc->N2;
+        smem[smem_offset + batch_idx * dc->N1] =
+            gmem[gmem_offset + batch_idx * dc->N];
+    }
+}
+
+__device__ void StorePhase1ToGmem(DeviceContext *dc, const int batch,
+                                  const uint64_t *smem, uint64_t *gmem) {
+    for (int i = threadIdx.x; i < batch * dc->N1 / 8; i += blockDim.x) {
+        const int batch_idx = i / (dc->N1 / 8);
+        const int thread_idx = i % (dc->N1 / 8);
+        const int smem_offset = thread_idx + i * dc->N1 / 8;
+        const int gmem_offset = blockIdx.x + smem_offset * dc->N2;
+        gmem[gmem_offset + batch_idx * dc->N] =
+            smem[smem_offset + batch_idx * dc->N1];
+    }
+}
+
+__device__ void LoadPhase2FromGmem(DeviceContext *dc, const int batch,
+                                   uint64_t *smem, const uint64_t *gmem) {
+    for (int i = threadIdx.x; i < batch * dc->N2 / 8; i += blockDim.x) {
+        const int batch_idx = i / (dc->N2 / 8);
+        const int thread_idx = i % (dc->N2 / 8);
+        const int smem_offset = thread_idx + i * dc->N2 / 8;
+        const int gmem_offset = blockIdx.x * dc->N2 + smem_offset;
+        smem[smem_offset + batch_idx * dc->N2] =
+            gmem[gmem_offset + batch_idx * dc->N];
+    }
+}
+
+__device__ void StorePhase2ToGmem(DeviceContext *dc, const int batch,
+                                  const uint64_t *smem, uint64_t *gmem) {
+    for (int i = threadIdx.x; i < batch * dc->N2 / 8; i += blockDim.x) {
+        const int batch_idx = i / (dc->N2 / 8);
+        const int thread_idx = i % (dc->N2 / 8);
+        const int smem_offset = thread_idx + i * dc->N2 / 8;
+        const int gmem_offset = blockIdx.x * dc->N2 + smem_offset;
+        gmem[gmem_offset + batch_idx * dc->N] =
+            smem[smem_offset + batch_idx * dc->N2];
+    }
+}
+
 __device__ void NTTPhase1Batched(DeviceContext *dc, const int batch,
-                                 uint64_t *smem, uint64_t *gmem) {
+                                 uint64_t *smem) {
     uint64_t local[8];
 
     for (int i = threadIdx.x; i < batch * dc->N1 / 8; i += blockDim.x) {
@@ -210,30 +258,16 @@ __device__ void NTTPhase1Batched(DeviceContext *dc, const int batch,
             d_fntt_remaining4(dc, smem_base, dc->N1, root_pow_idx, batch_idx,
                               thread_idx);
         }
-
-        for (int i = 0; i < 8; i++) {
-            const int smem_offset = thread_idx + i * dc->N1 / 8;
-            const int gmem_offset = blockIdx.x + smem_offset * dc->N2;
-            gmem[gmem_offset + batch_idx * dc->N] =
-                smem[smem_offset + batch_idx * dc->N1];
-        }
     }
 }
 
 __device__ void NTTPhase2Batched(DeviceContext *dc, const int batch,
-                                 uint64_t *smem, uint64_t *gmem) {
+                                 uint64_t *smem) {
     uint64_t local[8];
     for (int i = threadIdx.x; i < batch * dc->N2 / 8; i += blockDim.x) {
         const int batch_idx = i / (dc->N2 / 8);
         const int thread_idx = i % (dc->N2 / 8);
         uint64_t *smem_base = smem + batch_idx * dc->N2;
-
-        for (int i = 0; i < 8; i++) {
-            const int smem_offset = thread_idx + i * dc->N2 / 8;
-            const int gmem_offset = blockIdx.x * dc->N2 + smem_offset;
-            smem[smem_offset + batch_idx * dc->N2] =
-                gmem[gmem_offset + batch_idx * dc->N];
-        }
 
         int t = dc->N2;
         const int root_idx_base = dc->N1 + blockIdx.x;
