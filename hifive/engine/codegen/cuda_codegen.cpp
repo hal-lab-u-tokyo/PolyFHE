@@ -38,13 +38,23 @@ std::string GenerateNByLevel(std::shared_ptr<hifive::core::Edge> edge,
                              const hifive::core::BlockPhase phase) {
     std::string n;
     if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-        n = "N";
+        n = ", N";
     } else {
         if (phase == hifive::core::BlockPhase::NTTPhase1) {
-            n = "N1";
+            n = ", N1";
         } else if (phase == hifive::core::BlockPhase::NTTPhase2) {
-            n = "N2";
+            n = ", N2";
         }
+    }
+    return n;
+}
+
+std::string GenerateN(const hifive::core::BlockPhase phase) {
+    std::string n;
+    if (phase == hifive::core::BlockPhase::NTTPhase1) {
+        n = ", N1";
+    } else if (phase == hifive::core::BlockPhase::NTTPhase2) {
+        n = ", N2";
     }
     return n;
 }
@@ -104,14 +114,11 @@ void CudaCodegen::generate_kernel_defs(
                         w << "shared";
                     }
                 }
-                w << ", "
-                  << GenerateNByLevel(node->get_out_edges()[0],
+                w << GenerateNByLevel(node->get_out_edges()[0],
                                       node->get_block_phase());
-                w << ", "
-                  << GenerateNByLevel(node->get_in_edges()[0],
+                w << GenerateNByLevel(node->get_in_edges()[0],
                                       node->get_block_phase());
-                w << ", "
-                  << GenerateNByLevel(node->get_in_edges()[1],
+                w << GenerateNByLevel(node->get_in_edges()[1],
                                       node->get_block_phase());
                 w << ");\n";
             } else if (node->get_op_type() == "Mult") {
@@ -162,22 +169,15 @@ void CudaCodegen::generate_kernel_defs(
 
                 // N
                 if (global_output == nullptr) {
-                    w << ", "
-                      << GenerateNByLevel(node->get_out_edges()[0],
+                    w << GenerateNByLevel(node->get_out_edges()[0],
                                           node->get_block_phase());
                 } else {
-                    if (subgraph->get_block_phase() ==
-                        hifive::core::BlockPhase::NTTPhase1) {
-                        w << ", N1, N";
-                    } else {
-                        w << ", N2, N";
-                    }
+                    w << GenerateN(subgraph->get_block_phase());
+                    w << ", N";
                 }
-                w << ", "
-                  << GenerateNByLevel(node->get_in_edges()[0],
+                w << GenerateNByLevel(node->get_in_edges()[0],
                                       node->get_block_phase());
-                w << ", "
-                  << GenerateNByLevel(node->get_in_edges()[1],
+                w << GenerateNByLevel(node->get_in_edges()[1],
                                       node->get_block_phase());
                 w << ");\n";
             }
