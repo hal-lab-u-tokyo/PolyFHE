@@ -17,15 +17,18 @@
     }
 
 extern "C" {
-__device__ void Add(DeviceContext *dc, const int N, const int block_x,
-                    const int block_y, uint64_t *dst, const uint64_t *a,
-                    const uint64_t *b, const bool if_dst_shared,
-                    const bool if_a_shared, const bool if_b_shared);
+__device__ void Add(DeviceContext *dc, const int l, uint64_t *dst,
+                    const uint64_t *a, const uint64_t *b, const int n_dst,
+                    const int n_a, const int n_b);
 
-__device__ void Mult(DeviceContext *dc, const int N, const int block_x,
-                     const int block_y, uint64_t *dst, const uint64_t *a,
-                     const uint64_t *b, const bool if_dst_shared,
-                     const bool if_a_shared, const bool if_b_shared);
+__device__ void Mult(DeviceContext *dc, const int l, uint64_t *dst,
+                     const uint64_t *a, const uint64_t *b, const int n_dst,
+                     const int n_a, const int n_b);
+
+__device__ void MultOutputTwo(DeviceContext *dc, const int l, uint64_t *dst0,
+                              uint64_t *dst1, const uint64_t *a,
+                              const uint64_t *b, const int n_dst0,
+                              const int n_dst1, const int n_a, const int n_b);
 
 __global__ void Ntt8PointPerThreadPhase1(DeviceContext *dc, uint64_t *op,
                                          const int num_prime, const int N,

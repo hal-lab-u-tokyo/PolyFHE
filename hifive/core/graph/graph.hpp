@@ -31,10 +31,17 @@ public:
         return m_name;
     }
 
+    // block phase
+    void set_block_phase(BlockPhase block_phase) {
+        m_block_phase = block_phase;
+    }
+    BlockPhase get_block_phase() { return m_block_phase; }
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;
     std::string m_name;
+    BlockPhase m_block_phase;
 };
 
 class Graph {

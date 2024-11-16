@@ -154,6 +154,7 @@ bool ExtractSubgraphPass::run_on_graph(
                 subnode->set_idx_subgraph(idx_subgraph);
                 subgraph.add_node(subnode);
             }
+            subgraph.set_block_phase(node->get_block_phase());
             graph->add_subgraph(
                 std::make_shared<hifive::core::SubGraph>(subgraph));
             idx_subgraph += 1;

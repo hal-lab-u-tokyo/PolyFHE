@@ -68,7 +68,7 @@ TARGET=data/graph_poly_hmult.dot
 run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i data/graph_poly_hmult.dot -p 
+	./$(BIN) -i $(TARGET) -p 
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
