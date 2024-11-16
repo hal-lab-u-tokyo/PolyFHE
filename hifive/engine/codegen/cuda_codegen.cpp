@@ -183,13 +183,17 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     LOG_INFO("Start Generate entry kernel\n");
     CodeWriter w;
 
-    w << "void entry_kernel()";
+    w << "void entry_kernel(FHEContext &context)";
     w.block_begin();
 
+    w << "DeviceContext *dc = context.get_device_context();\n";
     w << "const int N = " << hifive::N << ";\n";
     w << "const int L = " << hifive::L << ";\n";
 
-    w << "\n// Input arguments\n";
+    w << "\n";
+    w << "// =====================================\n";
+    w << "// Input arguments\n";
+    w << "// =====================================\n";
     std::shared_ptr<hifive::core::Node> init_node = graph->get_init_node();
     int i = 0;
     for (auto edge : init_node->get_out_edges()) {
@@ -206,7 +210,10 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     }
 
     // Define Global edge of each subgraph
-    w << "\n// Define Global edges\n";
+    w << "\n";
+    w << "// =====================================\n";
+    w << "// Define Global edges\n";
+    w << "// =====================================\n";
     for (auto subgraph : graph->get_subgraphs()) {
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_out_edges()) {
@@ -226,15 +233,42 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     }
 
     // Timer
-    w << "\n// Timer\n" w << "std::vector<double> elapsed_times;\n";
+    w << "std::vector<double> elapsed_times;\n";
     w << "for (int i = 0; i < 5; i++)\n";
     w.block_begin();
-    w << "\n// Timer Start\n";
+    w << "// =====================================\n";
+    w << "// Timer start\n";
+    w << "// =====================================\n";
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
-    w << "\n// Call kernels\n";
+
+    w << "\n";
+    w << "// =====================================\n";
+    w << "// Call kernels\n";
+    w << "// =====================================\n";
+    for (auto subgraph : graph->get_subgraphs()) {
+        w << subgraph->get_name() << "<<<N/128, 128, L*128*sizeof(uint64_t)>>>"
+          << "(dc";
+        for (auto node : subgraph->get_nodes()) {
+            for (auto edge : node->get_in_edges()) {
+                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                    w << ", " << edge->get_name() << "_d";
+                }
+            }
+            for (auto edge : node->get_out_edges()) {
+                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                    w << ", " << edge->get_name() << "_d";
+                }
+            }
+        }
+        w << ");\n";
+    }
 
     // Timer
-    w << "\n// Timer Stop\n";
+    w << "\n";
+    w << "// =====================================\n";
+    w << "// Timer Stop\n";
+    w << "// =====================================\n";
+    w << "checkCudaErrors(cudaDeviceSynchronize());\n";
     w << "auto end = std::chrono::high_resolution_clock::now();\n";
     w << "auto elapsed_usec = "
          "std::chrono::duration_cast<std::chrono::microseconds>(end - "
@@ -250,104 +284,6 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
 
     w.block_end(); // funcion end
     w.write_to_file(filename, if_append);
-    /*
-
-    // Signature
-    std::string arg = "DeviceContext *dc, const int N, const int L";
-    for (auto edge : graph->get_init_node()->get_out_edges()) {
-        arg += ", uint64_t * in_" + edge->get_name();
-    }
-    for (auto edge : graph->get_exit_node()->get_in_edges()) {
-        arg += ", uint64_t * out_" + edge->get_name();
-    }
-
-    w << "void entry_kernel(" << arg << "){\n";
-    w.indent_inc();
-    w_body.indent_inc();
-
-    // Iterate the graph and generate the kernel signature
-    const int n = graph->get_nodes().size();
-    std::vector<bool> visited(n, false);
-    std::vector<int> stack;
-
-    stack.push_back(graph->get_init_node_id());
-
-    w << "// Define each node's output edges\n\n";
-
-
-    while (!stack.empty()) {
-        int node_idx = stack.back();
-        stack.pop_back();
-        if (visited[node_idx]) {
-            continue;
-        }
-        visited[node_idx] = true;
-        auto node = graph->get_nodes()[node_idx];
-        if (node == nullptr) {
-            // Fused node is nullptr
-            continue;
-        }
-
-        w << "// " << node->get_op_name() << "'s output\n";
-        w_body << "// " << node->get_op_type() << "(" << node->get_op_name()
-               << ")\n";
-
-        // define output edge
-        w_body << "//\t outputs: ";
-        for (auto edge : node->get_out_edges()) {
-            w << "uint64_t *" << edge->get_name() << ";\n";
-            if (node->get_op_type() != "Init") {
-                w << "checkCudaErrors(cudaMalloc((void **)&" << edge->get_name()
-                  << ", sizeof(uint64_t) * " << edge->get_shape(0) << " * "
-                  << edge->get_shape(1) << "));\n";
-            }
-            w_body << edge->get_name() << ", ";
-        }
-        w_body << "\n";
-        w_body << "//\t inputs: ";
-        for (auto edge : node->get_in_edges()) {
-            w_body << edge->get_name() << ", ";
-        }
-        w_body << "\n";
-
-        // Call the kernel
-        if ((node->get_op_type() == "Init") | (node->get_op_type() == "End")) {
-            w_body << "// Nothing to call\n\n";
-        } else {
-            std::string args = "dc, N, L";
-            for (auto edge : node->get_in_edges()) {
-                args += ", " + edge->get_name();
-            }
-            for (auto edge : node->get_out_edges()) {
-                args += ", " + edge->get_name();
-            }
-            w_body << "kernel_" << node->get_op_type()
-                   << "<<<N/128, 128, L*128*sizeof(uint64_t)>>>"
-                   << "(" << args << ");\n";
-            w_body << "checkCudaErrors(cudaDeviceSynchronize());\n\n";
-        }
-
-        // Update the stack
-        for (auto edge : node->get_out_edges()) {
-            stack.push_back(edge->get_dst()->get_id());
-        }
-    }
-
-    w << "\n// Combine input edges\n";
-    for (auto edge : graph->get_init_node()->get_out_edges()) {
-        w << edge->get_name() << " = in_" << edge->get_name() << ";\n";
-    }
-
-    w << "\n// Combine output edges\n";
-    for (auto edge : graph->get_exit_node()->get_in_edges()) {
-        w << "out_" << edge->get_name() << " = " << edge->get_name() << ";\n";
-    }
-    w.write_to_file(filename, if_append);
-
-    w_body.indent_dec();
-    w_body << "}\n\n";
-    w_body.write_to_file(filename, true);
-    */
 }
 
 void CudaCodegen::generate_include(
@@ -382,7 +318,7 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w << "FHEContext context;\n";
 
     w << "\n// Run the graph\n";
-    w << "entry_kernel();\n";
+    w << "entry_kernel(context);\n";
     w << "\n";
     w << "std::cout << \"Finished Benchmarking...\" << std::endl;\n";
 
