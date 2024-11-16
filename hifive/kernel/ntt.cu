@@ -176,10 +176,12 @@ __device__ void LoadPhase1FromGmem(DeviceContext *dc, const int batch,
     for (int i = threadIdx.x; i < batch * dc->N1 / 8; i += blockDim.x) {
         const int batch_idx = i / (dc->N1 / 8);
         const int thread_idx = i % (dc->N1 / 8);
-        const int smem_offset = thread_idx + i * dc->N1 / 8;
-        const int gmem_offset = blockIdx.x + smem_offset * dc->N2;
-        smem[smem_offset + batch_idx * dc->N1] =
-            gmem[gmem_offset + batch_idx * dc->N];
+        for (int j = 0; j < 8; j++) {
+            const int smem_offset = thread_idx + j * dc->N1 / 8;
+            const int gmem_offset = blockIdx.x + smem_offset * dc->N2;
+            smem[smem_offset + batch_idx * dc->N1] =
+                gmem[gmem_offset + batch_idx * dc->N];
+        }
     }
 }
 
@@ -188,10 +190,12 @@ __device__ void StorePhase1ToGmem(DeviceContext *dc, const int batch,
     for (int i = threadIdx.x; i < batch * dc->N1 / 8; i += blockDim.x) {
         const int batch_idx = i / (dc->N1 / 8);
         const int thread_idx = i % (dc->N1 / 8);
-        const int smem_offset = thread_idx + i * dc->N1 / 8;
-        const int gmem_offset = blockIdx.x + smem_offset * dc->N2;
-        gmem[gmem_offset + batch_idx * dc->N] =
-            smem[smem_offset + batch_idx * dc->N1];
+        for (int j = 0; j < 8; j++) {
+            const int smem_offset = thread_idx + j * dc->N1 / 8;
+            const int gmem_offset = blockIdx.x + smem_offset * dc->N2;
+            gmem[gmem_offset + batch_idx * dc->N] =
+                smem[smem_offset + batch_idx * dc->N1];
+        }
     }
 }
 
@@ -200,10 +204,12 @@ __device__ void LoadPhase2FromGmem(DeviceContext *dc, const int batch,
     for (int i = threadIdx.x; i < batch * dc->N2 / 8; i += blockDim.x) {
         const int batch_idx = i / (dc->N2 / 8);
         const int thread_idx = i % (dc->N2 / 8);
-        const int smem_offset = thread_idx + i * dc->N2 / 8;
-        const int gmem_offset = blockIdx.x * dc->N2 + smem_offset;
-        smem[smem_offset + batch_idx * dc->N2] =
-            gmem[gmem_offset + batch_idx * dc->N];
+        for (int j = 0; j < 8; j++) {
+            const int smem_offset = thread_idx + j * dc->N2 / 8;
+            const int gmem_offset = blockIdx.x * dc->N2 + smem_offset;
+            smem[smem_offset + batch_idx * dc->N2] =
+                gmem[gmem_offset + batch_idx * dc->N];
+        }
     }
 }
 
@@ -212,10 +218,12 @@ __device__ void StorePhase2ToGmem(DeviceContext *dc, const int batch,
     for (int i = threadIdx.x; i < batch * dc->N2 / 8; i += blockDim.x) {
         const int batch_idx = i / (dc->N2 / 8);
         const int thread_idx = i % (dc->N2 / 8);
-        const int smem_offset = thread_idx + i * dc->N2 / 8;
-        const int gmem_offset = blockIdx.x * dc->N2 + smem_offset;
-        gmem[gmem_offset + batch_idx * dc->N] =
-            smem[smem_offset + batch_idx * dc->N2];
+        for (int j = 0; j < 8; j++) {
+            const int smem_offset = thread_idx + j * dc->N2 / 8;
+            const int gmem_offset = blockIdx.x * dc->N2 + smem_offset;
+            gmem[gmem_offset + batch_idx * dc->N] =
+                smem[smem_offset + batch_idx * dc->N2];
+        }
     }
 }
 

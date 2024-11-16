@@ -243,8 +243,7 @@ void CudaCodegen::generate_kernel_defs(
                 args_store.push_back("L");
                 args_store.push_back("shared");
                 args_store.push_back(node->get_out_edges()[0]->get_name());
-                // w << "StorePhase1ToGmem(" << GenerateArgs(args_store) <<
-                // ");\n";
+                w << "StorePhase1ToGmem(" << GenerateArgs(args_store) << ");\n";
             } else if (node->get_op_type() == "NTTPhase2") {
                 // ==============================
                 // NTTPhase2
@@ -259,8 +258,7 @@ void CudaCodegen::generate_kernel_defs(
                 args_load.push_back("L");
                 args_load.push_back("shared");
                 args_load.push_back(node->get_in_edges()[0]->get_name());
-                // w << "LoadPhase2FromGmem(" << GenerateArgs(args_load) <<
-                // ");\n";
+                w << "LoadPhase2FromGmem(" << GenerateArgs(args_load) << ");\n";
 
                 // Call NTTPhase2
                 std::vector<std::string> args;
@@ -346,15 +344,13 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "// =====================================\n";
     w << "// Call kernels\n";
     w << "// =====================================\n";
-    w << "dim3 gridPhase1(" << hifive::N1 << ");\n";
-    w << "dim3 gridPhase2(" << hifive::N2 << ");\n";
-    w << "dim3 blockPhase1(" << hifive::N2 / 8 << ");\n";
-    w << "dim3 blockPhase2(" << hifive::N2 / 8 << ");\n";
+    w << "dim3 gridPhase1(N1);\n";
+    w << "dim3 gridPhase2(N2);\n";
+    w << "dim3 blockPhase1(N2 / 8);\n";
+    w << "dim3 blockPhase2(N1 / 8);\n";
     w << "dim3 block256(256);\n";
-    w << "const int shared_size_phase1 = "
-      << hifive::N1 * hifive::L * sizeof(uint64_t) << ";\n";
-    w << "const int shared_size_phase2 = "
-      << hifive::N2 * hifive::L * sizeof(uint64_t) << ";\n";
+    w << "const int shared_size_phase1 = N1 * L * sizeof(uint64_t);\n";
+    w << "const int shared_size_phase2 = N2 * L * sizeof(uint64_t);\n";
     for (auto subgraph : graph->get_subgraphs()) {
         if (subgraph->get_block_phase() ==
             hifive::core::BlockPhase::NTTPhase1) {
