@@ -181,7 +181,76 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                                  const std::string& filename,
                                  const bool if_append) {
     LOG_INFO("Start Generate entry kernel\n");
-    CodeWriter w, w_body;
+    CodeWriter w;
+
+    w << "void entry_kernel()";
+    w.block_begin();
+
+    w << "const int N = " << hifive::N << ";\n";
+    w << "const int L = " << hifive::L << ";\n";
+
+    w << "\n// Input arguments\n";
+    std::shared_ptr<hifive::core::Node> init_node = graph->get_init_node();
+    int i = 0;
+    for (auto edge : init_node->get_out_edges()) {
+        std::shared_ptr<hifive::core::Node> e = edge->get_dst();
+        w << "// Edge: " << init_node->get_op_name() << " -> "
+          << e->get_op_name() << "\n";
+        w << "uint64_t *" << edge->get_name() << "_h;\n";
+        w << "uint64_t *" << edge->get_name() << "_d;\n";
+        w << "cudaMallocHost((void **)&" << edge->get_name()
+          << "_h, N * L * sizeof(uint64_t));\n";
+        w << "cudaMalloc((void **)&" << edge->get_name()
+          << "_d, N * L * sizeof(uint64_t));\n";
+        i++;
+    }
+
+    // Define Global edge of each subgraph
+    w << "\n// Define Global edges\n";
+    for (auto subgraph : graph->get_subgraphs()) {
+        for (auto node : subgraph->get_nodes()) {
+            for (auto edge : node->get_out_edges()) {
+                // TODO: treat Init as a alone subgraph
+                if (edge->get_src()->get_op_type() == "Init") {
+                    continue;
+                }
+                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                    w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
+                      << edge->get_dst()->get_op_name() << "\n";
+                    w << "uint64_t *" << edge->get_name() << "_d;\n";
+                    w << "cudaMalloc((void **)&" << edge->get_name()
+                      << "_d, N * L * sizeof(uint64_t));\n";
+                }
+            }
+        }
+    }
+
+    // Timer
+    w << "\n// Timer\n" w << "std::vector<double> elapsed_times;\n";
+    w << "for (int i = 0; i < 5; i++)\n";
+    w.block_begin();
+    w << "\n// Timer Start\n";
+    w << "auto start = std::chrono::high_resolution_clock::now();\n";
+    w << "\n// Call kernels\n";
+
+    // Timer
+    w << "\n// Timer Stop\n";
+    w << "auto end = std::chrono::high_resolution_clock::now();\n";
+    w << "auto elapsed_usec = "
+         "std::chrono::duration_cast<std::chrono::microseconds>(end - "
+         "start);\n";
+    w << "std::cout << \"Elapsed time: \" << elapsed_usec.count() << "
+         "\"us\" << std::endl;\n";
+    w << "if (i != 0) {elapsed_times.push_back(elapsed_usec.count());}\n";
+    w.block_end(); // for end
+
+    w << "std::cout << \"Average time: \" << "
+         "std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0) "
+         "/ elapsed_times.size() << \"us\" << std::endl;\n";
+
+    w.block_end(); // funcion end
+    w.write_to_file(filename, if_append);
+    /*
 
     // Signature
     std::string arg = "DeviceContext *dc, const int N, const int L";
@@ -205,13 +274,6 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
 
     w << "// Define each node's output edges\n\n";
 
-    // Timer
-    w_body << "std::vector<double> elapsed_times;\n";
-    w_body << "for (int i = 0; i < 5; i++) {\n";
-    w_body.indent_inc();
-    w_body << "\n// Timer Start\n";
-    w_body << "auto start = std::chrono::high_resolution_clock::now();\n";
-    w_body << "\n// Call kernels\n";
 
     while (!stack.empty()) {
         int node_idx = stack.back();
@@ -282,24 +344,10 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     }
     w.write_to_file(filename, if_append);
 
-    // Timer
-    w_body << "// Timer Stop\n";
-    w_body << "auto end = std::chrono::high_resolution_clock::now();\n";
-    w_body << "auto elapsed_usec = "
-              "std::chrono::duration_cast<std::chrono::microseconds>(end - "
-              "start);\n";
-    w_body << "std::cout << \"Elapsed time: \" << elapsed_usec.count() << "
-              "\"us\" << std::endl;\n";
-    w_body << "if (i != 0) {elapsed_times.push_back(elapsed_usec.count());}\n";
-    w_body.indent_dec();
-    w_body << "}\n";
-    w_body
-        << "std::cout << \"Average time: \" << "
-           "std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0) "
-           "/ elapsed_times.size() << \"us\" << std::endl;\n";
     w_body.indent_dec();
     w_body << "}\n\n";
     w_body.write_to_file(filename, true);
+    */
 }
 
 void CudaCodegen::generate_include(
@@ -325,67 +373,19 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
 
     generate_include(graph, output_filename, /*append=*/false);
     generate_kernel_defs(graph, output_filename, /*append=*/true);
-    // generate_entry(graph, output_filename, /*append=*/true);
+    generate_entry(graph, output_filename, /*append=*/true);
 
     CodeWriter w;
     w << "int main(int argc, char *argv[])";
     w.block_begin();
     w << "std::cout << \"Starting Benchmarking...\" << std::endl;\n";
     w << "FHEContext context;\n";
-    w << "const int N = " << hifive::N << ";\n";
-    w << "const int L = " << hifive::L << ";\n";
 
-    w << "// Input arguments\n";
-    std::shared_ptr<hifive::core::Node> init_node = graph->get_init_node();
-    int i = 0;
-    for (auto edge : init_node->get_out_edges()) {
-        std::shared_ptr<hifive::core::Node> e = edge->get_dst();
-        w << "// Edge: " << init_node->get_op_name() << " -> "
-          << e->get_op_name() << "\n";
-        w << "uint64_t *" << edge->get_name() << "_h;\n";
-        w << "uint64_t *" << edge->get_name() << "_d;\n";
-        w << "cudaMallocHost((void **)&" << edge->get_name()
-          << "_h, N * L * sizeof(uint64_t));\n";
-        w << "cudaMalloc((void **)&" << edge->get_name()
-          << "_d, N * L * sizeof(uint64_t));\n";
-        i++;
-    }
+    w << "\n// Run the graph\n";
+    w << "entry_kernel();\n";
+    w << "\n";
+    w << "std::cout << \"Finished Benchmarking...\" << std::endl;\n";
 
-    // Define Global edge of each subgraph
-    for (auto subgraph : graph->get_subgraphs()) {
-        for (auto node : subgraph->get_nodes()) {
-            for (auto edge : node->get_out_edges()) {
-                // TODO: treat Init as a alone subgraph
-                if (edge->get_src()->get_op_type() == "Init") {
-                    continue;
-                }
-                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                    w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
-                      << edge->get_dst()->get_op_name() << "\n";
-                    w << "uint64_t *" << edge->get_name() << "_d;\n";
-                    w << "cudaMalloc((void **)&" << edge->get_name()
-                      << "_d, N * L * sizeof(uint64_t));\n";
-                }
-            }
-        }
-    }
-
-    /*
-        w << "\n// Fill input arguments\n";
-
-        std::string input_args_str = "context.get_device_context(), N, L";
-        for (auto edge : init_node->get_out_edges()) {
-            input_args_str += ", " + edge->get_name() + "_d";
-        }
-        for (auto edge : exit_node->get_in_edges()) {
-            input_args_str += ", " + edge->get_name() + "_d";
-        }
-
-        w << "\n";
-        w << "// Run the graph\n";
-        w << "entry_kernel(" << input_args_str << ");\n";
-        w << "std::cout << \"Finished Benchmarking...\" << std::endl;\n";
-    */
     w.block_end();
     w.write_to_file(output_filename, true);
     return true;
