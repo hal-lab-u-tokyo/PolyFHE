@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "hifive/kernel/device_context.hpp"
+
 struct NTTParams {
     uint64_t N;
     uint64_t N_inv;
@@ -21,6 +23,8 @@ struct NTTParams {
 };
 
 extern "C" {
-__device__ void NTTPhase1Batched(uint64_t *buff, NTTParams *params);
-__device__ void NTTPhase2Batched(uint64_t *buff, NTTParams *params);
+__device__ void NTTPhase1Batched(DeviceContext *dc, uint64_t *buff,
+                                 NTTParams *params);
+__device__ void NTTPhase2Batched(DeviceContext *dc, uint64_t *buff,
+                                 NTTParams *params);
 }

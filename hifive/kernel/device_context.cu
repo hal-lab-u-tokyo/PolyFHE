@@ -1,4 +1,5 @@
 #include "device_context.hpp"
+#include "hifive/core/param.hpp"
 #include "hifive/kernel/FullRNS-HEAAN/src/Context.h"
 #include "hifive/kernel/FullRNS-HEAAN/src/EvaluatorUtils.h"
 #include "hifive/kernel/FullRNS-HEAAN/src/Numb.h"
@@ -11,13 +12,10 @@
 
 FHEContext::FHEContext() {
     LOG_INFO("Initializing DeviceContext\n");
-    const int logN = 15;
-    // const int N = (1 << logN);
-    const int L = 44;
     const uint64_t logp = 55;
     // const uint64_t logSlots = 3;
     // const uint64_t slots = (1 << logSlots);
-    HEAANContext heaan_context(logN, logp, L, L + 1);
+    HEAANContext heaan_context(hifive::logN, logp, hifive::L, hifive::L + 1);
     SecretKey secretKey(heaan_context);
     Scheme scheme(secretKey, heaan_context);
     Key key = scheme.keyMap.at(MULTIPLICATION);
@@ -43,6 +41,8 @@ DeviceContext::DeviceContext(HEAANContext &context) {
     L = context.L;
     K = context.K;
     N = context.N;
+    N1 = hifive::N1;
+    N2 = hifive::N2;
     M = context.M;
     Nh = context.Nh;
     logp = context.logp;
@@ -115,27 +115,18 @@ DeviceContext::DeviceContext(HEAANContext &context) {
     checkCudaErrors(cudaMalloc((void **) &qRootPows, size_L));
     checkCudaErrors(cudaMemcpy(qRootPows, tmp, size_L, cudaMemcpyHostToDevice));
 
-    // qRootPowsDivTwo
-    // qRootPowsDivTwoShoup
+    // qRootPowsShoup
     for (int i = 0; i < L; i++) {
-        const uint64_t two_inv = Inverse(2, context.qVec[i]);
         for (int j = 0; j < N; j++) {
-            mulMod(tmpN[j], context.qRootPows[i][j], two_inv, context.qVec[i]);
-            Shoup(tmpN2[j], tmpN[j], context.qVec[i]);
+            Shoup(tmpN[j], context.qRootPows[i][j], context.qVec[i]);
         }
         checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
-        checkCudaErrors(cudaMalloc((void **) &tmp2[i], size_N));
         checkCudaErrors(
             cudaMemcpy(tmp[i], tmpN, size_N, cudaMemcpyHostToDevice));
-        checkCudaErrors(
-            cudaMemcpy(tmp2[i], tmpN2, size_N, cudaMemcpyHostToDevice));
     }
-    checkCudaErrors(cudaMalloc((void **) &qRootPowsDivTwo, size_L));
-    checkCudaErrors(cudaMalloc((void **) &qRootPowsDivTwoShoup, size_L));
+    checkCudaErrors(cudaMalloc((void **) &qRootPowsShoup, size_L));
     checkCudaErrors(
-        cudaMemcpy(qRootPowsDivTwo, tmp, size_L, cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(qRootPowsDivTwoShoup, tmp2, size_L, cudaMemcpyHostToDevice));
+        cudaMemcpy(qRootPowsShoup, tmp, size_L, cudaMemcpyHostToDevice));
 
     // qRootPowsInv
     for (int i = 0; i < L; i++) {
@@ -147,28 +138,18 @@ DeviceContext::DeviceContext(HEAANContext &context) {
     checkCudaErrors(
         cudaMemcpy(qRootPowsInv, tmp, size_L, cudaMemcpyHostToDevice));
 
-    // qRootPowsInvDivTwo
-    // qRootPowsInvDivTwoShoup
+    // qRootPowsInvShoup
     for (int i = 0; i < L; i++) {
-        const uint64_t two_inv = Inverse(2, context.qVec[i]);
         for (int j = 0; j < N; j++) {
-            mulMod(tmpN[j], context.qRootPowsInv[i][j], two_inv,
-                   context.qVec[i]);
-            Shoup(tmpN2[j], tmpN[j], context.qVec[i]);
+            Shoup(tmpN2[j], context.qRootPowsInv[i][j], context.qVec[i]);
         }
         checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
-        checkCudaErrors(cudaMalloc((void **) &tmp2[i], size_N));
         checkCudaErrors(
             cudaMemcpy(tmp[i], tmpN, size_N, cudaMemcpyHostToDevice));
-        checkCudaErrors(
-            cudaMemcpy(tmp2[i], tmpN2, size_N, cudaMemcpyHostToDevice));
     }
-    checkCudaErrors(cudaMalloc((void **) &qRootPowsInvDivTwo, size_L));
-    checkCudaErrors(cudaMalloc((void **) &qRootPowsInvDivTwoShoup, size_L));
+    checkCudaErrors(cudaMalloc((void **) &qRootPowsInvShoup, size_L));
     checkCudaErrors(
-        cudaMemcpy(qRootPowsInvDivTwo, tmp, size_L, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(qRootPowsInvDivTwoShoup, tmp2, size_L,
-                               cudaMemcpyHostToDevice));
+        cudaMemcpy(qRootPowsInvShoup, tmp, size_L, cudaMemcpyHostToDevice));
 
     tmp = new uint64_t *[K];
     // pRootPows

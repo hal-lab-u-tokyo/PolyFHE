@@ -142,45 +142,47 @@ __device__ void d_intt4(uint64_t *s, const uint64_t *tw, uint64_t tw_idx,
     d_gs_butterfly(s[2], s[6], tw[tw_idx], mod);
 }
 
-__device__ void d_fntt_remaining2(uint64_t *buff, const int n,
-                                  const int root_pow_idx, NTTParams *params) {
-    const int thread_idx = threadIdx.x % (n / 8);
+__device__ void d_fntt_remaining2(DeviceContext *dc, uint64_t *buff,
+                                  const int n, const int root_pow_idx,
+                                  const int batch_idx, const int thread_idx) {
     for (int i = thread_idx; i < n / 2; i += n / 8) {
-        d_ct_butterfly_shoup(
-            buff[i * 2], buff[i * 2 + 1], params->roots_pow[root_pow_idx + i],
-            params->roots_pow_shoup[root_pow_idx + i], params->q);
+        d_ct_butterfly_shoup(buff[i * 2], buff[i * 2 + 1],
+                             dc->qRootPows[batch_idx][root_pow_idx + i],
+                             dc->qRootPowsShoup[batch_idx][root_pow_idx + i],
+                             dc->qVec[batch_idx]);
     }
 }
 
-__device__ void d_fntt_remaining4(uint64_t *buff, const int n,
-                                  const int root_pow_idx, NTTParams *params) {
-    const int thread_idx = threadIdx.x % (n / 8);
+__device__ void d_fntt_remaining4(DeviceContext *dc, uint64_t *buff,
+                                  const int n, const int root_pow_idx,
+                                  const int batch_idx, const int thread_idx) {
     for (int i = thread_idx; i < n / 4; i += n / 8) {
         uint64_t local[4];
         for (int j = 0; j < 4; j++) {
             local[j] = buff[i * 4 + j];
         }
         const int tw_idx = root_pow_idx + i;
-        d_fntt4_shoup(local, params->roots_pow, params->roots_pow_shoup, tw_idx,
-                      params->q);
+        d_fntt4_shoup(local, dc->qRootPows[batch_idx],
+                      dc->qRootPowsShoup[batch_idx], tw_idx,
+                      dc->qVec[batch_idx]);
         for (int j = 0; j < 4; j++) {
             buff[i * 4 + j] = local[j];
         }
     }
 }
 
-__device__ void NTTPhase1Batched(uint64_t *buff, NTTParams *params) {
+__device__ void NTTPhase1Batched(DeviceContext *dc, uint64_t *buff,
+                                 NTTParams *params) {
     uint64_t local[8];
 
-    for (int i = threadIdx.x; i < params->batch * params->n1 / 8;
-         i += blockDim.x) {
-        const int batch_idx = i / (params->n1 / 8);
-        const int thread_idx = i % (params->n1 / 8);
-        uint64_t *buff_base = buff + batch_idx * params->n1;
+    for (int i = threadIdx.x; i < params->batch * dc->N1 / 8; i += blockDim.x) {
+        const int batch_idx = i / (dc->N1 / 8);
+        const int thread_idx = i % (dc->N1 / 8);
+        uint64_t *buff_base = buff + batch_idx * dc->N1;
 
-        int t = params->n1;
+        int t = dc->N1;
         int last_m = 1;
-        for (int m = 1; m <= params->n1 / 8; m *= 8) {
+        for (int m = 1; m <= dc->N1 / 8; m *= 8) {
             t = t / 8;
             const int i = thread_idx / t;
             const int j1 = 8 * i * t;
@@ -188,8 +190,9 @@ __device__ void NTTPhase1Batched(uint64_t *buff, NTTParams *params) {
             for (int k = 0; k < 8; k++) {
                 local[k] = buff_base[j + k * t];
             }
-            d_fntt8_shoup(local, params->roots_pow, params->roots_pow_shoup,
-                          i + m, params->q);
+            d_fntt8_shoup(local, dc->qRootPows[batch_idx],
+                          dc->qRootPowsShoup[batch_idx], i + m,
+                          dc->qVec[batch_idx]);
             for (int k = 0; k < 8; k++) {
                 buff_base[j + k * t] = local[k];
             }
@@ -198,28 +201,30 @@ __device__ void NTTPhase1Batched(uint64_t *buff, NTTParams *params) {
         }
 
         last_m = last_m * 8;
-        const int remaining = params->n1 / last_m;
+        const int remaining = dc->N1 / last_m;
         const int root_pow_idx = last_m;
         if (remaining == 2) {
-            d_fntt_remaining2(buff_base, params->n1, root_pow_idx, params);
+            d_fntt_remaining2(dc, buff_base, dc->N1, root_pow_idx, batch_idx,
+                              thread_idx);
         } else if (remaining == 4) {
-            d_fntt_remaining4(buff_base, params->n1, root_pow_idx, params);
+            d_fntt_remaining4(dc, buff_base, dc->N1, root_pow_idx, batch_idx,
+                              thread_idx);
         }
     }
 }
 
-__device__ void NTTPhase2Batched(uint64_t *buff, NTTParams *params) {
+__device__ void NTTPhase2Batched(DeviceContext *dc, uint64_t *buff,
+                                 NTTParams *params) {
     uint64_t local[8];
-    for (int i = threadIdx.x; i < params->batch * params->n2 / 8;
-         i += blockDim.x) {
-        const int batch_idx = i / (params->n2 / 8);
-        const int thread_idx = i % (params->n2 / 8);
-        uint64_t *buff_base = buff + batch_idx * params->n2;
+    for (int i = threadIdx.x; i < params->batch * dc->N2 / 8; i += blockDim.x) {
+        const int batch_idx = i / (dc->N2 / 8);
+        const int thread_idx = i % (dc->N2 / 8);
+        uint64_t *buff_base = buff + batch_idx * dc->N2;
 
-        int t = params->n2;
-        const int root_idx_base = params->n1 + blockIdx.x;
+        int t = dc->N2;
+        const int root_idx_base = dc->N1 + blockIdx.x;
         int last_m = 1;
-        for (int m = 1; m <= params->n2 / 8; m *= 8) {
+        for (int m = 1; m <= dc->N2 / 8; m *= 8) {
             t = t / 8;
             const int i = thread_idx / t;
             const int j1 = 8 * i * t;
@@ -228,8 +233,9 @@ __device__ void NTTPhase2Batched(uint64_t *buff, NTTParams *params) {
             for (int k = 0; k < 8; k++) {
                 local[k] = buff_base[j + k * t];
             }
-            d_fntt8_shoup(local, params->roots_pow, params->roots_pow_shoup,
-                          root_idx, params->q);
+            d_fntt8_shoup(local, dc->qRootPows[batch_idx],
+                          dc->qRootPowsShoup[batch_idx], root_idx,
+                          dc->qVec[batch_idx]);
             for (int k = 0; k < 8; k++) {
                 buff_base[j + k * t] = local[k];
             }
@@ -238,12 +244,14 @@ __device__ void NTTPhase2Batched(uint64_t *buff, NTTParams *params) {
         }
 
         last_m = last_m * 8;
-        const int remaining = params->n2 / last_m;
+        const int remaining = dc->N2 / last_m;
         const int root_pow_idx = root_idx_base * last_m;
         if (remaining == 2) {
-            d_fntt_remaining2(buff_base, params->n2, root_pow_idx, params);
+            d_fntt_remaining2(dc, buff_base, dc->N2, root_pow_idx, batch_idx,
+                              thread_idx);
         } else if (remaining == 4) {
-            d_fntt_remaining4(buff_base, params->n2, root_pow_idx, params);
+            d_fntt_remaining4(dc, buff_base, dc->N2, root_pow_idx, batch_idx,
+                              thread_idx);
         }
     }
 }
