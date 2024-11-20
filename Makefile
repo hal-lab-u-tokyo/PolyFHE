@@ -64,7 +64,7 @@ test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
 	nvcc -o build/test $(SRC_TEST) $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./build/test
 
-TARGET=data/graph_poly_hmult.dot
+TARGET=data/graph_poly.dot
 
 run: $(BIN)
 	rm -f ./build/*.dot

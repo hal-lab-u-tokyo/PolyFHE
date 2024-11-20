@@ -47,6 +47,9 @@ void SortSubgraphNodes(
                 if (inedge->get_level() != hifive::core::EdgeLevel::Shared) {
                     continue;
                 }
+                if (inedge->get_src()->get_op_type() == "Init") {
+                    continue;
+                }
                 if (!sorted[inedge->get_src()]) {
                     LOG_INFO("Wait for %s\n",
                              inedge->get_src()->get_op_name().c_str());
@@ -73,6 +76,9 @@ void SortSubgraphNodes(
 void ExtractSubgraph(
     std::shared_ptr<hifive::core::Node> node,
     std::vector<std::shared_ptr<hifive::core::Node>>& subgraph) {
+    if (node->get_op_type() == "Init") {
+        return;
+    }
     subgraph.push_back(node);
     for (auto edge : node->get_out_edges()) {
         auto found =
@@ -130,7 +136,18 @@ bool ExtractSubgraphPass::run_on_graph(
         indegree[i] = node->get_in_edges().size();
     }
 
-    stack.push_back(graph->get_init_node_id());
+    // Init node
+    // Visit init node first because we don't include it in subgraph
+    auto init_node = graph->get_init_node();
+    visited[init_node->get_id()] = true;
+    for (auto edge : init_node->get_out_edges()) {
+        int dst_id = edge->get_dst()->get_id();
+        indegree[dst_id] -= 1;
+        if (indegree[dst_id] == 0) {
+            stack.push_back(dst_id);
+        }
+    }
+
     while (!stack.empty()) {
         int node_idx = stack.back();
         stack.pop_back();
