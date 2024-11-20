@@ -9,6 +9,12 @@ namespace engine {
 
 bool CanReuse(std::shared_ptr<hifive::core::Node> src,
               std::shared_ptr<hifive::core::Node> dst) {
+    if (src->get_op_type() == "Init") {
+        return false;
+    }
+    if (dst->get_op_type() == "End") {
+        return false;
+    }
     switch (dst->get_access_pattern()) {
     case hifive::core::MemoryAccessPattern::ElementWise:
         return true;
