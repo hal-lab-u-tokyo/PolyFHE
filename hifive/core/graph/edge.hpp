@@ -57,7 +57,7 @@ private:
     std::shared_ptr<Node> m_dst;
     std::vector<int> m_shape;
     std::string m_name;
-    EdgeLevel m_level = EdgeLevel::YetToDetermine;
+    EdgeLevel m_level = EdgeLevel::Global;
 
     int get_size() {
         int size = 1;

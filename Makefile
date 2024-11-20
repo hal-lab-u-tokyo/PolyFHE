@@ -14,7 +14,8 @@ SRC=\
 
 SRC_RUNTIME=\
 	hifive/kernel/device_context.cu \
-	hifive/kernel/polynomial.cu
+	hifive/kernel/polynomial.cu \
+	hifive/kernel/ntt.cu
 
 SRC_TEST=\
 	test/test_poly.cu \
@@ -63,7 +64,7 @@ test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
 	nvcc -o build/test $(SRC_TEST) $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./build/test
 
-TARGET=data/graph_poly_hmult.dot
+TARGET=data/graph_poly.dot
 
 run: $(BIN)
 	rm -f ./build/*.dot
@@ -76,7 +77,7 @@ run: $(BIN)
 run-noopt: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i $(TARGET) --noopt
+	./$(BIN) -i $(TARGET) --noopt -p
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
