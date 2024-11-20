@@ -87,7 +87,11 @@ int main(int argc, char** argv) {
         std::make_shared<hifive::engine::SetBlockPhasePass>());
 
     // Pass: Data reuse
-    if (!config.if_not_optimize) {
+    if (config.if_not_optimize) {
+        LOG_INFO("Arg: Do not optimize graph\n");
+        pass_manager.push_back(
+            std::make_shared<hifive::engine::ExtractSubgraphPass>());
+    } else {
         LOG_INFO("Input config: Optimize graph\n");
         pass_manager.push_back(
             std::make_shared<hifive::engine::DataReusePass>());
@@ -95,8 +99,6 @@ int main(int argc, char** argv) {
             std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
         pass_manager.push_back(
             std::make_shared<hifive::engine::ExtractSubgraphPass>());
-    } else {
-        LOG_INFO("Arg: Do not optimize graph\n");
     }
 
     // Run PassManager

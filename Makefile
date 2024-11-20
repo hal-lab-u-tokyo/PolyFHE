@@ -77,7 +77,7 @@ run: $(BIN)
 run-noopt: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
-	./$(BIN) -i $(TARGET) --noopt
+	./$(BIN) -i $(TARGET) --noopt -p
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
 	make dot
