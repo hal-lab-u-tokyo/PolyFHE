@@ -208,18 +208,27 @@ void CudaCodegen::generate_kernel_defs(
                 }
 
                 // N
-                if (global_output == nullptr) {
-                    // Mult with only Shared output
-                    args.push_back(GenerateN(subgraph->get_block_phase()));
-                } else if (shared_output == nullptr) {
-                    // Mult with only Global output
-                    args.push_back("N");
+                if (node->get_out_edges().size() == 1) {
+                    if (node->get_out_edges()[0]->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        args.push_back("N");
+                    } else {
+                        args.push_back(GenerateN(subgraph->get_block_phase()));
+                    }
                 } else {
-                    // MultOutputTwo
-                    // dst0: global_output
-                    // dst1: shared
-                    args.push_back("N");
-                    args.push_back(GenerateN(subgraph->get_block_phase()));
+                    if (global_output == nullptr) {
+                        // Mult with only Shared output
+                        args.push_back(GenerateN(subgraph->get_block_phase()));
+                    } else if (shared_output == nullptr) {
+                        // Mult with only Global output
+                        args.push_back("N");
+                    } else {
+                        // MultOutputTwo
+                        // dst0: global_output
+                        // dst1: shared
+                        args.push_back("N");
+                        args.push_back(GenerateN(subgraph->get_block_phase()));
+                    }
                 }
                 args.push_back(GenerateNByLevel(node->get_in_edges()[0],
                                                 node->get_block_phase()));
@@ -285,7 +294,21 @@ void CudaCodegen::generate_kernel_defs(
                 args.push_back("shared");
                 w << "NTTPhase2Batched(" << GenerateArgs(args) << ");\n";
 
-                // Store?
+                // Store to global if required
+                for (auto edge : node->get_out_edges()) {
+                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                        std::vector<std::string> args_store;
+                        args_store.push_back("dc");
+                        args_store.push_back("L");
+                        args_store.push_back("shared");
+                        args_store.push_back(edge->get_name());
+                        w << "StorePhase2ToGmem(" << GenerateArgs(args_store)
+                          << ");\n";
+
+                        // We need to global-output only once
+                        break;
+                    }
+                }
             }
         }
 

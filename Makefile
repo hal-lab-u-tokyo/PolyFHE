@@ -88,6 +88,10 @@ fhe: $(BIN)
 	./$(BIN) -i data/graph_fhe.dot --noopt
 	make dot
 
+bin:
+	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./$(BIN_RUNTIME)
+
 dot:
 	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;
 	find ./data -iname *.dot -exec dot -Tpng -o {}.png {} \;
