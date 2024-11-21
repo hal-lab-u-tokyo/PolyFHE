@@ -70,17 +70,17 @@ run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
 	./$(BIN) -i $(TARGET) -p 
+	make dot
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
-	make dot
 	
 run-noopt: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
 	./$(BIN) -i $(TARGET) --noopt -p
+	make dot
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
-	make dot
 
 fhe: $(BIN)
 	rm -f ./build/*.dot
