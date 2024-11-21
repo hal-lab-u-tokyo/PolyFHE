@@ -95,6 +95,8 @@ void CudaCodegen::generate_kernel_defs(
             for (auto edge : node->get_out_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
                     w << ", uint64_t *" << edge->get_name();
+                    // We need to global-output only once
+                    break;
                 }
             }
         }
@@ -141,12 +143,14 @@ void CudaCodegen::generate_kernel_defs(
                 // Mult
                 // ==============================
                 std::shared_ptr<hifive::core::Edge> global_output = nullptr;
+                std::shared_ptr<hifive::core::Edge> shared_output = nullptr;
                 std::vector<std::string> args;
                 args.push_back("dc");
                 args.push_back(GenerateN(subgraph->get_block_phase()));
                 args.push_back("L");
                 // output
                 if (node->get_out_edges().size() == 1) {
+                    // When only one output
                     w << "Mult";
                     auto outedge = node->get_out_edges()[0];
                     if (outedge->get_level() ==
@@ -156,22 +160,34 @@ void CudaCodegen::generate_kernel_defs(
                         args.push_back("shared");
                     }
                 } else {
+                    // When multiple outputs
+                    // If there is no Global output, use Mult
+                    // If there is no Shared output, use Mult
+                    // If there is both Global and Shared outputs, use
+                    // MultOutputTwo
                     for (auto edge : node->get_out_edges()) {
                         if (edge->get_level() ==
                             hifive::core::EdgeLevel::Global) {
                             if (global_output != nullptr) {
-                                LOG_ERROR(
-                                    "Mult node has more than one global "
-                                    "edge\n");
-                                assert(false);
+                                continue;
                             }
                             global_output = edge;
+                        } else if (edge->get_level() ==
+                                   hifive::core::EdgeLevel::Shared) {
+                            if (shared_output != nullptr) {
+                                continue;
+                            }
+                            shared_output = edge;
                         }
                     }
                     if (global_output == nullptr) {
                         // Some Shared outputs but no Global output
                         w << "Mult";
                         args.push_back("shared");
+                    } else if (shared_output == nullptr) {
+                        // Some Global outputs but no Shared output
+                        w << "Mult";
+                        args.push_back(global_output->get_name());
                     } else {
                         // One Global output and some Shared outputs
                         // dst0: global_output
@@ -192,16 +208,27 @@ void CudaCodegen::generate_kernel_defs(
                 }
 
                 // N
-                if (global_output == nullptr) {
-                    // Mult
-                    args.push_back(GenerateNByLevel(node->get_out_edges()[0],
-                                                    node->get_block_phase()));
+                if (node->get_out_edges().size() == 1) {
+                    if (node->get_out_edges()[0]->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        args.push_back("N");
+                    } else {
+                        args.push_back(GenerateN(subgraph->get_block_phase()));
+                    }
                 } else {
-                    // MultOutputTwo
-                    // dst0: global_output
-                    // dst1: shared
-                    args.push_back("N");
-                    args.push_back(GenerateN(subgraph->get_block_phase()));
+                    if (global_output == nullptr) {
+                        // Mult with only Shared output
+                        args.push_back(GenerateN(subgraph->get_block_phase()));
+                    } else if (shared_output == nullptr) {
+                        // Mult with only Global output
+                        args.push_back("N");
+                    } else {
+                        // MultOutputTwo
+                        // dst0: global_output
+                        // dst1: shared
+                        args.push_back("N");
+                        args.push_back(GenerateN(subgraph->get_block_phase()));
+                    }
                 }
                 args.push_back(GenerateNByLevel(node->get_in_edges()[0],
                                                 node->get_block_phase()));
@@ -267,7 +294,21 @@ void CudaCodegen::generate_kernel_defs(
                 args.push_back("shared");
                 w << "NTTPhase2Batched(" << GenerateArgs(args) << ");\n";
 
-                // Store?
+                // Store to global if required
+                for (auto edge : node->get_out_edges()) {
+                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                        std::vector<std::string> args_store;
+                        args_store.push_back("dc");
+                        args_store.push_back("L");
+                        args_store.push_back("shared");
+                        args_store.push_back(edge->get_name());
+                        w << "StorePhase2ToGmem(" << GenerateArgs(args_store)
+                          << ");\n";
+
+                        // We need to global-output only once
+                        break;
+                    }
+                }
             }
         }
 
@@ -315,17 +356,22 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "// =====================================\n";
     for (auto subgraph : graph->get_subgraphs()) {
         for (auto node : subgraph->get_nodes()) {
+            bool has_global_edge = false;
             for (auto edge : node->get_out_edges()) {
                 // TODO: treat Init as a alone subgraph
                 if (edge->get_src()->get_op_type() == "Init") {
                     continue;
                 }
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                    if (has_global_edge) {
+                        continue;
+                    }
                     w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
                       << edge->get_dst()->get_op_name() << "\n";
                     w << "uint64_t *" << edge->get_name() << "_d;\n";
                     w << "cudaMalloc((void **)&" << edge->get_name()
                       << "_d, N * L * sizeof(uint64_t));\n";
+                    has_global_edge = true;
                 }
             }
         }
@@ -366,12 +412,19 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                    w << ", " << edge->get_name() << "_d";
+                    auto same_result_edge = edge->get_same_result_edge();
+                    if (same_result_edge == nullptr) {
+                        LOG_ERROR("No same result global edge\n");
+                        assert(false);
+                    }
+                    w << ", " << same_result_edge->get_name() << "_d";
                 }
             }
             for (auto edge : node->get_out_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
                     w << ", " << edge->get_name() << "_d";
+                    // We need to global-output only once
+                    break;
                 }
             }
         }

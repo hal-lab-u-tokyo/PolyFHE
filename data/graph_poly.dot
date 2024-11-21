@@ -1,11 +1,21 @@
 digraph G {
 Init[label="Init"];
-HAdd0[label="Add"];
-HAdd1[label="Add"];
+Mult0[label="Mult"];
+NTT0[label="NTT"];
+Mult1[label="Mult"];
+ModUp0[label="ModUp"];
+ModUp1[label="ModUp"];
+ModUp2[label="ModUp"];
 End[label="End"];
-Init->HAdd0[label="65535*20"];
-Init->HAdd0[label="65535*20"];
-Init->HAdd1[label="65535*20"];
-HAdd0->HAdd1[label="65535*20"];
-HAdd1->End[label="65535*20"];
+Init -> Mult0[label="65535*20"];
+Init -> Mult0[label="65535*20"];
+Mult0 -> NTT0[label="65535*20"];
+Init -> Mult1[label="65535*20"];
+NTT0 -> Mult1[label="65535*20"];
+Mult1 -> ModUp0[label="65535*20"];
+Mult1 -> ModUp1[label="65535*20"];
+Mult1 -> ModUp2[label="65535*20"];
+ModUp0 -> End[label="65535*20"];
+ModUp1 -> End[label="65535*20"];
+ModUp2 -> End[label="65535*20"];
 }

@@ -1,6 +1,9 @@
 fusion
 build/*
+build-*
 *.o
 *.nsys-rep
 *.sqlite
 log.txt
+*.log
+*.txt

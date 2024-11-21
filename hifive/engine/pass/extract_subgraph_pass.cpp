@@ -76,7 +76,7 @@ void SortSubgraphNodes(
 void ExtractSubgraph(
     std::shared_ptr<hifive::core::Node> node,
     std::vector<std::shared_ptr<hifive::core::Node>>& subgraph) {
-    if (node->get_op_type() == "Init") {
+    if (node->get_op_type() == "Init" || node->get_op_type() == "End") {
         return;
     }
     subgraph.push_back(node);
@@ -107,6 +107,9 @@ CheckIfSubgraphNodesVisited(std::shared_ptr<hifive::core::Node> node,
                             std::vector<bool>& visited) {
     std::vector<std::shared_ptr<hifive::core::Node>> subgraph;
     ExtractSubgraph(node, subgraph);
+    if (subgraph.size() == 0) {
+        return std::nullopt;
+    }
     SortSubgraphNodes(subgraph);
     for (auto subnode : subgraph) {
         if (!visited[subnode->get_id()]) {

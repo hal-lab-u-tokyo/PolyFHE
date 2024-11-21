@@ -109,6 +109,8 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
         }
     }
 
+    hifive::frontend::export_graph_to_dot(graph, "build/rewrite_ntt_pass.dot");
+
     return true;
 }
 } // namespace engine
