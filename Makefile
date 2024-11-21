@@ -73,6 +73,7 @@ run: $(BIN)
 	make dot
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
+	mv build build-opt
 	
 run-noopt: $(BIN)
 	rm -f ./build/*.dot
@@ -81,6 +82,7 @@ run-noopt: $(BIN)
 	make dot
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
+	mv build build-noopt
 
 fhe: $(BIN)
 	rm -f ./build/*.dot

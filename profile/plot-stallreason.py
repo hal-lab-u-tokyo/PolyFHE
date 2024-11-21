@@ -96,7 +96,7 @@ plt.xticks(rotation=60, fontsize=18, fontstyle='italic')
 plt.yticks(fontsize=18)
 plt.legend(reasons, fontsize=16, loc='best')
 plt.tight_layout()
-plt.savefig(f"{directory_path}/profile/figure/stallreason-{name}.png", dpi=500)
+plt.savefig(f"{directory_path}/profile/figure/{name}.png", dpi=500)
 
 """
 for kernel in data:
