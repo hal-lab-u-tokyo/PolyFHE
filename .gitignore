@@ -7,3 +7,4 @@ build-*
 log.txt
 *.log
 *.txt
+*.ncu-rep
