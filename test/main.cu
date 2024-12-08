@@ -16,6 +16,6 @@ int main() {
         test_poly_mult(context, 1 << 17, 20, 1 << 8, 20);
         */
 
-    test_poly_ntt(context, 1 << 14, 20, 1 << 7, 20);
+    test_ntt(context, 1 << 14, 1 << 7, 1 << 7, 20);
     // test_poly_ntt(context, 8, 1, 1 << 7, 20);
 }

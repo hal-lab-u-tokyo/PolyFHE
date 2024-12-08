@@ -18,7 +18,7 @@ SRC_RUNTIME=\
 	hifive/kernel/ntt.cu
 
 SRC_TEST=\
-	test/test_poly.cu \
+	test/test_ntt.cu \
 	test/main.cu \
 	test/util.cu
 
