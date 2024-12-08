@@ -67,7 +67,7 @@ print(data_noopt)
 # Plot
 fig, ax = plt.subplots(figsize=(18, 10))
 metrics = list(data_opt.keys())
-values = {"Optimized": [data_opt[metric] for metric in metrics], "Non-optimized": [data_noopt[metric] for metric in metrics]}
+values = {"Optimized": [data_opt[metric] for metric in metrics], "Baseline": [data_noopt[metric] for metric in metrics]}
 
 print(metrics)
 print(values)

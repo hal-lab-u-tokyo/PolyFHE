@@ -49,7 +49,7 @@ BIN=build/cc-hifive
 
 CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./hifive/kernel/FullRNS-HEAAN/src/ -I./  --relocatable-device-code true
 LDFLAGS_RUNTIME=-L./hifive/kernel/FullRNS-HEAAN/lib/ -lFRNSHEAAN
-BIN_RUNTIME=build/gen_cuda
+BIN_RUNTIME=build/bench
 
 $(BIN): $(SRC) $(HDR) $(OBJ)
 	rm -rf ./build
@@ -73,6 +73,7 @@ run: $(BIN)
 	make dot
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
+	rm -rf build-opt
 	mv build build-opt
 	
 run-noopt: $(BIN)
@@ -82,6 +83,7 @@ run-noopt: $(BIN)
 	make dot
 	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
+	rm -rf build-noopt
 	mv build build-noopt
 
 fhe: $(BIN)
@@ -91,8 +93,12 @@ fhe: $(BIN)
 	make dot
 
 bin:
-	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
-	./$(BIN_RUNTIME)
+	nvcc -o build-opt/bench build-opt/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./build-opt/bench
+
+bin-noopt:
+	nvcc -o build-noopt/bench build-noopt/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./build-noopt/bench
 
 dot:
 	find ./build -iname *.dot -exec dot -Tpng -o {}.png {} \;
