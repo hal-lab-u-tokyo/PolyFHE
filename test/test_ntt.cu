@@ -29,17 +29,16 @@ __global__ void ntt_phase2(uint64_t* inout, DeviceContext* dc,
     }
 }
 
-void test_ntt(FHEContext& context, const int N, const int N1, const int N2,
-              const int L) {
-    std::cout << "test_poly_ntt: N=" << N << ", L=" << L << std::endl;
-    std::cout << "N1=" << N1 << ", N2=" << N2 << std::endl;
+void test_ntt(FHEContext& context, const uint64_t logN, const uint64_t L) {
+    std::cout << "=============== Test NTT ==================" << std::endl;
+    auto dc_h = context.get_host_context();
+    const size_t N = dc_h->N;
+    const size_t N1 = NTTSampleSize(logN);
+    const size_t N2 = N / N1;
 
-    /*
-    auto [in, d_in] =
-        create_random_polynomial(N, L, context.get_host_context()->qVec);
-    auto [out, d_out] =
-        create_random_polynomial(N, L, context.get_host_context()->qVec);
-        */
+    std::cout << "logN=" << logN << ", L=" << L << std::endl;
+    std::cout << "N=" << N << ", N1=" << N1 << ", N2=" << N2 << std::endl;
+    std::cout << "===========================================" << std::endl;
 
     for (int i = 0; i < 5; i++) {
         auto [inout, d_inout] = create_linear_polynomial(N, L);
@@ -55,8 +54,8 @@ void test_ntt(FHEContext& context, const int N, const int N1, const int N2,
 
         ntt_phase1<<<gridPhase1, blockPhase1, shared_mem_size_phase1>>>(
             d_inout, context.get_device_context(), L);
-        // ntt_phase2<<<gridPhase2, blockPhase2, shared_mem_size_phase2>>>(
-        //     d_inout, context.get_device_context(), L);
+        ntt_phase2<<<gridPhase2, blockPhase2, shared_mem_size_phase2>>>(
+            d_inout, context.get_device_context(), L);
         cudaDeviceSynchronize();
         CudaCheckError();
 

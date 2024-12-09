@@ -127,13 +127,18 @@ public:
 class FHEContext {
 public:
     FHEContext();
+    FHEContext(const int logN, const int L);
     ~FHEContext() = default;
 
     DeviceContext* get_device_context() { return d_context_in_gpu; }
     std::shared_ptr<HEAANContext> get_host_context() { return h_context; }
 
 private:
+    void Init(const int logN, const int L);
+
     std::shared_ptr<HEAANContext> h_context;
     std::shared_ptr<DeviceContext> d_context_in_cpu;
     DeviceContext* d_context_in_gpu;
 };
+
+uint64_t NTTSampleSize(const uint64_t logN);

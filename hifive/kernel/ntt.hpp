@@ -4,6 +4,24 @@
 
 #include "hifive/kernel/device_context.hpp"
 
+struct NTTParams {
+    int N;
+    int logN;
+    int N_inv;
+    int batch;
+    uint64_t q;
+    uint64_t mu;
+    uint64_t m;
+    uint64_t root;
+    uint64_t root_inv;
+    uint64_t *roots_pow;
+    uint64_t *roots_pow_shoup;
+    uint64_t *roots_pow_inv;
+    uint64_t *roots_pow_inv_shoup;
+    int n1; // N = n1 * n2
+    int n2;
+};
+
 extern "C" {
 __device__ void NTTPhase1(DeviceContext *dc, const int batch, uint64_t *buffer,
                           size_t thread_idx);

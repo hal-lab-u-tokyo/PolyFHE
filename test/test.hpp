@@ -14,8 +14,7 @@ void test_poly_add(FHEContext &context, const int N, const int L,
                    const int block_x, const int block_y);
 void test_poly_mult(FHEContext &context, const int N, const int L,
                     const int block_x, const int block_y);
-void test_ntt(FHEContext &context, const int N, const int N1, const int N2,
-              const int L);
+void test_ntt(FHEContext &context, const uint64_t N, const uint64_t L);
 
 // Utils
 std::pair<uint64_t *, uint64_t *> create_random_polynomial(

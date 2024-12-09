@@ -2,7 +2,6 @@
 
 int main() {
     LOG_INFO("Start testing...\n");
-    FHEContext context;
 
     /*
         test_poly_add(context, 1 << 14, 20, 1 << 7, 20);
@@ -16,6 +15,13 @@ int main() {
         test_poly_mult(context, 1 << 17, 20, 1 << 8, 20);
         */
 
-    test_ntt(context, 1 << 14, 1 << 7, 1 << 7, 20);
+    {
+        FHEContext context(12, 2);
+        test_ntt(context, 12, 2);
+    }
+    {
+        FHEContext context(17, 20);
+        test_ntt(context, 17, 20);
+    }
     // test_poly_ntt(context, 8, 1, 1 << 7, 20);
 }

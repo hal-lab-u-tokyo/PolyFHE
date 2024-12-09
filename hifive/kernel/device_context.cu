@@ -10,12 +10,10 @@
 #include "hifive/kernel/FullRNS-HEAAN/src/TimeUtils.h"
 #include "hifive/kernel/device_context.hpp"
 
-FHEContext::FHEContext() {
+void FHEContext::Init(const int logN, const int L) {
     LOG_INFO("Initializing DeviceContext\n");
     const uint64_t logp = 55;
-    // const uint64_t logSlots = 3;
-    // const uint64_t slots = (1 << logSlots);
-    HEAANContext heaan_context(hifive::logN, logp, hifive::L, hifive::L + 1);
+    HEAANContext heaan_context(logN, logp, L, L + 1);
     SecretKey secretKey(heaan_context);
     Scheme scheme(secretKey, heaan_context);
     Key key = scheme.keyMap.at(MULTIPLICATION);
@@ -30,6 +28,29 @@ FHEContext::FHEContext() {
                                sizeof(DeviceContext), cudaMemcpyHostToDevice));
 }
 
+FHEContext::FHEContext() { Init(hifive::logN, hifive::L); }
+
+FHEContext::FHEContext(const int logN, const int L) { Init(logN, L); }
+
+uint64_t NTTSampleSize(const uint64_t logN) {
+    if (logN == 12) {
+        return 1 << 6;
+    } else if (logN == 13) {
+        return 1 << 7;
+    } else if (logN == 14) {
+        return 1 << 7;
+    } else if (logN == 15) {
+        return 1 << 8;
+    } else if (logN == 16) {
+        return 1 << 8;
+    } else if (logN == 17) {
+        return 1 << 9;
+    } else {
+        LOG_ERROR("Invalid logN: %ld\n", logN);
+        return 0;
+    }
+}
+
 uint64_t Inverse(const uint64_t op, const uint64_t prime) {
     uint64_t tmp = op > prime ? (op % prime) : op;
     return powMod(tmp, prime - 2, prime);
@@ -41,8 +62,8 @@ DeviceContext::DeviceContext(HEAANContext &context) {
     L = context.L;
     K = context.K;
     N = context.N;
-    N1 = hifive::N1;
-    N2 = hifive::N2;
+    N1 = NTTSampleSize(logN);
+    N2 = N / N1;
     M = context.M;
     Nh = context.Nh;
     logp = context.logp;
