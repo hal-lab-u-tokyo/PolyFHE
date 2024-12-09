@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "device_context.hpp"
 #include "hifive/core/param.hpp"
 #include "hifive/kernel/FullRNS-HEAAN/src/Context.h"
@@ -9,28 +11,6 @@
 #include "hifive/kernel/FullRNS-HEAAN/src/StringUtils.h"
 #include "hifive/kernel/FullRNS-HEAAN/src/TimeUtils.h"
 #include "hifive/kernel/device_context.hpp"
-
-void FHEContext::Init(const int logN, const int L) {
-    LOG_INFO("Initializing DeviceContext\n");
-    const uint64_t logp = 55;
-    HEAANContext heaan_context(logN, logp, L, L + 1);
-    SecretKey secretKey(heaan_context);
-    Scheme scheme(secretKey, heaan_context);
-    Key key = scheme.keyMap.at(MULTIPLICATION);
-
-    d_context_in_cpu = std::make_shared<DeviceContext>(heaan_context);
-    h_context = std::make_shared<HEAANContext>(heaan_context);
-
-    // Copy context_d to device
-    checkCudaErrors(
-        cudaMalloc((void **) &d_context_in_gpu, sizeof(DeviceContext)));
-    checkCudaErrors(cudaMemcpy(d_context_in_gpu, d_context_in_cpu.get(),
-                               sizeof(DeviceContext), cudaMemcpyHostToDevice));
-}
-
-FHEContext::FHEContext() { Init(hifive::logN, hifive::L); }
-
-FHEContext::FHEContext(const int logN, const int L) { Init(logN, L); }
 
 uint64_t NTTSampleSize(const uint64_t logN) {
     if (logN == 12) {
@@ -51,145 +31,178 @@ uint64_t NTTSampleSize(const uint64_t logN) {
     }
 }
 
-uint64_t Inverse(const uint64_t op, const uint64_t prime) {
-    uint64_t tmp = op > prime ? (op % prime) : op;
-    return powMod(tmp, prime - 2, prime);
+uint64_t compute_shoup(const uint64_t operand, const uint64_t modulus) {
+    if (operand >= modulus) {
+        throw "Operand must be less than modulus";
+    }
+    // Using __uint128_t to avoid overflow during multiplication
+    __uint128_t temp = operand;
+    temp <<= 64; // multiplying by 2^64
+    return temp / modulus;
 }
 
-DeviceContext::DeviceContext(HEAANContext &context) {
-    logN = context.logN;
-    logNh = context.logNh;
-    L = context.L;
-    K = context.K;
-    N = context.N;
-    N1 = NTTSampleSize(logN);
-    N2 = N / N1;
-    M = context.M;
-    Nh = context.Nh;
-    logp = context.logp;
-    p = context.p;
-    h = context.h;
-    sigma = context.sigma;
+Params::Params(std::shared_ptr<HEAANContext> context) {
+    logN = context->logN;
+    L = context->L;
+    K = context->K;
+    N = context->N;
+    sigma = context->sigma;
 
-    // qVec, qrVec, qTwok, qkVec, qdVec
-    // pVec, prVec, pTwok, pkVec, pdVec
-    const long size_L = L * sizeof(uint64_t);
-    const long size_K = K * sizeof(uint64_t);
-    checkCudaErrors(cudaMalloc((void **) &qVec, size_L));
-    checkCudaErrors(cudaMalloc((void **) &qrVec, size_L));
-    checkCudaErrors(cudaMalloc((void **) &qTwok, size_L));
-    checkCudaErrors(cudaMalloc((void **) &qkVec, size_L));
-    checkCudaErrors(cudaMalloc((void **) &qdVec, size_L));
-    checkCudaErrors(cudaMalloc((void **) &pVec, size_K));
-    checkCudaErrors(cudaMalloc((void **) &prVec, size_K));
-    checkCudaErrors(cudaMalloc((void **) &pTwok, size_K));
-    checkCudaErrors(cudaMalloc((void **) &pkVec, size_K));
-    checkCudaErrors(cudaMalloc((void **) &pdVec, size_K));
-    checkCudaErrors(
-        cudaMemcpy(qVec, context.qVec, size_L, cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(qrVec, context.qrVec, size_L, cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(qTwok, context.qTwok, size_L, cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(qkVec, context.qkVec, size_L, cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(qdVec, context.qdVec, size_L, cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(pVec, context.pVec, size_K, cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(prVec, context.prVec, size_K, cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(pTwok, context.pTwok, size_K, cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(pkVec, context.pkVec, size_K, cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(pdVec, context.pdVec, size_K, cudaMemcpyHostToDevice));
+    qVec = context->qVec;
+    qrVec = context->qrVec;
+    qTwok = context->qTwok;
+    pVec = context->pVec;
 
-    // qRoots, qRootsInv, qRootPows, qRootPowsInv
-    // pRoots, pRootsInv, pRootPows, pRootPowsInv
-    const uint64_t size_N = N * sizeof(uint64_t);
-    checkCudaErrors(cudaMalloc((void **) &qRoots, size_L));
-    checkCudaErrors(cudaMalloc((void **) &qRootsInv, size_L));
-    checkCudaErrors(cudaMalloc((void **) &pRoots, size_K));
-    checkCudaErrors(cudaMalloc((void **) &pRootsInv, size_K));
-    checkCudaErrors(
-        cudaMemcpy(qRoots, context.qRoots, size_L, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(qRootsInv, context.qRootsInv, size_L,
-                               cudaMemcpyHostToDevice));
-    checkCudaErrors(
-        cudaMemcpy(pRoots, context.pRoots, size_K, cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(pRootsInv, context.pRootsInv, size_L,
-                               cudaMemcpyHostToDevice));
+    ntt_params = new NTTParams();
+    ntt_params->N = N;
+    ntt_params->n1 = NTTSampleSize(logN);
+    ntt_params->n2 = N / ntt_params->n1;
+    ntt_params->logN = logN;
+    ntt_params->batch = L;
 
-    uint64_t **tmp = new uint64_t *[L];
-    uint64_t **tmp2 = new uint64_t *[L];
-    uint64_t *tmpN = new uint64_t[N];
-    uint64_t *tmpN2 = new uint64_t[N];
+    ntt_params->q = qVec;
+    ntt_params->root = context->qRoots;
+    ntt_params->root_inv = context->qRootsInv;
+    ntt_params->N_inv = context->NInvModp;
 
-    // qRootPows
+    ntt_params->roots_pow = new uint64_t *[L];
+    ntt_params->roots_pow_inv = new uint64_t *[L];
+    ntt_params->roots_pow_shoup = new uint64_t *[L];
+    ntt_params->roots_pow_inv_shoup = new uint64_t *[L];
+    memcpy(ntt_params->roots_pow, context->qRootPows, L * sizeof(uint64_t *));
+    memcpy(ntt_params->roots_pow_inv, context->qRootPowsInv,
+           L * sizeof(uint64_t *));
     for (int i = 0; i < L; i++) {
-        checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
-        checkCudaErrors(cudaMemcpy(tmp[i], context.qRootPows[i], size_N,
-                                   cudaMemcpyHostToDevice));
-    }
-    checkCudaErrors(cudaMalloc((void **) &qRootPows, size_L));
-    checkCudaErrors(cudaMemcpy(qRootPows, tmp, size_L, cudaMemcpyHostToDevice));
-
-    // qRootPowsShoup
-    for (int i = 0; i < L; i++) {
+        ntt_params->roots_pow_shoup[i] = new uint64_t[N];
+        ntt_params->roots_pow_inv_shoup[i] = new uint64_t[N];
         for (int j = 0; j < N; j++) {
-            Shoup(tmpN[j], context.qRootPows[i][j], context.qVec[i]);
+            ntt_params->roots_pow_shoup[i][j] =
+                compute_shoup(context->qRootPows[i][j], qVec[i]);
+            ntt_params->roots_pow_inv_shoup[i][j] =
+                compute_shoup(context->qRootPowsInv[i][j], qVec[i]);
         }
-        checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
-        checkCudaErrors(
-            cudaMemcpy(tmp[i], tmpN, size_N, cudaMemcpyHostToDevice));
     }
-    checkCudaErrors(cudaMalloc((void **) &qRootPowsShoup, size_L));
-    checkCudaErrors(
-        cudaMemcpy(qRootPowsShoup, tmp, size_L, cudaMemcpyHostToDevice));
-
-    // qRootPowsInv
-    for (int i = 0; i < L; i++) {
-        checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
-        checkCudaErrors(cudaMemcpy(tmp[i], context.qRootPowsInv[i], size_N,
-                                   cudaMemcpyHostToDevice));
-    }
-    checkCudaErrors(cudaMalloc((void **) &qRootPowsInv, size_L));
-    checkCudaErrors(
-        cudaMemcpy(qRootPowsInv, tmp, size_L, cudaMemcpyHostToDevice));
-
-    // qRootPowsInvShoup
-    for (int i = 0; i < L; i++) {
-        for (int j = 0; j < N; j++) {
-            Shoup(tmpN2[j], context.qRootPowsInv[i][j], context.qVec[i]);
-        }
-        checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
-        checkCudaErrors(
-            cudaMemcpy(tmp[i], tmpN, size_N, cudaMemcpyHostToDevice));
-    }
-    checkCudaErrors(cudaMalloc((void **) &qRootPowsInvShoup, size_L));
-    checkCudaErrors(
-        cudaMemcpy(qRootPowsInvShoup, tmp, size_L, cudaMemcpyHostToDevice));
-
-    tmp = new uint64_t *[K];
-    // pRootPows
-    for (int i = 0; i < K; i++) {
-        checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
-        checkCudaErrors(cudaMemcpy(tmp[i], context.pRootPows[i], size_N,
-                                   cudaMemcpyHostToDevice));
-    }
-    checkCudaErrors(cudaMalloc((void **) &pRootPows, size_K));
-    checkCudaErrors(cudaMemcpy(pRootPows, tmp, size_K, cudaMemcpyHostToDevice));
-
-    // pRootPowsInv
-    for (int i = 0; i < K; i++) {
-        checkCudaErrors(cudaMalloc((void **) &tmp[i], size_N));
-        checkCudaErrors(cudaMemcpy(tmp[i], context.pRootPowsInv[i], size_N,
-                                   cudaMemcpyHostToDevice));
-    }
-    checkCudaErrors(cudaMalloc((void **) &pRootPowsInv, size_K));
-    checkCudaErrors(
-        cudaMemcpy(pRootPowsInv, tmp, size_K, cudaMemcpyHostToDevice));
-    LOG_INFO("DeviceContext initialized\n");
 }
+
+void CopyParamsToDevice(Params *d_params, std::shared_ptr<Params> h_params) {
+    Params params_tmp;
+    memcpy(&params_tmp, h_params.get(), sizeof(Params));
+
+    uint64_t *d_qVec;
+    uint64_t *d_qrVec;
+    long *d_qTwok;
+    uint64_t *d_pVec;
+    checkCudaErrors(cudaMalloc(&d_qVec, h_params->L * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc(&d_qrVec, h_params->L * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc(&d_qTwok, h_params->L * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc(&d_pVec, h_params->K * sizeof(uint64_t)));
+    checkCudaErrors(cudaMemcpy(d_qVec, h_params->qVec,
+                               params_tmp.L * sizeof(uint64_t),
+                               cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_qrVec, h_params->qrVec,
+                               params_tmp.L * sizeof(uint64_t),
+                               cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_qTwok, h_params->qTwok,
+                               params_tmp.L * sizeof(uint64_t),
+                               cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_pVec, h_params->pVec,
+                               params_tmp.K * sizeof(uint64_t),
+                               cudaMemcpyHostToDevice));
+    params_tmp.qVec = d_qVec;
+    params_tmp.qrVec = d_qrVec;
+    params_tmp.qTwok = d_qTwok;
+    params_tmp.pVec = d_pVec;
+
+    NTTParams ntt_params_tmp;
+    memcpy(&ntt_params_tmp, h_params->ntt_params, sizeof(NTTParams));
+    ntt_params_tmp.q = d_qVec;
+    uint64_t *d_root;
+    uint64_t *d_root_inv;
+    uint64_t *d_N_inv;
+    checkCudaErrors(cudaMalloc(&d_root, h_params->L * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc(&d_root_inv, h_params->L * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc(&d_N_inv, h_params->L * sizeof(uint64_t)));
+    checkCudaErrors(cudaMemcpy(d_root, h_params->ntt_params->root,
+                               params_tmp.L * sizeof(uint64_t),
+                               cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_root_inv, h_params->ntt_params->root_inv,
+                               params_tmp.L * sizeof(uint64_t),
+                               cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(d_N_inv, h_params->ntt_params->N_inv,
+                               params_tmp.L * sizeof(uint64_t),
+                               cudaMemcpyHostToDevice));
+    uint64_t **d_roots_pow = new uint64_t *[h_params->L];
+    uint64_t **d_roots_pow_inv = new uint64_t *[h_params->L];
+    uint64_t **d_roots_pow_shoup = new uint64_t *[h_params->L];
+    uint64_t **d_roots_pow_inv_shoup = new uint64_t *[h_params->L];
+    for (int i = 0; i < h_params->L; i++) {
+        checkCudaErrors(
+            cudaMalloc(&d_roots_pow[i], h_params->N * sizeof(uint64_t)));
+        checkCudaErrors(
+            cudaMalloc(&d_roots_pow_inv[i], h_params->N * sizeof(uint64_t)));
+        checkCudaErrors(
+            cudaMalloc(&d_roots_pow_shoup[i], h_params->N * sizeof(uint64_t)));
+        checkCudaErrors(cudaMalloc(&d_roots_pow_inv_shoup[i],
+                                   h_params->N * sizeof(uint64_t)));
+        checkCudaErrors(
+            cudaMemcpy(d_roots_pow[i], h_params->ntt_params->roots_pow[i],
+                       h_params->N * sizeof(uint64_t), cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMemcpy(
+            d_roots_pow_inv[i], h_params->ntt_params->roots_pow_inv[i],
+            h_params->N * sizeof(uint64_t), cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMemcpy(
+            d_roots_pow_shoup[i], h_params->ntt_params->roots_pow_shoup[i],
+            h_params->N * sizeof(uint64_t), cudaMemcpyHostToDevice));
+        checkCudaErrors(cudaMemcpy(d_roots_pow_inv_shoup[i],
+                                   h_params->ntt_params->roots_pow_inv_shoup[i],
+                                   h_params->N * sizeof(uint64_t),
+                                   cudaMemcpyHostToDevice));
+    }
+    checkCudaErrors(cudaMalloc(&ntt_params_tmp.roots_pow,
+                               h_params->L * sizeof(uint64_t *)));
+    checkCudaErrors(cudaMalloc(&ntt_params_tmp.roots_pow_inv,
+                               h_params->L * sizeof(uint64_t *)));
+    checkCudaErrors(cudaMalloc(&ntt_params_tmp.roots_pow_shoup,
+                               h_params->L * sizeof(uint64_t *)));
+    checkCudaErrors(cudaMalloc(&ntt_params_tmp.roots_pow_inv_shoup,
+                               h_params->L * sizeof(uint64_t *)));
+    checkCudaErrors(cudaMemcpy(ntt_params_tmp.roots_pow, d_roots_pow,
+                               h_params->L * sizeof(uint64_t *),
+                               cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(ntt_params_tmp.roots_pow_inv, d_roots_pow_inv,
+                               h_params->L * sizeof(uint64_t *),
+                               cudaMemcpyHostToDevice));
+    checkCudaErrors(
+        cudaMemcpy(ntt_params_tmp.roots_pow_shoup, d_roots_pow_shoup,
+                   h_params->L * sizeof(uint64_t *), cudaMemcpyHostToDevice));
+    checkCudaErrors(
+        cudaMemcpy(ntt_params_tmp.roots_pow_inv_shoup, d_roots_pow_inv_shoup,
+                   h_params->L * sizeof(uint64_t *), cudaMemcpyHostToDevice));
+
+    NTTParams *d_ntt_params;
+    checkCudaErrors(cudaMalloc(&d_ntt_params, sizeof(NTTParams)));
+    checkCudaErrors(cudaMemcpy(d_ntt_params, &ntt_params_tmp, sizeof(NTTParams),
+                               cudaMemcpyHostToDevice));
+    params_tmp.ntt_params = d_ntt_params;
+
+    checkCudaErrors(cudaMalloc((void **) &d_params, sizeof(Params)));
+    checkCudaErrors(cudaMemcpy(d_params, &params_tmp, sizeof(Params),
+                               cudaMemcpyHostToDevice));
+}
+
+void FHEContext::Init(const int logN, const int L) {
+    LOG_INFO("Initializing Params\n");
+    const uint64_t logp = 55;
+    HEAANContext heaan(logN, logp, L, L + 1);
+    SecretKey secretKey(heaan);
+    Scheme scheme(secretKey, heaan);
+    Key key = scheme.keyMap.at(MULTIPLICATION);
+
+    heaan_context = std::make_shared<HEAANContext>(heaan);
+    h_params = std::make_shared<Params>(heaan_context);
+    CopyParamsToDevice(d_params, h_params);
+}
+
+FHEContext::FHEContext() { Init(hifive::logN, hifive::L); }
+
+FHEContext::FHEContext(const int logN, const int L) { Init(logN, L); }

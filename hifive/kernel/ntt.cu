@@ -1,6 +1,6 @@
 #include <cstdint>
 
-#include "hifive/kernel/ntt.hpp"
+#include "hifive/kernel/device_context.hpp"
 
 __forceinline__ __device__ void csub_q(uint64_t& operand,
                                        const uint64_t& modulus) {
@@ -176,16 +176,15 @@ __device__ void store_s2g_phase2_blocked(uint64_t* gmem, uint64_t* smem,
     }
 }
 
-__device__ void NTTPhase1(DeviceContext* dc, const int batch, uint64_t* buffer,
-                          size_t thread_idx) {
-    size_t group = dc->N1 / 8;
+__device__ void NTTPhase1(uint64_t* buffer, NTTParams* params,
+                          const size_t batch_idx, const size_t thread_idx) {
+    size_t group = params->n1 / 8;
     uint64_t samples[8];
 
     // base address
-    // TODO: batch index
-    const uint64_t* psi = dc->qRootPows[0];
-    const uint64_t* psi_shoup = dc->qRootPowsShoup[0];
-    uint64_t modulus = dc->qVec[0];
+    const uint64_t* psi = params->roots_pow[batch_idx];
+    const uint64_t* psi_shoup = params->roots_pow_shoup[batch_idx];
+    uint64_t modulus = params->q[batch_idx];
 
     for (size_t j = 0; j < 8; j++) {
         samples[j] = buffer[thread_idx + group * j];
@@ -243,32 +242,29 @@ __device__ void NTTPhase1(DeviceContext* dc, const int batch, uint64_t* buffer,
     __syncthreads();
 }
 
-__device__ void NTTPhase2(DeviceContext* dc, const int batch, uint64_t* buffer,
+__device__ void NTTPhase2(uint64_t* buffer, NTTParams* params, size_t batch_idx,
                           size_t thread_idx, size_t n_idx) {
-    size_t group = dc->N2 / 8;
+    size_t n2 = params->n2;
+    size_t group = params->n2 / 8;
     size_t set = thread_idx / group;
     // size of a block
     uint64_t samples[8];
-    size_t t = dc->N2 / 2;
+    size_t t = n2 / 2;
 
     // tid'th block
     size_t m_idx = n_idx / (t / 4);
     size_t t_idx = n_idx % (t / 4);
 
-    // base address
-    // uint64_t modulus = mods[twr_idx];
-    // const uint64_t* psi = twiddles + n * twr_idx;
-    // const uint64_t* psi_shoup = twiddles_shoup + n * twr_idx;
-    uint64_t modulus = dc->qVec[0];
-    const uint64_t* psi = dc->qRootPows[0];
-    const uint64_t* psi_shoup = dc->qRootPowsShoup[0];
+    uint64_t modulus = params->q[batch_idx];
+    const uint64_t* psi = params->roots_pow[batch_idx];
+    const uint64_t* psi_shoup = params->roots_pow_shoup[batch_idx];
     for (size_t j = 0; j < 8; j++) {
-        samples[j] = buffer[set * dc->N2 + t_idx + t / 4 * j];
+        samples[j] = buffer[set * n2 + t_idx + t / 4 * j];
     }
-    size_t tw_idx = dc->N1 + m_idx;
+    size_t tw_idx = params->n1 + m_idx;
     fntt8(samples, psi, psi_shoup, tw_idx, modulus);
     for (size_t j = 0; j < 8; j++) {
-        buffer[set * dc->N2 + t_idx + t / 4 * j] = samples[j];
+        buffer[set * n2 + t_idx + t / 4 * j] = samples[j];
     }
 
     size_t tail = 0;
@@ -279,12 +275,12 @@ __device__ void NTTPhase2(DeviceContext* dc, const int batch, uint64_t* buffer,
         size_t t_idx2 = t_idx % (k / 4);
         for (size_t l = 0; l < 8; l++) {
             samples[l] =
-                buffer[set * dc->N2 + 2 * m_idx2 * k + t_idx2 + (k / 4) * l];
+                buffer[set * n2 + 2 * m_idx2 * k + t_idx2 + (k / 4) * l];
         }
         size_t tw_idx2 = j * tw_idx + m_idx2;
         fntt8(samples, psi, psi_shoup, tw_idx2, modulus);
         for (size_t l = 0; l < 8; l++) {
-            buffer[set * dc->N2 + 2 * m_idx2 * k + t_idx2 + (k / 4) * l] =
+            buffer[set * n2 + 2 * m_idx2 * k + t_idx2 + (k / 4) * l] =
                 samples[l];
         }
         if (j == t / 8)
@@ -295,7 +291,7 @@ __device__ void NTTPhase2(DeviceContext* dc, const int batch, uint64_t* buffer,
     }
 
     for (size_t l = 0; l < 8; l++) {
-        samples[l] = buffer[set * dc->N2 + 8 * t_idx + l];
+        samples[l] = buffer[set * n2 + 8 * t_idx + l];
     }
     if (tail == 1) {
         size_t tw_idx2 = t * tw_idx + 4 * t_idx;
@@ -313,18 +309,76 @@ __device__ void NTTPhase2(DeviceContext* dc, const int batch, uint64_t* buffer,
         fntt4(samples + 4, psi, psi_shoup, tw_idx2 + 1, modulus);
     }
     for (size_t l = 0; l < 8; l++) {
-        buffer[set * dc->N2 + 8 * t_idx + l] = samples[l];
+        buffer[set * n2 + 8 * t_idx + l] = samples[l];
     }
     __syncthreads();
 
     uint64_t modulus2 = modulus << 1;
     // final reduction
     for (size_t j = 0; j < 8; j++) {
-        samples[j] = buffer[set * dc->N2 + t_idx + t / 4 * j];
+        samples[j] = buffer[set * n2 + t_idx + t / 4 * j];
         csub_q(samples[j], modulus2);
         csub_q(samples[j], modulus);
     }
     for (size_t j = 0; j < 8; j++) {
-        buffer[set * dc->N2 + t_idx + t / 4 * j] = samples[j];
+        buffer[set * n2 + t_idx + t / 4 * j] = samples[j];
+    }
+}
+
+__global__ void ntt_phase1_batched(uint64_t* inout, NTTParams* params) {
+    extern __shared__ uint64_t buffer[];
+    if (blockIdx.x < params->n2 * params->batch) {
+        load_g2s_phase1(inout, buffer, params->N, params->n1, params->n2);
+
+        NTTPhase1(buffer, params, blockIdx.x / params->n2, threadIdx.x);
+
+        store_s2g_phase1(inout, buffer, params->N, params->n1, params->n2);
+    }
+}
+
+__global__ void ntt_phase2_batched(uint64_t* inout, NTTParams* params) {
+    extern __shared__ uint64_t buffer[];
+    if (blockIdx.x < params->n1 * params->batch) {
+        load_g2s_phase2(inout, buffer, params->N, params->n1, params->n2);
+
+        size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+        NTTPhase2(buffer, params, blockIdx.x / params->n1, threadIdx.x,
+                  tid % (params->N / 8));
+
+        store_s2g_phase2(inout, buffer, params->N, params->n1, params->n2);
+    }
+}
+
+__global__ void ntt_phase1_batched_blocked(uint64_t* inout, NTTParams* params) {
+    extern __shared__ uint64_t buffer[];
+    if (blockIdx.x < params->n2 * params->batch) {
+        size_t batch_idx = threadIdx.x / (params->n1 / 8);
+
+        load_g2s_phase1_blocked(inout, buffer, params->N, params->n1,
+                                params->n2);
+
+        NTTPhase1(buffer + batch_idx * params->n1, params, batch_idx,
+                  threadIdx.x % (params->n1 / 8));
+
+        store_s2g_phase1_blocked(inout, buffer, params->N, params->n1,
+                                 params->n2);
+    }
+}
+
+__global__ void ntt_phase2_batched_blocked(uint64_t* inout, NTTParams* params) {
+    extern __shared__ uint64_t buffer[];
+    if (blockIdx.x < params->n1 * params->batch) {
+        load_g2s_phase2_blocked(inout, buffer, params->N, params->n1,
+                                params->n2);
+
+        size_t batch_idx = threadIdx.x / (params->n2 / 8);
+        size_t thread_idx = threadIdx.x % (params->n2 / 8);
+        size_t n_idx = blockIdx.x * params->n2 / 8 + thread_idx;
+
+        NTTPhase2(buffer + batch_idx * params->n2, params, batch_idx,
+                  thread_idx, n_idx);
+
+        store_s2g_phase2_blocked(inout, buffer, params->N, params->n1,
+                                 params->n2);
     }
 }

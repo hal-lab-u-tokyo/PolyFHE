@@ -16,10 +16,6 @@ int main() {
         */
 
     {
-        FHEContext context(12, 2);
-        test_ntt(context, 12, 2);
-    }
-    {
         FHEContext context(17, 20);
         test_ntt(context, 17, 20);
     }

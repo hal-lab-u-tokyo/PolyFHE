@@ -3,7 +3,7 @@
 
 #include "test/test.hpp"
 
-__global__ void gAdd(DeviceContext *dc, const int N, const int block_x,
+__global__ void gAdd(Params *dc, const int N, const int block_x,
                      const int block_y, uint64_t *d_c, const uint64_t *d_a,
                      const uint64_t *d_b, bool c_is_shared, bool a_is_shared,
                      bool b_is_shared) {
@@ -13,7 +13,7 @@ __global__ void gAdd(DeviceContext *dc, const int N, const int block_x,
     Add(dc, N, block_x, block_y, d_ci, d_ai, d_bi, false, false, false);
 }
 
-__global__ void gMult(DeviceContext *dc, const int N, const int block_x,
+__global__ void gMult(Params *dc, const int N, const int block_x,
                       const int block_y, uint64_t *d_c, const uint64_t *d_a,
                       const uint64_t *d_b, bool c_is_shared, bool a_is_shared,
                       bool b_is_shared) {
@@ -40,7 +40,7 @@ void test_poly_add(FHEContext &context, const int N, const int L,
     for (int i = 0; i < 5; i++) {
         auto start = std::chrono::high_resolution_clock::now();
         gAdd<<<N / block_x, block_x, block_size>>>(
-            context.get_device_context(), N, block_x, block_y, d_c, d_a, d_b,
+            context.get_d_params(), N, block_x, block_y, d_c, d_a, d_b,
             false, false, false);
         cudaDeviceSynchronize();
         CudaCheckError();
@@ -89,7 +89,7 @@ void test_poly_mult(FHEContext &context, const int N, const int L,
     for (int i = 0; i < 5; i++) {
         auto start = std::chrono::high_resolution_clock::now();
         gMult<<<N / block_x, block_x, block_size>>>(
-            context.get_device_context(), N, block_x, block_y, d_c, d_a, d_b,
+            context.get_d_params(), N, block_x, block_y, d_c, d_a, d_b,
             false, false, false);
         cudaDeviceSynchronize();
         CudaCheckError();

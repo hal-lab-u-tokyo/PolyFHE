@@ -85,7 +85,7 @@ void CudaCodegen::generate_kernel_defs(
         }
         kernel_defined[subgraph->get_name()] = true;
         w << "// Define kernel for subgraph[" << subgraph->get_idx() << "]\n";
-        w << "__global__ void " << subgraph->get_name() << "(DeviceContext *dc";
+        w << "__global__ void " << subgraph->get_name() << "(Params *dc";
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
@@ -328,7 +328,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "void entry_kernel(FHEContext &context)";
     w.block_begin();
 
-    w << "DeviceContext *dc = context.get_device_context();\n";
+    w << "Params *dc = context.get_d_params();\n";
 
     w << "\n";
     w << "// =====================================\n";
