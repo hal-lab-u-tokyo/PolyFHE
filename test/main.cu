@@ -15,9 +15,14 @@ int main() {
         test_poly_mult(context, 1 << 17, 20, 1 << 8, 20);
         */
 
+    /*
     {
         FHEContext context(17, 20);
         test_ntt(context, 17, 20);
     }
-    // test_poly_ntt(context, 8, 1, 1 << 7, 20);
+    */
+    {
+        FHEContext context(12, 2);
+        test_ntt(context, 12, 2);
+    }
 }
