@@ -39,9 +39,9 @@ void test_poly_add(FHEContext &context, const int N, const int L,
     const int block_size = block_x * block_y * sizeof(uint64_t);
     for (int i = 0; i < 5; i++) {
         auto start = std::chrono::high_resolution_clock::now();
-        gAdd<<<N / block_x, block_x, block_size>>>(
-            context.get_d_params(), N, block_x, block_y, d_c, d_a, d_b,
-            false, false, false);
+        gAdd<<<N / block_x, block_x, block_size>>>(context.get_d_params(), N,
+                                                   block_x, block_y, d_c, d_a,
+                                                   d_b, false, false, false);
         cudaDeviceSynchronize();
         CudaCheckError();
         auto end = std::chrono::high_resolution_clock::now();
@@ -88,9 +88,9 @@ void test_poly_mult(FHEContext &context, const int N, const int L,
     const int block_size = block_x * block_y * sizeof(uint64_t);
     for (int i = 0; i < 5; i++) {
         auto start = std::chrono::high_resolution_clock::now();
-        gMult<<<N / block_x, block_x, block_size>>>(
-            context.get_d_params(), N, block_x, block_y, d_c, d_a, d_b,
-            false, false, false);
+        gMult<<<N / block_x, block_x, block_size>>>(context.get_d_params(), N,
+                                                    block_x, block_y, d_c, d_a,
+                                                    d_b, false, false, false);
         cudaDeviceSynchronize();
         CudaCheckError();
         auto end = std::chrono::high_resolution_clock::now();

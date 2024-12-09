@@ -71,15 +71,18 @@ public:
     ~FHEContext() = default;
 
     Params* get_d_params() { return d_params; }
+    NTTParams* get_d_ntt_params() { return d_ntt_params; }
     std::shared_ptr<Params> get_h_params() { return h_params; }
     std::shared_ptr<HEAANContext> get_heaan_context() { return heaan_context; }
 
 private:
     void Init(const int logN, const int L);
+    void CopyParamsToDevice();
 
     std::shared_ptr<HEAANContext> heaan_context;
-    Params* d_params;
     std::shared_ptr<Params> h_params;
+    Params* d_params;
+    NTTParams* d_ntt_params;
 };
 
 uint64_t NTTSampleSize(const uint64_t logN);

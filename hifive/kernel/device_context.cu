@@ -84,7 +84,7 @@ Params::Params(std::shared_ptr<HEAANContext> context) {
     }
 }
 
-void CopyParamsToDevice(Params *d_params, std::shared_ptr<Params> h_params) {
+void FHEContext::CopyParamsToDevice() {
     Params params_tmp;
     memcpy(&params_tmp, h_params.get(), sizeof(Params));
 
@@ -179,7 +179,6 @@ void CopyParamsToDevice(Params *d_params, std::shared_ptr<Params> h_params) {
         cudaMemcpy(ntt_params_tmp.roots_pow_inv_shoup, d_roots_pow_inv_shoup,
                    h_params->L * sizeof(uint64_t *), cudaMemcpyHostToDevice));
 
-    NTTParams *d_ntt_params;
     checkCudaErrors(cudaMalloc(&d_ntt_params, sizeof(NTTParams)));
     checkCudaErrors(cudaMemcpy(d_ntt_params, &ntt_params_tmp, sizeof(NTTParams),
                                cudaMemcpyHostToDevice));
@@ -188,6 +187,8 @@ void CopyParamsToDevice(Params *d_params, std::shared_ptr<Params> h_params) {
     checkCudaErrors(cudaMalloc((void **) &d_params, sizeof(Params)));
     checkCudaErrors(cudaMemcpy(d_params, &params_tmp, sizeof(Params),
                                cudaMemcpyHostToDevice));
+
+    d_ntt_params = params_tmp.ntt_params;
 }
 
 void FHEContext::Init(const int logN, const int L) {
@@ -200,7 +201,7 @@ void FHEContext::Init(const int logN, const int L) {
 
     heaan_context = std::make_shared<HEAANContext>(heaan);
     h_params = std::make_shared<Params>(heaan_context);
-    CopyParamsToDevice(d_params, h_params);
+    CopyParamsToDevice();
 }
 
 FHEContext::FHEContext() { Init(hifive::logN, hifive::L); }
