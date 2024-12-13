@@ -46,6 +46,8 @@ Params::Params(std::shared_ptr<HEAANContext> context) {
     L = context->L;
     K = context->K;
     N = context->N;
+    n1 = NTTSampleSize(logN);
+    n2 = N / n1;
     sigma = context->sigma;
 
     qVec = context->qVec;
@@ -55,8 +57,8 @@ Params::Params(std::shared_ptr<HEAANContext> context) {
 
     ntt_params = new NTTParams();
     ntt_params->N = N;
-    ntt_params->n1 = NTTSampleSize(logN);
-    ntt_params->n2 = N / ntt_params->n1;
+    ntt_params->n1 = n1;
+    ntt_params->n2 = n2;
     ntt_params->logN = logN;
     ntt_params->batch = L;
 

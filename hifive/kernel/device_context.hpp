@@ -50,6 +50,8 @@ public:
     // Encryption parameters
     long logN; ///< Logarithm of Ring Dimension
     long N;
+    int n1;
+    int n2;
 
     long L; ///< Maximum Level that we want to support
     long K; ///< The number of special modulus (usually L + 1)
