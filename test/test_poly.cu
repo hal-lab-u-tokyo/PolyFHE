@@ -3,7 +3,7 @@
 
 #include "test/test.hpp"
 
-__global__ void gAdd(DeviceContext *dc, const int N, const int block_x,
+__global__ void gAdd(Params *dc, const int N, const int block_x,
                      const int block_y, uint64_t *d_c, const uint64_t *d_a,
                      const uint64_t *d_b, bool c_is_shared, bool a_is_shared,
                      bool b_is_shared) {
@@ -13,7 +13,7 @@ __global__ void gAdd(DeviceContext *dc, const int N, const int block_x,
     Add(dc, N, block_x, block_y, d_ci, d_ai, d_bi, false, false, false);
 }
 
-__global__ void gMult(DeviceContext *dc, const int N, const int block_x,
+__global__ void gMult(Params *dc, const int N, const int block_x,
                       const int block_y, uint64_t *d_c, const uint64_t *d_a,
                       const uint64_t *d_b, bool c_is_shared, bool a_is_shared,
                       bool b_is_shared) {
@@ -39,9 +39,9 @@ void test_poly_add(FHEContext &context, const int N, const int L,
     const int block_size = block_x * block_y * sizeof(uint64_t);
     for (int i = 0; i < 5; i++) {
         auto start = std::chrono::high_resolution_clock::now();
-        gAdd<<<N / block_x, block_x, block_size>>>(
-            context.get_device_context(), N, block_x, block_y, d_c, d_a, d_b,
-            false, false, false);
+        gAdd<<<N / block_x, block_x, block_size>>>(context.get_d_params(), N,
+                                                   block_x, block_y, d_c, d_a,
+                                                   d_b, false, false, false);
         cudaDeviceSynchronize();
         CudaCheckError();
         auto end = std::chrono::high_resolution_clock::now();
@@ -88,9 +88,9 @@ void test_poly_mult(FHEContext &context, const int N, const int L,
     const int block_size = block_x * block_y * sizeof(uint64_t);
     for (int i = 0; i < 5; i++) {
         auto start = std::chrono::high_resolution_clock::now();
-        gMult<<<N / block_x, block_x, block_size>>>(
-            context.get_device_context(), N, block_x, block_y, d_c, d_a, d_b,
-            false, false, false);
+        gMult<<<N / block_x, block_x, block_size>>>(context.get_d_params(), N,
+                                                    block_x, block_y, d_c, d_a,
+                                                    d_b, false, false, false);
         cudaDeviceSynchronize();
         CudaCheckError();
         auto end = std::chrono::high_resolution_clock::now();
@@ -146,29 +146,6 @@ void test_poly_ntt(FHEContext &context, const int N, const int L,
         const int per_thread_storage =
             blockDim.x * per_thread_ntt_size * sizeof(uint64_t);
         const int pad = 4;
-        Ntt8PointPerThreadPhase1<<<gridDim, (first_stage_radix_size / 8) * pad,
-                                   (first_stage_radix_size + pad + 1) * pad *
-                                       sizeof(uint64_t)>>>(
-            context.get_device_context(), d_in, L, N, 0,
-            first_stage_radix_size / per_thread_ntt_size);
-        Ntt8PointPerThreadPhase2<<<gridDim, blockDim.x, per_thread_storage>>>(
-            context.get_device_context(), d_in, first_stage_radix_size, L, N, 0,
-            second_radix_size / per_thread_ntt_size);
-
-        cudaDeviceSynchronize();
-        CudaCheckError();
-
-        Intt8PointPerThreadPhase2OoP<<<gridDim, blockDim, per_thread_storage>>>(
-            context.get_device_context(), d_in, d_in, first_stage_radix_size, L,
-            N, 0, second_radix_size / per_thread_ntt_size);
-        Intt8PointPerThreadPhase1OoP<<<
-            gridDim, (first_stage_radix_size / 8) * pad,
-            (first_stage_radix_size + pad + 1) * pad * sizeof(uint64_t)>>>(
-            context.get_device_context(), d_in, d_in, 1, L, N, 0, pad,
-            first_stage_radix_size / 8);
-        cudaDeviceSynchronize();
-        CudaCheckError();
-
         auto end = std::chrono::high_resolution_clock::now();
 
         cudaMemcpy(out, d_in, N * L * sizeof(uint64_t), cudaMemcpyDeviceToHost);

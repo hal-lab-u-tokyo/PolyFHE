@@ -29,8 +29,10 @@ std::pair<uint64_t *, uint64_t *> create_random_polynomial(
 std::pair<uint64_t *, uint64_t *> create_linear_polynomial(const int N,
                                                            const int L) {
     uint64_t *a = (uint64_t *) malloc(N * L * sizeof(uint64_t));
-    for (int i = 0; i < N * L; i++) {
-        a[i] = i;
+    for (int i = 0; i < L; i++) {
+        for (int j = 0; j < N; j++) {
+            a[i * N + j] = j;
+        }
     }
 
     uint64_t *d_a;

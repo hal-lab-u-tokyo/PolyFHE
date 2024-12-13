@@ -71,7 +71,7 @@ __device__ uint64_t modmul(uint64_t a, uint64_t b, uint64_t q, uint64_t mr,
     return modBarrett(ab, q, mr, twok);
 }
 
-__device__ void Add(DeviceContext *dc, const int n, const int l, uint64_t *dst,
+__device__ void Add(Params *dc, const int n, const int l, uint64_t *dst,
                     const uint64_t *a, const uint64_t *b, const int n_dst,
                     const int n_a, const int n_b) {
     for (int i = threadIdx.x; i < n * l; i += blockDim.x) {
@@ -89,7 +89,7 @@ __device__ void Add(DeviceContext *dc, const int n, const int l, uint64_t *dst,
     }
 }
 
-__device__ void Mult(DeviceContext *dc, const int n, const int l, uint64_t *dst,
+__device__ void Mult(Params *dc, const int n, const int l, uint64_t *dst,
                      const uint64_t *a, const uint64_t *b, const int n_dst,
                      const int n_a, const int n_b) {
     for (int i = threadIdx.x; i < n * l; i += blockDim.x) {
@@ -105,7 +105,7 @@ __device__ void Mult(DeviceContext *dc, const int n, const int l, uint64_t *dst,
     }
 }
 
-__device__ void MultOutputTwo(DeviceContext *dc, const int n, const int l,
+__device__ void MultOutputTwo(Params *dc, const int n, const int l,
                               uint64_t *dst0, uint64_t *dst1, const uint64_t *a,
                               const uint64_t *b, const int n_dst0,
                               const int n_dst1, const int n_a, const int n_b) {
