@@ -93,8 +93,8 @@ fhe: $(BIN)
 	make dot
 
 bin:
-	nvcc -o build-opt/bench build-opt/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
-	./build-opt/bench
+	nvcc -o build/bench build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./build/bench
 
 bin-noopt:
 	nvcc -o build-noopt/bench build-noopt/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)

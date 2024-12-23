@@ -51,12 +51,12 @@ std::string GenerateNByLevel(std::shared_ptr<hifive::core::Edge> edge,
                              const hifive::core::BlockPhase phase) {
     std::string n;
     if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-        n = "N";
+        n = "params->N";
     } else {
         if (phase == hifive::core::BlockPhase::NTTPhase1) {
-            n = "N1";
+            n = "params->n1";
         } else if (phase == hifive::core::BlockPhase::NTTPhase2) {
-            n = "N2";
+            n = "params->n2";
         }
     }
     return n;
@@ -65,9 +65,9 @@ std::string GenerateNByLevel(std::shared_ptr<hifive::core::Edge> edge,
 std::string GenerateN(const hifive::core::BlockPhase phase) {
     std::string n;
     if (phase == hifive::core::BlockPhase::NTTPhase1) {
-        n = "N1";
+        n = "params->n1";
     } else if (phase == hifive::core::BlockPhase::NTTPhase2) {
-        n = "N2";
+        n = "params->n2";
     }
     return n;
 }
@@ -85,7 +85,7 @@ void CudaCodegen::generate_kernel_defs(
         }
         kernel_defined[subgraph->get_name()] = true;
         w << "// Define kernel for subgraph[" << subgraph->get_idx() << "]\n";
-        w << "__global__ void " << subgraph->get_name() << "(Params *dc";
+        w << "__global__ void " << subgraph->get_name() << "(Params *params";
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
@@ -112,7 +112,7 @@ void CudaCodegen::generate_kernel_defs(
                 // ==============================
                 w << "Add";
                 std::vector<std::string> args;
-                args.push_back("dc");
+                args.push_back("params");
                 args.push_back(GenerateN(subgraph->get_block_phase()));
                 args.push_back("L");
                 assert(node->get_out_edges().size() == 1);
@@ -145,13 +145,13 @@ void CudaCodegen::generate_kernel_defs(
                 std::shared_ptr<hifive::core::Edge> global_output = nullptr;
                 std::shared_ptr<hifive::core::Edge> shared_output = nullptr;
                 std::vector<std::string> args;
-                args.push_back("dc");
+                args.push_back("params");
                 args.push_back(GenerateN(subgraph->get_block_phase()));
-                args.push_back("L");
+                args.push_back("params->L");
                 // output
                 if (node->get_out_edges().size() == 1) {
                     // When only one output
-                    w << "Mult";
+                    w << "// Mult";
                     auto outedge = node->get_out_edges()[0];
                     if (outedge->get_level() ==
                         hifive::core::EdgeLevel::Global) {
@@ -182,17 +182,17 @@ void CudaCodegen::generate_kernel_defs(
                     }
                     if (global_output == nullptr) {
                         // Some Shared outputs but no Global output
-                        w << "Mult";
+                        w << "// Mult";
                         args.push_back("shared");
                     } else if (shared_output == nullptr) {
                         // Some Global outputs but no Shared output
-                        w << "Mult";
+                        w << "// Mult";
                         args.push_back(global_output->get_name());
                     } else {
                         // One Global output and some Shared outputs
                         // dst0: global_output
                         // dst1: shared
-                        w << "MultOutputTwo";
+                        w << "// MultOutputTwo";
                         args.push_back(global_output->get_name());
                         args.push_back("shared");
                     }
@@ -240,7 +240,7 @@ void CudaCodegen::generate_kernel_defs(
                 // NTTPhase1
                 // ==============================
                 std::vector<std::string> args;
-                args.push_back("dc");
+                args.push_back("params");
                 args.push_back("L");
                 args.push_back("shared");
                 // Inedge.size() and Outedge.size() should be 1
@@ -254,23 +254,26 @@ void CudaCodegen::generate_kernel_defs(
                 if (node->get_in_edges()[0]->get_level() ==
                     hifive::core::EdgeLevel::Global) {
                     std::vector<std::string> args_load;
-                    args_load.push_back("dc");
-                    args_load.push_back("L");
-                    args_load.push_back("shared");
                     args_load.push_back(node->get_in_edges()[0]->get_name());
-                    w << "LoadPhase1FromGmem(" << GenerateArgs(args_load)
+                    args_load.push_back("shared");
+                    args_load.push_back("params->N");
+                    args_load.push_back("params->n1");
+                    args_load.push_back("params->n2");
+                    w << "// load_g2s_phase1(" << GenerateArgs(args_load)
                       << ");\n";
                 }
                 // Call NTTPhase1
-                w << "NTTPhase1Batched(" << GenerateArgs(args) << ");\n";
+                w << "// NTTPhase1Batched(" << GenerateArgs(args) << ");\n";
 
                 // Store to global
                 std::vector<std::string> args_store;
-                args_store.push_back("dc");
-                args_store.push_back("L");
-                args_store.push_back("shared");
                 args_store.push_back(node->get_out_edges()[0]->get_name());
-                w << "StorePhase1ToGmem(" << GenerateArgs(args_store) << ");\n";
+                args_store.push_back("shared");
+                args_store.push_back("params->N");
+                args_store.push_back("params->n1");
+                args_store.push_back("params->n2");
+                w << "// store_s2g_phase1(" << GenerateArgs(args_store)
+                  << ");\n";
             } else if (node->get_op_type() == "NTTPhase2") {
                 // ==============================
                 // NTTPhase2
@@ -281,28 +284,30 @@ void CudaCodegen::generate_kernel_defs(
                        hifive::core::EdgeLevel::Global);
 
                 std::vector<std::string> args_load;
-                args_load.push_back("dc");
-                args_load.push_back("L");
-                args_load.push_back("shared");
                 args_load.push_back(node->get_in_edges()[0]->get_name());
-                w << "LoadPhase2FromGmem(" << GenerateArgs(args_load) << ");\n";
+                args_load.push_back("shared");
+                args_load.push_back("params->N");
+                args_load.push_back("params->n1");
+                args_load.push_back("params->n2");
+                w << "// load_g2s_phase2(" << GenerateArgs(args_load) << ");\n";
 
                 // Call NTTPhase2
                 std::vector<std::string> args;
-                args.push_back("dc");
+                args.push_back("params");
                 args.push_back("L");
                 args.push_back("shared");
-                w << "NTTPhase2Batched(" << GenerateArgs(args) << ");\n";
+                w << "// NTTPhase2Batched(" << GenerateArgs(args) << ");\n";
 
                 // Store to global if required
                 for (auto edge : node->get_out_edges()) {
                     if (edge->get_level() == hifive::core::EdgeLevel::Global) {
                         std::vector<std::string> args_store;
-                        args_store.push_back("dc");
-                        args_store.push_back("L");
-                        args_store.push_back("shared");
                         args_store.push_back(edge->get_name());
-                        w << "StorePhase2ToGmem(" << GenerateArgs(args_store)
+                        args_store.push_back("shared");
+                        args_store.push_back("params->N");
+                        args_store.push_back("params->n1");
+                        args_store.push_back("params->n2");
+                        w << "// store_s2g_phase2(" << GenerateArgs(args_store)
                           << ");\n";
 
                         // We need to global-output only once
@@ -328,7 +333,10 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "void entry_kernel(FHEContext &context)";
     w.block_begin();
 
-    w << "Params *dc = context.get_d_params();\n";
+    w << "Params *params_d = context.get_d_params();\n";
+    w << "Params *params_h = context.get_h_params().get();\n";
+    w << "const long N = params_h->N;\n";
+    w << "const long L = params_h->L;\n";
 
     w << "\n";
     w << "// =====================================\n";
@@ -390,13 +398,15 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "// =====================================\n";
     w << "// Call kernels\n";
     w << "// =====================================\n";
-    w << "dim3 gridPhase1(N1);\n";
-    w << "dim3 gridPhase2(N2);\n";
-    w << "dim3 blockPhase1(N2 / 8);\n";
-    w << "dim3 blockPhase2(N1 / 8);\n";
+    w << "dim3 gridPhase1(params_h->n1);\n";
+    w << "dim3 gridPhase2(params_h->n2);\n";
+    w << "dim3 blockPhase1(params_h->n2 / 8);\n";
+    w << "dim3 blockPhase2(params_h->n1 / 8);\n";
     w << "dim3 block256(256);\n";
-    w << "const int shared_size_phase1 = N1 * L * sizeof(uint64_t);\n";
-    w << "const int shared_size_phase2 = N2 * L * sizeof(uint64_t);\n";
+    w << "const int shared_size_phase1 = params_h->n1 * params_h->L * "
+         "sizeof(uint64_t);\n";
+    w << "const int shared_size_phase2 = params_h->n2 * params_h->L * "
+         "sizeof(uint64_t);\n";
     for (auto subgraph : graph->get_subgraphs()) {
         if (subgraph->get_block_phase() ==
             hifive::core::BlockPhase::NTTPhase1) {
@@ -408,7 +418,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
               //  << "<<<gridPhase2, blockPhase2, shared_size_phase2>>>";
               << "<<<gridPhase2, block256, shared_size_phase2>>>";
         }
-        w << "(dc";
+        w << "(params_d";
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
@@ -468,10 +478,6 @@ void CudaCodegen::generate_include(
     w << "#include \"hifive/kernel/device_context.hpp\"\n\n";
     w << "#include \"hifive/kernel/polynomial.hpp\"\n\n";
     w << "#include \"hifive/kernel/ntt.hpp\"\n\n";
-    w << "const int N = " << hifive::N << ";\n";
-    w << "const int N1 = " << hifive::N1 << ";\n";
-    w << "const int N2 = " << hifive::N2 << ";\n";
-    w << "const int L = " << hifive::L << ";\n";
     w.write_to_file(filename, if_append);
 }
 
