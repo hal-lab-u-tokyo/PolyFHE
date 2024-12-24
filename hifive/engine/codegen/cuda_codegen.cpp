@@ -113,8 +113,6 @@ void CudaCodegen::generate_kernel_defs(
                 w << "Add";
                 std::vector<std::string> args;
                 args.push_back("params");
-                args.push_back(GenerateN(subgraph->get_block_phase()));
-                args.push_back("L");
                 assert(node->get_out_edges().size() == 1);
                 assert(node->get_in_edges().size() == 2);
                 for (auto edge : node->get_out_edges()) {
@@ -131,6 +129,7 @@ void CudaCodegen::generate_kernel_defs(
                         args.push_back("shared");
                     }
                 }
+                args.push_back(GenerateN(subgraph->get_block_phase()));
                 args.push_back(GenerateNByLevel(node->get_out_edges()[0],
                                                 node->get_block_phase()));
                 args.push_back(GenerateNByLevel(node->get_in_edges()[0],
