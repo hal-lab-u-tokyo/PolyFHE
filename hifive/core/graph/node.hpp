@@ -26,6 +26,19 @@ enum class BlockPhase {
     NTTPhase2,
 };
 
+enum class OpType {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Mod,
+    BConv,
+    NTT,
+    Init,
+    End,
+    NotDefined,
+};
+
 class Node : public std::enable_shared_from_this<Node> {
 public:
     Node(){};

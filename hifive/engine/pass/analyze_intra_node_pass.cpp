@@ -1,10 +1,10 @@
-#include "hifive/engine/pass/analyze_node_local_pass.hpp"
+#include "hifive/engine/pass/analyze_intra_node_pass.hpp"
 
 namespace hifive {
 namespace engine {
-bool AnalyzeNodeLocalPass::run_on_graph(
+bool AnalyzeIntraNodePass::run_on_graph(
     std::shared_ptr<hifive::core::Graph>& graph) {
-    LOG_INFO("Running AnalyzeNodeLocalPass\n");
+    LOG_INFO("Running AnalyzeIntraNodePass\n");
 
     const int n = graph->get_nodes().size();
     std::vector<bool> visited(n, false);
