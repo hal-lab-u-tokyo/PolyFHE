@@ -9,10 +9,10 @@ namespace engine {
 
 bool CanReuse(std::shared_ptr<hifive::core::Node> src,
               std::shared_ptr<hifive::core::Node> dst) {
-    if (src->get_op_type() == "Init") {
+    if (src->get_op_type() == core::OpType::Init) {
         return false;
     }
-    if (dst->get_op_type() == "End") {
+    if (dst->get_op_type() == core::OpType::Init) {
         return false;
     }
     switch (dst->get_access_pattern()) {
@@ -48,10 +48,13 @@ uint64_t CalculateSharedMemSizePerEdge(
     // width
     switch (edge->get_src()->get_block_phase()) {
     case hifive::core::BlockPhase::NTTPhase1:
-        size *= hifive::N1;
+        // TODO: consider N1
+        size *= hifive::N;
+        // size *= hifive::N1;
         break;
     case hifive::core::BlockPhase::NTTPhase2:
-        size *= hifive::N2;
+        size *= hifive::N;
+        // size *= hifive::N2;
         break;
     default:
         break;
@@ -118,22 +121,24 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
         }
 
         for (auto edge : node->get_out_edges()) {
+            // Set shared level in default
             edge->set_level(hifive::core::EdgeLevel::Shared);
+
+            // Check if Shared Memory Footprint does not exceed the limit
             if (!CanReuse(node, edge->get_dst())) {
                 edge->set_level(hifive::core::EdgeLevel::Global);
                 continue;
             }
-            LOG_INFO("Calculating footprint around.... %s\n",
-                     node->get_op_name().c_str());
             std::vector<std::shared_ptr<hifive::core::Edge>> visited;
             uint64_t footprint_kb =
                 CalculateSubgraphSharedMemFootprint(node, visited) / 1000;
-            LOG_INFO("Total shared mem %s: %lu KB\n",
-                     node->get_op_name().c_str(), footprint_kb);
             if (footprint_kb > hifive::SharedMemKB) {
                 edge->set_level(hifive::core::EdgeLevel::Global);
                 continue;
             }
+            LOG_INFO("Total shared mem around %s is %s: %lu KB\n",
+                     node->get_op_name().c_str(),
+                     edge->get_dst()->get_op_name().c_str(), footprint_kb);
             LOG_INFO("Reuse %s -> %s\n", node->get_op_name().c_str(),
                      edge->get_dst()->get_op_name().c_str());
         }

@@ -106,7 +106,7 @@ void CudaCodegen::generate_kernel_defs(
         w << "extern __shared__ uint64_t shared[];\n";
         for (auto node : subgraph->get_nodes()) {
             w << "// " << node->get_op_name() << "\n";
-            if (node->get_op_type() == "Add") {
+            if (node->get_op_type() == core::OpType::Add) {
                 // ==============================
                 // Add
                 // ==============================
@@ -138,7 +138,7 @@ void CudaCodegen::generate_kernel_defs(
                 args.push_back(GenerateNByLevel(node->get_in_edges()[1],
                                                 node->get_block_phase()));
                 w << "(" << GenerateArgs(args) << ");\n";
-            } else if (node->get_op_type() == "Mult") {
+            } else if (node->get_op_type() == core::OpType::Mult) {
                 // ==============================
                 // Mult
                 // ==============================
@@ -235,7 +235,7 @@ void CudaCodegen::generate_kernel_defs(
                 args.push_back(GenerateNByLevel(node->get_in_edges()[1],
                                                 node->get_block_phase()));
                 w << "(" << GenerateArgs(args) << ");\n";
-            } else if (node->get_op_type() == "NTTPhase1") {
+            } else if (node->get_op_type() == core::OpType::NTTPhase1) {
                 // ==============================
                 // NTTPhase1
                 // ==============================
@@ -274,7 +274,7 @@ void CudaCodegen::generate_kernel_defs(
                 args_store.push_back("params->n2");
                 w << "// store_s2g_phase1(" << GenerateArgs(args_store)
                   << ");\n";
-            } else if (node->get_op_type() == "NTTPhase2") {
+            } else if (node->get_op_type() == core::OpType::NTTPhase2) {
                 // ==============================
                 // NTTPhase2
                 // ==============================
@@ -367,7 +367,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
             bool has_global_edge = false;
             for (auto edge : node->get_out_edges()) {
                 // TODO: treat Init as a alone subgraph
-                if (edge->get_src()->get_op_type() == "Init") {
+                if (edge->get_src()->get_op_type() == core::OpType::Init) {
                     continue;
                 }
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {

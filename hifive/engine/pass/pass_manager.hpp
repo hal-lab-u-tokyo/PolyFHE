@@ -1,8 +1,7 @@
 #pragma once
 
 #include <hifive/engine/pass/pass_base.hpp>
-#include <memory>
-#include <vector>
+#include <iostream>
 
 namespace hifive {
 namespace engine {
@@ -15,6 +14,13 @@ public:
             }
         }
         return true;
+    }
+
+    void display_passes() {
+        std::cout << "Passes:" << std::endl;
+        for (auto& pass : *this) {
+            std::cout << "    - " << pass->get_name() << std::endl;
+        }
     }
 };
 } // namespace engine

@@ -33,9 +33,9 @@ bool SetBlockPhasePass::run_on_graph(
         }
 
         hifive::core::BlockPhase next_block_phase = node->get_block_phase();
-        if (node->get_op_type() == "NTTPhase1") {
+        if (node->get_op_type() == core::OpType::NTTPhase1) {
             next_block_phase = core::BlockPhase::NTTPhase1;
-        } else if (node->get_op_type() == "NTTPhase2") {
+        } else if (node->get_op_type() == core::OpType::NTTPhase2) {
             next_block_phase = core::BlockPhase::NTTPhase2;
         }
 

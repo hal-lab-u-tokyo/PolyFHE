@@ -4,6 +4,7 @@
 #include "hifive/core/logger.hpp"
 #include "hifive/engine/codegen/codegen_manager.hpp"
 #include "hifive/engine/codegen/cuda_codegen.hpp"
+#include "hifive/engine/pass/analyze_intra_node_pass.hpp"
 #include "hifive/engine/pass/calculate_memory_traffic_pass.hpp"
 #include "hifive/engine/pass/data_reuse_pass.hpp"
 #include "hifive/engine/pass/extract_subgraph_pass.hpp"
@@ -88,11 +89,13 @@ int main(int argc, char** argv) {
 
     // Pass: Data reuse
     if (config.if_not_optimize) {
-        LOG_INFO("Arg: Do not optimize graph\n");
+        LOG_INFO("Do not optimize graph\n");
         pass_manager.push_back(
             std::make_shared<hifive::engine::ExtractSubgraphPass>());
     } else {
-        LOG_INFO("Input config: Optimize graph\n");
+        LOG_INFO("Optimize graph\n");
+        pass_manager.push_back(
+            std::make_shared<hifive::engine::AnalyzeIntraNodePass>());
         pass_manager.push_back(
             std::make_shared<hifive::engine::DataReusePass>());
         pass_manager.push_back(
@@ -102,6 +105,15 @@ int main(int argc, char** argv) {
     }
 
     // Run PassManager
+    std::cout << "==================================================\n";
+    std::cout << "    Input file: " << input_file_tail << std::endl;
+    std::cout << "    Graph type: "
+              << (config.type == hifive::core::GraphType::FHE ? "FHE" : "Poly")
+              << std::endl;
+    std::cout << "    Optimize: " << (config.if_not_optimize ? "No" : "Yes")
+              << std::endl;
+    pass_manager.display_passes();
+    std::cout << "==================================================\n";
     pass_manager.run_on_graph(graph);
 
     // ==================================================

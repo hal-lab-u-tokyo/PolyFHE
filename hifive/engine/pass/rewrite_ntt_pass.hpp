@@ -7,6 +7,7 @@ namespace engine {
 class RewriteNTTPass : public PassBase {
 public:
     bool run_on_graph(std::shared_ptr<hifive::core::Graph>& /*graph*/) override;
+    std::string get_name() override { return "RewriteNTTPass"; }
 };
 } // namespace engine
 } // namespace hifive

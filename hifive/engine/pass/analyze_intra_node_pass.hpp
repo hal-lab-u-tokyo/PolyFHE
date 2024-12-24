@@ -4,10 +4,10 @@
 
 namespace hifive {
 namespace engine {
-class CalculateMemoryTrafficPass : public PassBase {
+class AnalyzeIntraNodePass : public PassBase {
 public:
     bool run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) override;
-    std::string get_name() override { return "CalculateMemoryTrafficPass"; }
+    std::string get_name() override { return "AnalyzeIntraNodePass"; }
 };
 } // namespace engine
 } // namespace hifive

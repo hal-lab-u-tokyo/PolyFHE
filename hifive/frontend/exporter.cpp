@@ -33,7 +33,7 @@ void export_graph_to_dot(std::shared_ptr<hifive::core::Graph>& graph,
         }
         DotNode dn;
         dn.name = node->get_op_name();
-        dn.label = node->get_op_type();
+        dn.label = node->get_op_type_str();
         dn.peripheries = 1;
         v_descs[node->get_id()] = boost::add_vertex(dn, g_dot);
     }

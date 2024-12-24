@@ -14,6 +14,7 @@ class Edge;
 class Node;
 
 enum class VariableType { U64, U64_PTR };
+
 enum class MemoryAccessPattern {
     LimbWise,    // e.g., NTT
     SlotWise,    // e.g., BConv
@@ -21,15 +22,41 @@ enum class MemoryAccessPattern {
     NotDefined,  // e.g., Init, End
     YetSet,
 };
+
 enum class BlockPhase {
     NTTPhase1,
     NTTPhase2,
 };
 
+enum class OpType {
+    // For PolyGraph
+    Add,
+    Sub,
+    Mult,
+    BConv,
+    ModDown,
+    ModUp,
+    NTT,
+    NTTPhase1,
+    NTTPhase2,
+    iNTT,
+    iNTTPhase1,
+    iNTTPhase2,
+    End,
+    Init,
+    // For FHEGraph
+    // TODO: separate FHEGraph and PolyGraph
+    HAdd,
+    HMult
+};
+std::string OpType_str(OpType op_type);
+MemoryAccessPattern OpType_access_pattern(OpType op_type);
+
 class Node : public std::enable_shared_from_this<Node> {
 public:
     Node(){};
-    explicit Node(std::string op_type);
+    explicit Node(std::string op_name);
+    explicit Node(OpType op_type) : m_op_type(op_type) {}
     virtual ~Node() = default;
 
     // Edge
@@ -61,9 +88,12 @@ public:
     }
 
     // Operation
-    virtual std::string get_op_type() { return m_op_type; }
-    void set_op_type(std::string op_type) { m_op_type = op_type; }
-    std::string get_op_name() { return m_op_type + "_" + std::to_string(m_id); }
+    virtual OpType get_op_type() { return m_op_type; }
+    std::string get_op_type_str() { return OpType_str(m_op_type); }
+    void set_op_type(OpType op_type) { m_op_type = op_type; }
+    std::string get_op_name() {
+        return OpType_str(m_op_type) + "_" + std::to_string(m_id);
+    }
     virtual std::vector<std::shared_ptr<Node>> get_nodes() {
         return {shared_from_this()};
     }
@@ -106,7 +136,7 @@ public:
     int get_idx_subgraph() { return idx_subgraph; }
 
 protected:
-    std::string m_op_type;
+    OpType m_op_type;
     std::vector<std::shared_ptr<Edge>> m_in_edges;
     std::vector<std::shared_ptr<Edge>> m_out_edges;
     int m_id;
@@ -118,35 +148,6 @@ private:
     // Only for lowerings
     std::vector<std::shared_ptr<Node>> m_top_poly_ops;
     std::vector<std::shared_ptr<Node>> m_bottom_poly_ops;
-};
-
-class FusedNode : public Node {
-public:
-    FusedNode(std::string op_type) : Node(op_type) {}
-    FusedNode() : Node() {}
-    void add_fused_node(std::shared_ptr<Node> node) {
-        for (auto n : node->get_nodes()) {
-            m_fused_nodes.push_back(n);
-        }
-        std::string op_type = get_op_type();
-        set_op_type(op_type);
-    }
-
-    // Operation
-    std::string get_op_type() override {
-        std::string n = "";
-        for (auto node : m_fused_nodes) {
-            n += node->get_op_type() + "_";
-        }
-        n.pop_back();
-        return n;
-    }
-    std::vector<std::shared_ptr<Node>> get_nodes() override {
-        return m_fused_nodes;
-    }
-
-private:
-    std::vector<std::shared_ptr<Node>> m_fused_nodes;
 };
 
 } // namespace core

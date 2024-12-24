@@ -2,6 +2,7 @@ SRC=\
 	hifive/core/graph/graph.cpp \
 	hifive/core/graph/node.cpp \
 	hifive/engine/codegen/cuda_codegen.cpp \
+	hifive/engine/pass/analyze_intra_node_pass.cpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
 	hifive/engine/pass/data_reuse_pass.cpp \
 	hifive/engine/pass/extract_subgraph_pass.cpp \
@@ -32,10 +33,13 @@ HDR=\
 	hifive/engine/codegen/codegen_manager.hpp \
 	hifive/engine/codegen/codegen_writer.hpp \
 	hifive/engine/codegen/cuda_codegen.hpp \
+	hifive/engine/pass/analyze_intra_node_pass.hpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.hpp \
 	hifive/engine/pass/data_reuse_pass.hpp \
 	hifive/engine/pass/extract_subgraph_pass.hpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.hpp \
+	hifive/engine/pass/pass_base.hpp \
+	hifive/engine/pass/pass_manager.hpp \
 	hifive/engine/pass/rewrite_ntt_pass.hpp \
 	hifive/engine/pass/set_block_phase_pass.hpp \
 	hifive/frontend/exporter.hpp \
@@ -56,7 +60,7 @@ $(BIN): $(SRC) $(HDR) $(OBJ)
 	mkdir -p build
 	$(CXX) $(OBJ) -o $(BIN) $(LDFLAGS)
 
-%.o: %.cpp %.hpp
+%.o: %.cpp %.hpp $(HDR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
