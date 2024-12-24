@@ -2,6 +2,7 @@ SRC=\
 	hifive/core/graph/graph.cpp \
 	hifive/core/graph/node.cpp \
 	hifive/engine/codegen/cuda_codegen.cpp \
+	hifive/engine/pass/analyze_node_local_pass.cpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
 	hifive/engine/pass/data_reuse_pass.cpp \
 	hifive/engine/pass/extract_subgraph_pass.cpp \
@@ -32,6 +33,7 @@ HDR=\
 	hifive/engine/codegen/codegen_manager.hpp \
 	hifive/engine/codegen/codegen_writer.hpp \
 	hifive/engine/codegen/cuda_codegen.hpp \
+	hifive/engine/pass/analyze_node_local_pass.hpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.hpp \
 	hifive/engine/pass/data_reuse_pass.hpp \
 	hifive/engine/pass/extract_subgraph_pass.hpp \

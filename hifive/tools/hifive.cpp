@@ -4,6 +4,7 @@
 #include "hifive/core/logger.hpp"
 #include "hifive/engine/codegen/codegen_manager.hpp"
 #include "hifive/engine/codegen/cuda_codegen.hpp"
+#include "hifive/engine/pass/analyze_node_local_pass.hpp"
 #include "hifive/engine/pass/calculate_memory_traffic_pass.hpp"
 #include "hifive/engine/pass/data_reuse_pass.hpp"
 #include "hifive/engine/pass/extract_subgraph_pass.hpp"
@@ -93,6 +94,8 @@ int main(int argc, char** argv) {
             std::make_shared<hifive::engine::ExtractSubgraphPass>());
     } else {
         LOG_INFO("Input config: Optimize graph\n");
+        pass_manager.push_back(
+            std::make_shared<hifive::engine::AnalyzeNodeLocalPass>());
         pass_manager.push_back(
             std::make_shared<hifive::engine::DataReusePass>());
         pass_manager.push_back(
