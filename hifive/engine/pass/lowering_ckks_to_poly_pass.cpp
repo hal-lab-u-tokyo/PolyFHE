@@ -17,18 +17,18 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
     const int d = 3;
 
     if (node->get_op_type() == core::OpType::Init) {
-        auto init = std::make_shared<hifive::core::Node>("Init");
+        auto init = std::make_shared<hifive::core::Node>(core::OpType::Init);
         graph_poly->add_node(init);
         graph_poly->set_init_node(init);
         bottoms.push_back(init);
     } else if (node->get_op_type() == core::OpType::End) {
-        auto end = std::make_shared<hifive::core::Node>("End");
+        auto end = std::make_shared<hifive::core::Node>(core::OpType::End);
         graph_poly->add_node(end);
         graph_poly->set_exit_node(end);
         tops.push_back(end);
     } else if (node->get_op_type() == core::OpType::HAdd) {
-        auto add_ax = std::make_shared<hifive::core::Node>("Add");
-        auto add_bx = std::make_shared<hifive::core::Node>("Add");
+        auto add_ax = std::make_shared<hifive::core::Node>(core::OpType::Add);
+        auto add_bx = std::make_shared<hifive::core::Node>(core::OpType::Add);
         graph_poly->add_node(add_ax);
         graph_poly->add_node(add_bx);
         tops.push_back(add_ax);
@@ -39,13 +39,19 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
         std::vector<std::shared_ptr<hifive::core::Node>> list_accum_ax;
         std::vector<std::shared_ptr<hifive::core::Node>> list_accum_bx;
 
-        auto mult_axax = std::make_shared<hifive::core::Node>("Mult");
-        auto mult_bxbx = std::make_shared<hifive::core::Node>("Mult");
-        auto mult_axbx = std::make_shared<hifive::core::Node>("Mult");
-        auto mult_bxax = std::make_shared<hifive::core::Node>("Mult");
-        auto add_axbx = std::make_shared<hifive::core::Node>("Add");
-        auto intt_axax = std::make_shared<hifive::core::Node>("INTT");
-        auto mult_decomp = std::make_shared<hifive::core::Node>("Mult");
+        auto mult_axax =
+            std::make_shared<hifive::core::Node>(core::OpType::Mult);
+        auto mult_bxbx =
+            std::make_shared<hifive::core::Node>(core::OpType::Mult);
+        auto mult_axbx =
+            std::make_shared<hifive::core::Node>(core::OpType::Mult);
+        auto mult_bxax =
+            std::make_shared<hifive::core::Node>(core::OpType::Mult);
+        auto add_axbx = std::make_shared<hifive::core::Node>(core::OpType::Add);
+        auto intt_axax =
+            std::make_shared<hifive::core::Node>(core::OpType::iNTT);
+        auto mult_decomp =
+            std::make_shared<hifive::core::Node>(core::OpType::Mult);
         graph_poly->add_node(mult_axax);
         graph_poly->add_node(mult_bxbx);
         graph_poly->add_node(mult_axbx);
@@ -60,10 +66,13 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
 
         std::shared_ptr<hifive::core::Node> accum = nullptr;
         for (int i = 0; i < d; i++) {
-            auto modup = std::make_shared<hifive::core::Node>("ModUp");
-            auto ntt = std::make_shared<hifive::core::Node>("NTT");
-            auto multkey_ax = std::make_shared<hifive::core::Node>("Mult");
-            auto multkey_bx = std::make_shared<hifive::core::Node>("Mult");
+            auto modup =
+                std::make_shared<hifive::core::Node>(core::OpType::ModUp);
+            auto ntt = std::make_shared<hifive::core::Node>(core::OpType::NTT);
+            auto multkey_ax =
+                std::make_shared<hifive::core::Node>(core::OpType::Mult);
+            auto multkey_bx =
+                std::make_shared<hifive::core::Node>(core::OpType::Mult);
             graph_poly->add_node(modup);
             graph_poly->add_node(ntt);
             graph_poly->add_node(multkey_ax);
@@ -77,8 +86,10 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
                 list_accum_ax.push_back(multkey_ax);
                 list_accum_bx.push_back(multkey_bx);
             } else {
-                auto accum_ax = std::make_shared<hifive::core::Node>("Add");
-                auto accum_bx = std::make_shared<hifive::core::Node>("Add");
+                auto accum_ax =
+                    std::make_shared<hifive::core::Node>(core::OpType::Add);
+                auto accum_bx =
+                    std::make_shared<hifive::core::Node>(core::OpType::Add);
                 list_accum_ax.push_back(accum_ax);
                 list_accum_bx.push_back(accum_bx);
                 graph_poly->add_node(accum_ax);
@@ -91,14 +102,18 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
                 graph_poly->add_edge(multkey_bx, accum_bx, edge_label);
             }
         }
-        auto intt_ax = std::make_shared<hifive::core::Node>("INTT");
-        auto intt_bx = std::make_shared<hifive::core::Node>("INTT");
-        auto moddown_ax = std::make_shared<hifive::core::Node>("ModDown");
-        auto moddown_bx = std::make_shared<hifive::core::Node>("ModDown");
-        auto ntt_ax = std::make_shared<hifive::core::Node>("NTT");
-        auto ntt_bx = std::make_shared<hifive::core::Node>("NTT");
-        auto add_final_ax = std::make_shared<hifive::core::Node>("Add");
-        auto add_final_bx = std::make_shared<hifive::core::Node>("Add");
+        auto intt_ax = std::make_shared<hifive::core::Node>(core::OpType::iNTT);
+        auto intt_bx = std::make_shared<hifive::core::Node>(core::OpType::iNTT);
+        auto moddown_ax =
+            std::make_shared<hifive::core::Node>(core::OpType::ModDown);
+        auto moddown_bx =
+            std::make_shared<hifive::core::Node>(core::OpType::ModDown);
+        auto ntt_ax = std::make_shared<hifive::core::Node>(core::OpType::NTT);
+        auto ntt_bx = std::make_shared<hifive::core::Node>(core::OpType::NTT);
+        auto add_final_ax =
+            std::make_shared<hifive::core::Node>(core::OpType::Add);
+        auto add_final_bx =
+            std::make_shared<hifive::core::Node>(core::OpType::Add);
         graph_poly->add_node(intt_ax);
         graph_poly->add_node(intt_bx);
         graph_poly->add_node(moddown_ax);

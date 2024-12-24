@@ -7,7 +7,7 @@
 namespace hifive {
 namespace core {
 
-std::string to_string(OpType op_type) {
+std::string OpType_str(OpType op_type) {
     switch (op_type) {
     case OpType::Add:
         return "Add";
@@ -25,12 +25,36 @@ std::string to_string(OpType op_type) {
         return "NTT";
     case OpType::iNTT:
         return "iNTT";
+    case OpType::NTTPhase1:
+        return "NTTPhase1";
+    case OpType::NTTPhase2:
+        return "NTTPhase2";
+    case OpType::iNTTPhase1:
+        return "iNTTPhase1";
+    case OpType::iNTTPhase2:
+        return "iNTTPhase2";
     case OpType::End:
         return "End";
     case OpType::Init:
         return "Init";
     default:
         return "Unknown";
+    }
+}
+
+MemoryAccessPattern OpType_access_pattern(OpType op_type) {
+    if (op_type == OpType::NTT || op_type == OpType::iNTT) {
+        return MemoryAccessPattern::LimbWise;
+    } else if (op_type == OpType::BConv || op_type == OpType::ModDown ||
+               op_type == OpType::ModUp) {
+        return MemoryAccessPattern::SlotWise;
+    } else if (op_type == OpType::Add || op_type == OpType::Sub ||
+               op_type == OpType::Mult) {
+        return MemoryAccessPattern::ElementWise;
+    } else if (op_type == OpType::End || op_type == OpType::Init) {
+        return MemoryAccessPattern::NotDefined;
+    } else {
+        return MemoryAccessPattern::YetSet;
     }
 }
 
@@ -58,6 +82,7 @@ Node::Node(std::string op_name) : m_id(-1) {
         exit(1);
     }
     m_op_type = op_map[op_name];
+    m_access_pattern = OpType_access_pattern(m_op_type);
 }
 
 std::vector<VariableType> Node::get_input_types() {

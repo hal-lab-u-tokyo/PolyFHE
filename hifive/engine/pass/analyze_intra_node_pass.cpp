@@ -25,6 +25,10 @@ bool AnalyzeIntraNodePass::run_on_graph(
         }
 
         // Analyze Memory Access Pattern
+        if (node->get_access_pattern() == core::MemoryAccessPattern::YetSet) {
+            LOG_ERROR("Memory Access Pattern is not set for node %s\n",
+                      node->get_op_name().c_str());
+        }
 
         // Analyze required limb for the node
 

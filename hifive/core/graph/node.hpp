@@ -14,6 +14,7 @@ class Edge;
 class Node;
 
 enum class VariableType { U64, U64_PTR };
+
 enum class MemoryAccessPattern {
     LimbWise,    // e.g., NTT
     SlotWise,    // e.g., BConv
@@ -21,6 +22,7 @@ enum class MemoryAccessPattern {
     NotDefined,  // e.g., Init, End
     YetSet,
 };
+
 enum class BlockPhase {
     NTTPhase1,
     NTTPhase2,
@@ -47,12 +49,14 @@ enum class OpType {
     HAdd,
     HMult
 };
-std::string to_string(OpType op_type);
+std::string OpType_str(OpType op_type);
+MemoryAccessPattern OpType_access_pattern(OpType op_type);
 
 class Node : public std::enable_shared_from_this<Node> {
 public:
     Node(){};
     explicit Node(std::string op_name);
+    explicit Node(OpType op_type) : m_op_type(op_type) {}
     virtual ~Node() = default;
 
     // Edge
@@ -85,10 +89,10 @@ public:
 
     // Operation
     virtual OpType get_op_type() { return m_op_type; }
-    std::string get_op_type_str() { return to_string(m_op_type); }
+    std::string get_op_type_str() { return OpType_str(m_op_type); }
     void set_op_type(OpType op_type) { m_op_type = op_type; }
     std::string get_op_name() {
-        return to_string(m_op_type) + "_" + std::to_string(m_id);
+        return OpType_str(m_op_type) + "_" + std::to_string(m_id);
     }
     virtual std::vector<std::shared_ptr<Node>> get_nodes() {
         return {shared_from_this()};
