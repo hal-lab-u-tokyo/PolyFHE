@@ -58,13 +58,13 @@ std::shared_ptr<hifive::core::Graph> ConvertDotToGraph(
         std::shared_ptr<hifive::core::Node> node =
             std::make_shared<hifive::core::Node>(g_dot[v].label);
         visited[v] = node;
-        if (node->get_op_type() == "Init") {
+        if (node->get_op_type() == core::OpType::Init) {
             if (graph_hifive->get_init_node()) {
                 LOG_ERROR("Multiple init nodes found\n");
                 exit(1);
             }
             graph_hifive->set_init_node(node);
-        } else if (node->get_op_type() == "End") {
+        } else if (node->get_op_type() == core::OpType::End) {
             if (graph_hifive->get_exit_node()) {
                 LOG_ERROR("Multiple exit nodes found\n");
                 exit(1);

@@ -16,17 +16,17 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
     const std::string edge_label = "32768_20";
     const int d = 3;
 
-    if (node->get_op_type() == "Init") {
+    if (node->get_op_type() == core::OpType::Init) {
         auto init = std::make_shared<hifive::core::Node>("Init");
         graph_poly->add_node(init);
         graph_poly->set_init_node(init);
         bottoms.push_back(init);
-    } else if (node->get_op_type() == "End") {
+    } else if (node->get_op_type() == core::OpType::End) {
         auto end = std::make_shared<hifive::core::Node>("End");
         graph_poly->add_node(end);
         graph_poly->set_exit_node(end);
         tops.push_back(end);
-    } else if (node->get_op_type() == "HAdd") {
+    } else if (node->get_op_type() == core::OpType::HAdd) {
         auto add_ax = std::make_shared<hifive::core::Node>("Add");
         auto add_bx = std::make_shared<hifive::core::Node>("Add");
         graph_poly->add_node(add_ax);
@@ -35,7 +35,7 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
         tops.push_back(add_bx);
         bottoms.push_back(add_ax);
         bottoms.push_back(add_bx);
-    } else if (node->get_op_type() == "HMult") {
+    } else if (node->get_op_type() == core::OpType::HMult) {
         std::vector<std::shared_ptr<hifive::core::Node>> list_accum_ax;
         std::vector<std::shared_ptr<hifive::core::Node>> list_accum_bx;
 
@@ -192,9 +192,9 @@ bool LoweringCKKSToPolyPass::run_on_graph(
             std::vector<std::shared_ptr<hifive::core::Node>> dst_inputs =
                 dst->get_top_poly_ops();
 
-            if ((src->get_op_type() == "Init") ||
-                (dst->get_op_type() == "End")) {
-                if (src->get_op_type() == "Init") {
+            if ((src->get_op_type() == core::OpType::Init) ||
+                (dst->get_op_type() == core::OpType::End)) {
+                if (src->get_op_type() == core::OpType::Init) {
                     if (src_outputs.size() != 1) {
                         LOG_ERROR("Init node should have only one output\n");
                         return false;
@@ -203,7 +203,7 @@ bool LoweringCKKSToPolyPass::run_on_graph(
                         graph_poly->add_edge(src_outputs[0], d, edge_label);
                     }
                 }
-                if (dst->get_op_type() == "End") {
+                if (dst->get_op_type() == core::OpType::End) {
                     if (dst_inputs.size() != 1) {
                         LOG_ERROR("End node should have only one input\n");
                         return false;

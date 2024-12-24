@@ -28,12 +28,12 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
             continue;
         }
 
-        if (node->get_op_type() == "NTT") {
+        if (node->get_op_type() == core::OpType::NTT) {
             // Partision NTT Node into NTTPhase1 and NTTPhase2
             auto ntt_phase1 = std::make_shared<hifive::core::Node>();
             auto ntt_phase2 = std::make_shared<hifive::core::Node>();
-            ntt_phase1->set_op_type("NTTPhase1");
-            ntt_phase2->set_op_type("NTTPhase2");
+            ntt_phase1->set_op_type(core::OpType::NTTPhase1);
+            ntt_phase2->set_op_type(core::OpType::NTTPhase2);
             ntt_phase1->set_access_pattern(
                 hifive::core::MemoryAccessPattern::LimbWise);
             ntt_phase2->set_access_pattern(
@@ -65,12 +65,12 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
 
             graph->remove_node(node);
             node = ntt_phase2;
-        } else if (node->get_op_type() == "iNTT") {
+        } else if (node->get_op_type() == core::OpType::iNTT) {
             // Partision iNTT Node into iNTTPhase1 and iNTTPhase2
             auto intt_phase1 = std::make_shared<hifive::core::Node>();
             auto intt_phase2 = std::make_shared<hifive::core::Node>();
-            intt_phase1->set_op_type("iNTTPhase1");
-            intt_phase2->set_op_type("iNTTPhase2");
+            intt_phase1->set_op_type(core::OpType::iNTTPhase1);
+            intt_phase2->set_op_type(core::OpType::iNTTPhase2);
             intt_phase1->set_access_pattern(
                 hifive::core::MemoryAccessPattern::LimbWise);
             intt_phase2->set_access_pattern(

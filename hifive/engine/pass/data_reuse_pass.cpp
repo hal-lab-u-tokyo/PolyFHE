@@ -9,10 +9,10 @@ namespace engine {
 
 bool CanReuse(std::shared_ptr<hifive::core::Node> src,
               std::shared_ptr<hifive::core::Node> dst) {
-    if (src->get_op_type() == "Init") {
+    if (src->get_op_type() == core::OpType::Init) {
         return false;
     }
-    if (dst->get_op_type() == "End") {
+    if (dst->get_op_type() == core::OpType::Init) {
         return false;
     }
     switch (dst->get_access_pattern()) {
@@ -48,10 +48,13 @@ uint64_t CalculateSharedMemSizePerEdge(
     // width
     switch (edge->get_src()->get_block_phase()) {
     case hifive::core::BlockPhase::NTTPhase1:
-        size *= hifive::N1;
+        // TODO: consider N1
+        size *= hifive::N;
+        // size *= hifive::N1;
         break;
     case hifive::core::BlockPhase::NTTPhase2:
-        size *= hifive::N2;
+        size *= hifive::N;
+        // size *= hifive::N2;
         break;
     default:
         break;

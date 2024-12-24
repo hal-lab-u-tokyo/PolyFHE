@@ -1,23 +1,63 @@
 #include "hifive/core/graph/node.hpp"
 
+#include <map>
+#include <string>
+
 #include "hifive/core/logger.hpp"
 namespace hifive {
 namespace core {
 
-Node::Node(std::string op_type) : m_op_type(op_type), m_id(-1) {
-    if (m_op_type == "Add" || m_op_type == "Sub" || m_op_type == "Mult" ||
-        m_op_type == "Accum") {
-        m_access_pattern = MemoryAccessPattern::ElementWise;
-    } else if (m_op_type == "BConv" || m_op_type == "ModDown" ||
-               m_op_type == "ModUp") {
-        m_access_pattern = MemoryAccessPattern::SlotWise;
-    } else if (m_op_type == "NTT" || m_op_type == "iNTT") {
-        m_access_pattern = MemoryAccessPattern::LimbWise;
-    } else if (m_op_type == "Init" or m_op_type == "End") {
-        m_access_pattern = MemoryAccessPattern::NotDefined;
-    } else {
-        LOG_ERROR("Unknown access pattern for %s\n", m_op_type.c_str());
+std::string to_string(OpType op_type) {
+    switch (op_type) {
+    case OpType::Add:
+        return "Add";
+    case OpType::Sub:
+        return "Sub";
+    case OpType::Mult:
+        return "Mult";
+    case OpType::BConv:
+        return "BConv";
+    case OpType::ModDown:
+        return "ModDown";
+    case OpType::ModUp:
+        return "ModUp";
+    case OpType::NTT:
+        return "NTT";
+    case OpType::iNTT:
+        return "iNTT";
+    case OpType::End:
+        return "End";
+    case OpType::Init:
+        return "Init";
+    default:
+        return "Unknown";
     }
+}
+
+Node::Node(std::string op_name) : m_id(-1) {
+    std::map<std::string, OpType> op_map = {
+        {"Add", OpType::Add},
+        {"Sub", OpType::Sub},
+        {"Mult", OpType::Mult},
+        {"BConv", OpType::BConv},
+        {"ModDown", OpType::ModDown},
+        {"ModUp", OpType::ModUp},
+        {"NTT", OpType::NTT},
+        {"iNTT", OpType::iNTT},
+        {"NTTPhase1", OpType::NTTPhase1},
+        {"NTTPhase2", OpType::NTTPhase2},
+        {"iNTTPhase1", OpType::iNTTPhase1},
+        {"iNTTPhase2", OpType::iNTTPhase2},
+        {"End", OpType::End},
+        {"Init", OpType::Init},
+        {"HAdd", OpType::HAdd},
+        {"HMult", OpType::HMult},
+    };
+    if (op_map.find(op_name) == op_map.end()) {
+        LOG_ERROR("Unknown op_name: %s\n", op_name.c_str());
+        exit(1);
+    }
+    m_op_type = op_map[op_name];
 }
 
 std::vector<VariableType> Node::get_input_types() {

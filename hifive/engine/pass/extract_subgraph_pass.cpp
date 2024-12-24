@@ -47,7 +47,7 @@ void SortSubgraphNodes(
                 if (inedge->get_level() != hifive::core::EdgeLevel::Shared) {
                     continue;
                 }
-                if (inedge->get_src()->get_op_type() == "Init") {
+                if (inedge->get_src()->get_op_type() == core::OpType::Init) {
                     continue;
                 }
                 if (!sorted[inedge->get_src()]) {
@@ -76,7 +76,8 @@ void SortSubgraphNodes(
 void ExtractSubgraph(
     std::shared_ptr<hifive::core::Node> node,
     std::vector<std::shared_ptr<hifive::core::Node>>& subgraph) {
-    if (node->get_op_type() == "Init" || node->get_op_type() == "End") {
+    if (node->get_op_type() == core::OpType::Init ||
+        node->get_op_type() == core::OpType::End) {
         return;
     }
     subgraph.push_back(node);
