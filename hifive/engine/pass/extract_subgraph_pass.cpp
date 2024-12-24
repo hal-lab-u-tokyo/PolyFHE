@@ -27,11 +27,6 @@ void SortSubgraphNodes(
         if (!has_dependent_inedges) {
             sorted_subgraph.push_back(subgraph[i]);
             sorted[subgraph[i]] = true;
-            LOG_INFO("Node %s has no dependent inedges\n",
-                     subgraph[i]->get_op_name().c_str());
-        } else {
-            LOG_INFO("Node %s has dependent inedges\n",
-                     subgraph[i]->get_op_name().c_str());
         }
     }
 
@@ -58,8 +53,6 @@ void SortSubgraphNodes(
                 }
             }
             if (all_inedges_sorted) {
-                LOG_INFO("Sorted Node %s [%d], i:%ld\n",
-                         node->get_op_name().c_str(), node->get_id(), i);
                 sorted_subgraph.push_back(node);
                 sorted[node] = true;
             } else {
@@ -168,8 +161,6 @@ bool ExtractSubgraphPass::run_on_graph(
         std::optional<std::vector<std::shared_ptr<hifive::core::Node>>>
             has_visited_subnodes = CheckIfSubgraphNodesVisited(node, visited);
         if (has_visited_subnodes) {
-            LOG_INFO("Subgraph[%d] visited around %s\n", idx_subgraph,
-                     node->get_op_name().c_str());
             hifive::core::SubGraph subgraph;
             for (auto subnode : *has_visited_subnodes) {
                 subnode->set_idx_subgraph(idx_subgraph);
