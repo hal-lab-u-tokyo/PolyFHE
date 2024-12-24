@@ -448,7 +448,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "// =====================================\n";
     w << "std::cout << \"### Benchmark\" << std::endl;\n";
     w << "std::vector<double> elapsed_times;\n";
-    w << "for (int i = 0; i < 10; i++)\n";
+    w << "for (int i = 0; i < 5; i++)\n";
     w.block_begin();
     w << "// Timer start\n";
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
