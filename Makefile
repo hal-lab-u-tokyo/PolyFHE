@@ -38,6 +38,8 @@ HDR=\
 	hifive/engine/pass/data_reuse_pass.hpp \
 	hifive/engine/pass/extract_subgraph_pass.hpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.hpp \
+	hifive/engine/pass/pass_base.hpp \
+	hifive/engine/pass/pass_manager.hpp \
 	hifive/engine/pass/rewrite_ntt_pass.hpp \
 	hifive/engine/pass/set_block_phase_pass.hpp \
 	hifive/frontend/exporter.hpp \
@@ -58,7 +60,7 @@ $(BIN): $(SRC) $(HDR) $(OBJ)
 	mkdir -p build
 	$(CXX) $(OBJ) -o $(BIN) $(LDFLAGS)
 
-%.o: %.cpp %.hpp
+%.o: %.cpp %.hpp $(HDR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)

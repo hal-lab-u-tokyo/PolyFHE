@@ -63,6 +63,14 @@ public:
         return nullptr;
     }
 
+    // Check if memory of this edge can be overwritten
+    bool can_overwrite() {
+        if (m_src->get_out_edges().size() > 1) {
+            return false;
+        }
+        return true;
+    }
+
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;

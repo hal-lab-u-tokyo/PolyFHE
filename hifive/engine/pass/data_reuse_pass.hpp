@@ -7,6 +7,7 @@ namespace engine {
 class DataReusePass : public PassBase {
 public:
     bool run_on_graph(std::shared_ptr<hifive::core::Graph>& /*graph*/) override;
+    std::string get_name() override { return "DataReusePass"; }
 };
 } // namespace engine
 } // namespace hifive
