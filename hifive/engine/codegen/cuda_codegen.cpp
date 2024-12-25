@@ -390,7 +390,9 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     // Define Global edge of each subgraph
     w << "\n";
     w << "// =====================================\n";
-    w << "// Define Global edges\n";
+    w << "// Define edges\n";
+    w << "// Define global edges for GPU and CPU test\n";
+    w << "// Define shared edges for CPU test\n";
     w << "// =====================================\n";
     for (auto subgraph : graph->get_subgraphs()) {
         for (auto node : subgraph->get_nodes()) {
@@ -410,9 +412,19 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                     w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
                       << edge->get_dst()->get_op_name() << "\n";
                     w << "uint64_t *" << edge->get_name() << "_d;\n";
+                    w << "uint64_t *" << edge->get_name() << "_h;\n";
                     w << "cudaMalloc((void **)&" << edge->get_name()
                       << "_d, N * L * sizeof(uint64_t));\n";
+                    w << "cudaMallocHost((void **)&" << edge->get_name()
+                      << "_h, N * L * sizeof(uint64_t));\n";
                     has_global_edge = true;
+                } else if (edge->get_level() ==
+                           hifive::core::EdgeLevel::Shared) {
+                    w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
+                      << edge->get_dst()->get_op_name() << "\n";
+                    w << "uint64_t *" << edge->get_name() << "_h;\n";
+                    w << "cudaMallocHost((void **)&" << edge->get_name()
+                      << "_h, N * L * sizeof(uint64_t));\n";
                 }
             }
         }
@@ -472,6 +484,19 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
 
     w << "\n";
     w << "// Call CPU\n";
+    for (auto subgraph : graph->get_subgraphs()) {
+        for (auto node : subgraph->get_nodes()) {
+            w << node->get_op_type_str() << "_h";
+            w << "(params_h";
+            for (auto edge : node->get_out_edges()) {
+                w << ", " << edge->get_name() << "_h";
+            }
+            for (auto edge : node->get_in_edges()) {
+                w << ", " << edge->get_name() << "_h";
+            }
+            w << ");\n";
+        }
+    }
 
     w << "\n";
     w << "// Copy back to host and check\n";
@@ -488,10 +513,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << "std::cout << \"Error[\" << i << \"] ";
         w << "result: \" << " << edge->get_name() << "_h_from_d[i] << \" vs ";
         w << "expected: \" << " << edge->get_name() << "_h[i] << std::endl;\n";
-
+        w << "std::cout << \"Check failed\" << std::endl;\n";
         w << "return;\n";
         w.block_end();
         w.block_end();
+        w << "std::cout << \"Check passed\" << std::endl;\n";
     }
     w.block_end(); // warm up
 

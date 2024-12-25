@@ -24,4 +24,6 @@ __device__ void Add(Params *params, uint64_t *dst, const uint64_t *a,
 __device__ void Mult(Params *p, const int n, const int l, uint64_t *dst,
                      const uint64_t *a, const uint64_t *b, const int n_dst,
                      const int n_a, const int n_b);
+
+void Add_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);
 }

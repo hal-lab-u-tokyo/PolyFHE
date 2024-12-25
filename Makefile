@@ -15,6 +15,7 @@ SRC=\
 
 SRC_RUNTIME=\
 	hifive/kernel/device_context.cu \
+	hifive/kernel/polynomial.cpp \
 	hifive/kernel/polynomial.cu \
 	hifive/kernel/ntt.cu
 
