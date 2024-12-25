@@ -342,6 +342,10 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "// Input arguments\n";
     w << "// =====================================\n";
     std::shared_ptr<hifive::core::Node> init_node = graph->get_init_node();
+    if (init_node == nullptr) {
+        LOG_ERROR("No init node\n");
+        assert(false);
+    }
     int i = 0;
     for (auto edge : init_node->get_out_edges()) {
         std::shared_ptr<hifive::core::Node> e = edge->get_dst();
@@ -360,6 +364,29 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         i++;
     }
 
+    w << "\n";
+    w << "// =====================================\n";
+    w << "// Output arguments\n";
+    w << "// =====================================\n";
+    std::shared_ptr<hifive::core::Node> output_node = graph->get_exit_node();
+    if (output_node == nullptr) {
+        LOG_ERROR("No output node\n");
+        assert(false);
+    }
+    for (auto edge : output_node->get_in_edges()) {
+        w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
+          << output_node->get_op_name() << "\n";
+        w << "uint64_t *" << edge->get_name() << "_d;\n";
+        w << "uint64_t *" << edge->get_name() << "_h_from_d;\n";
+        w << "uint64_t *" << edge->get_name() << "_h;\n";
+        w << "cudaMalloc((void **)&" << edge->get_name()
+          << "_d, N * L * sizeof(uint64_t));\n";
+        w << "cudaMallocHost((void **)&" << edge->get_name()
+          << "_h_from_d, N * L * sizeof(uint64_t));\n";
+        w << "cudaMallocHost((void **)&" << edge->get_name()
+          << "_h, N * L * sizeof(uint64_t));\n";
+    }
+
     // Define Global edge of each subgraph
     w << "\n";
     w << "// =====================================\n";
@@ -371,6 +398,9 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
             for (auto edge : node->get_out_edges()) {
                 // TODO: treat Init as a alone subgraph
                 if (edge->get_src()->get_op_type() == core::OpType::Init) {
+                    continue;
+                }
+                if (edge->get_dst()->get_op_type() == core::OpType::End) {
                     continue;
                 }
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
@@ -439,6 +469,30 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << ");\n";
     }
     w << "cudaDeviceSynchronize();\n";
+
+    w << "\n";
+    w << "// Call CPU\n";
+
+    w << "\n";
+    w << "// Copy back to host and check\n";
+    for (auto edge : output_node->get_in_edges()) {
+        w << "cudaMemcpy(" << edge->get_name() << "_h_from_d, "
+          << edge->get_name()
+          << "_d, N * L * sizeof(uint64_t), cudaMemcpyDeviceToHost);\n";
+        w << "for (int i = 0; i < N * L; i++)";
+        w.block_begin();
+        w << "if (";
+        w << edge->get_name() << "_h[i] != ";
+        w << edge->get_name() << "_h_from_d[i])";
+        w.block_begin();
+        w << "std::cout << \"Error[\" << i << \"] ";
+        w << "result: \" << " << edge->get_name() << "_h_from_d[i] << \" vs ";
+        w << "expected: \" << " << edge->get_name() << "_h[i] << std::endl;\n";
+
+        w << "return;\n";
+        w.block_end();
+        w.block_end();
+    }
     w.block_end(); // warm up
 
     // Timer
