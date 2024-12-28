@@ -36,12 +36,19 @@ public:
         m_block_phase = block_phase;
     }
     BlockPhase get_block_phase() { return m_block_phase; }
+    int get_nx_batch() { return m_nx_batch; }
+    int get_ny_batch() { return m_ny_batch; }
+    void set_nx_batch(int nx_batch) { m_nx_batch = nx_batch; }
+    void set_ny_batch(int ny_batch) { m_ny_batch = ny_batch; }
 
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;
     std::string m_name;
+
     BlockPhase m_block_phase;
+    int m_nx_batch;
+    int m_ny_batch;
 };
 
 class Graph {
