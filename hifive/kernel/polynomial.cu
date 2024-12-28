@@ -147,16 +147,16 @@ __device__ void Add_Phase2(Params *params, uint64_t *dst, const uint64_t *a,
     }
 }
 
-__device__ void Add(Params *params, uint64_t *dst, const uint64_t *a,
-                    const uint64_t *b, const int block_width, const int n_dst,
-                    const int n_a, const int n_b) {
-    for (int i = threadIdx.x; i < block_width * params->limb; i += blockDim.x) {
-        const int l_idx = i / block_width;
-        const int n_idx = i % block_width;
+__device__ void Add_Phase0(Params *params, uint64_t *dst, const uint64_t *a,
+                           const uint64_t *b) {
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < params->N * params->limb; i += gridDim.x * blockDim.x) {
+        const int l_idx = i / params->N;
+        const int n_idx = i % params->N;
         const uint64_t qi = params->qVec[l_idx];
-        const int dst_idx = l_idx * n_dst + n_idx;
-        const int a_idx = l_idx * n_a + n_idx;
-        const int b_idx = l_idx * n_b + n_idx;
+        const int dst_idx = l_idx * params->N + n_idx;
+        const int a_idx = l_idx * params->N + n_idx;
+        const int b_idx = l_idx * params->N + n_idx;
         uint64_t res = a[a_idx] + b[b_idx];
         if (res >= qi) {
             res -= qi;

@@ -17,9 +17,8 @@
     }
 
 extern "C" {
-__device__ void Add(Params *params, uint64_t *dst, const uint64_t *a,
-                    const uint64_t *b, const int n, const int n_dst,
-                    const int n_a, const int n_b);
+__device__ void Add_Phase0(Params *params, uint64_t *dst, const uint64_t *a,
+                           const uint64_t *b);
 __device__ void Add_Phase1(Params *params, uint64_t *dst, const uint64_t *a,
                            const uint64_t *b, const int nyBatch,
                            const bool if_dst_gmem, const bool if_a_gmem,

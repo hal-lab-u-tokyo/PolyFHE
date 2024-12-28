@@ -166,8 +166,17 @@ bool ExtractSubgraphPass::run_on_graph(
                 subnode->set_idx_subgraph(idx_subgraph);
                 subgraph.add_node(subnode);
             }
+            // TODO: if NTT is not contained in subgraph, we don't need to
+            // specify block_phase
             subgraph.set_block_phase(node->get_block_phase());
-            // TODO:
+            if (subgraph.get_nodes().size() == 1) {
+                auto node = subgraph.get_nodes()[0];
+                if (node->get_op_type() != core::OpType::NTTPhase1 &&
+                    node->get_op_type() != core::OpType::NTTPhase2) {
+                    subgraph.set_block_phase(core::BlockPhase::NTTPhase0);
+                }
+            }
+            // TODO: search for optimal ny_batch
             subgraph.set_nx_batch(1);
             subgraph.set_ny_batch(L);
             graph->add_subgraph(
