@@ -24,6 +24,7 @@ enum class MemoryAccessPattern {
 };
 
 enum class BlockPhase {
+    NTTPhase0,
     NTTPhase1,
     NTTPhase2,
 };

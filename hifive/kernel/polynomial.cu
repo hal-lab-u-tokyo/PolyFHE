@@ -71,16 +71,92 @@ __device__ uint64_t modmul(uint64_t a, uint64_t b, uint64_t q, uint64_t mr,
     return modBarrett(ab, q, mr, twok);
 }
 
-__device__ void Add(Params *dc, const int n, const int l, uint64_t *dst,
-                    const uint64_t *a, const uint64_t *b, const int n_dst,
-                    const int n_a, const int n_b) {
-    for (int i = threadIdx.x; i < n * l; i += blockDim.x) {
-        const int l_idx = i / n;
-        const int n_idx = i % n;
-        const uint64_t qi = dc->qVec[l_idx];
-        const int dst_idx = l_idx * n_dst + n_idx;
-        const int a_idx = l_idx * n_a + n_idx;
-        const int b_idx = l_idx * n_b + n_idx;
+// ===================================
+// Phase1
+// sPoly = 1 * params->n1 elements
+// sPolyBatch = 1 * nyBatchPhase1 sPoly
+
+// Phase2
+// sPoly = 1 * params->n2
+// sPolyBatch = 1 * nyBatchPhase2 sPoly
+// ===================================
+
+__device__ void Add_Phase1(Params *params, uint64_t *dst, const uint64_t *a,
+                           const uint64_t *b, const int nyBatch,
+                           const bool if_dst_gmem, const bool if_a_gmem,
+                           const bool if_b_gmem) {
+    for (int i = threadIdx.x; i < nyBatch * params->n1; i += blockDim.x) {
+        const int y_idx = i / params->n1;
+        const int x_idx = i % params->n1;
+
+        const uint64_t mod = params->qVec[y_idx];
+        int dst_idx, a_idx, b_idx;
+        if (if_dst_gmem) {
+            dst_idx = y_idx * params->N + x_idx * params->n2 + blockIdx.x;
+        } else {
+            dst_idx = y_idx * params->n1 + x_idx;
+        }
+        if (if_a_gmem) {
+            a_idx = y_idx * params->N + x_idx * params->n2 + blockIdx.x;
+        } else {
+            a_idx = y_idx * params->n1 + x_idx;
+        }
+        if (if_b_gmem) {
+            b_idx = y_idx * params->N + x_idx * params->n2 + blockIdx.x;
+        } else {
+            b_idx = y_idx * params->n1 + x_idx;
+        }
+        uint64_t res = a[a_idx] + b[b_idx];
+        if (res >= mod) {
+            res -= mod;
+        }
+        dst[dst_idx] = res;
+    }
+}
+
+__device__ void Add_Phase2(Params *params, uint64_t *dst, const uint64_t *a,
+                           const uint64_t *b, const int nyBatch,
+                           const bool if_dst_gmem, const bool if_a_gmem,
+                           const bool if_b_gmem) {
+    for (int i = threadIdx.x; i < nyBatch * params->n2; i += blockDim.x) {
+        const int y_idx = i / params->n2;
+        const int x_idx = i % params->n2;
+
+        const uint64_t mod = params->qVec[y_idx];
+        int dst_idx, a_idx, b_idx;
+        if (if_dst_gmem) {
+            dst_idx = y_idx * params->N + blockIdx.x * params->n2 + x_idx;
+        } else {
+            dst_idx = y_idx * params->n2 + x_idx;
+        }
+        if (if_a_gmem) {
+            a_idx = y_idx * params->N + blockIdx.x * params->n2 + x_idx;
+        } else {
+            a_idx = y_idx * params->n2 + x_idx;
+        }
+        if (if_b_gmem) {
+            b_idx = y_idx * params->N + blockIdx.x * params->n2 + x_idx;
+        } else {
+            b_idx = y_idx * params->n2 + x_idx;
+        }
+        uint64_t res = a[a_idx] + b[b_idx];
+        if (res >= mod) {
+            res -= mod;
+        }
+        dst[dst_idx] = res;
+    }
+}
+
+__device__ void Add_Phase0(Params *params, uint64_t *dst, const uint64_t *a,
+                           const uint64_t *b) {
+    for (int i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < params->N * params->limb; i += gridDim.x * blockDim.x) {
+        const int l_idx = i / params->N;
+        const int n_idx = i % params->N;
+        const uint64_t qi = params->qVec[l_idx];
+        const int dst_idx = l_idx * params->N + n_idx;
+        const int a_idx = l_idx * params->N + n_idx;
+        const int b_idx = l_idx * params->N + n_idx;
         uint64_t res = a[a_idx] + b[b_idx];
         if (res >= qi) {
             res -= qi;
@@ -89,37 +165,18 @@ __device__ void Add(Params *dc, const int n, const int l, uint64_t *dst,
     }
 }
 
-__device__ void Mult(Params *dc, const int n, const int l, uint64_t *dst,
+__device__ void Mult(Params *params, const int n, const int l, uint64_t *dst,
                      const uint64_t *a, const uint64_t *b, const int n_dst,
                      const int n_a, const int n_b) {
     for (int i = threadIdx.x; i < n * l; i += blockDim.x) {
         const int l_idx = i / n;
         const int n_idx = i % n;
-        const uint64_t qi = dc->qVec[l_idx];
-        const uint64_t mu = dc->qrVec[l_idx];
-        const uint64_t twok = dc->qTwok[l_idx];
+        const uint64_t qi = params->qVec[l_idx];
+        const uint64_t mu = params->qrVec[l_idx];
+        const uint64_t twok = params->qTwok[l_idx];
         const int dst_idx = l_idx * n_dst + n_idx;
         const int a_idx = l_idx * n_a + n_idx;
         const int b_idx = l_idx * n_b + n_idx;
         dst[dst_idx] = modmul(a[a_idx], b[b_idx], qi, mu, twok);
-    }
-}
-
-__device__ void MultOutputTwo(Params *dc, const int n, const int l,
-                              uint64_t *dst0, uint64_t *dst1, const uint64_t *a,
-                              const uint64_t *b, const int n_dst0,
-                              const int n_dst1, const int n_a, const int n_b) {
-    for (int i = threadIdx.x; i < n * l; i += blockDim.x) {
-        const int l_idx = i / n;
-        const int n_idx = i % n;
-        const uint64_t qi = dc->qVec[l_idx];
-        const uint64_t mu = dc->qrVec[l_idx];
-        const uint64_t twok = dc->qTwok[l_idx];
-        const int dst0_idx = l_idx * n_dst0 + n_idx;
-        const int dst1_idx = l_idx * n_dst1 + n_idx;
-        const int a_idx = l_idx * n_a + n_idx;
-        const int b_idx = l_idx * n_b + n_idx;
-        dst0[dst0_idx] = modmul(a[a_idx], b[b_idx], qi, mu, twok);
-        dst1[dst1_idx] = modmul(a[a_idx], b[b_idx], qi, mu, twok);
     }
 }

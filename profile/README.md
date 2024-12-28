@@ -4,9 +4,9 @@
 ```
 make run
 make run-noopt
-./profile/profile-memaccess.sh
+./profile/profile-memtransfer.sh
 ```
-- This script will generate `data/memaccess-{opt/noopt}.csv` and `figure/memaccess.png` files.
+- This script will generate `data/memtransfer-{opt/noopt}.csv` and `figure/memtransfer.png` files.
 
 ## Stall Reason
 - For optimized build

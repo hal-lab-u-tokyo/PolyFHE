@@ -44,6 +44,7 @@ uint64_t compute_shoup(const uint64_t operand, const uint64_t modulus) {
 Params::Params(std::shared_ptr<HEAANContext> context) {
     logN = context->logN;
     L = context->L;
+    limb = context->L;
     K = context->K;
     N = context->N;
     n1 = NTTSampleSize(logN);

@@ -12,8 +12,8 @@ count_opt = {}
 count_noopt = {}
 
 # Read CSV
-fname_opt = "profile/data/memaccess-opt.csv"
-fname_noopt = "profile/data/memaccess-noopt.csv"
+fname_opt = "profile/data/memtransfer-opt.csv"
+fname_noopt = "profile/data/memtransfer-noopt.csv"
 
 for fname in [fname_opt, fname_noopt]:
     filepath = os.path.join(directory_path, fname)
@@ -81,8 +81,10 @@ for label, v in values.items():
     ax.bar_label(rects, padding=2, fontsize=20)
     multiplier += 1
 
-ax.legend(fontsize=20, loc='best')
-ax.set_ylabel("Hit rate", fontsize=24)
-ax.tick_params(axis='y', labelsize=20)
-ax.set_xticks(x + width/2, labels=metrics, fontsize=20)
-plt.savefig(f"{directory_path}/profile/figure/memaccess.png", dpi=500)
+ax.legend(fontsize=24, loc='best')
+ax.set_ylabel("Bytes", fontsize=24)
+ax.tick_params(axis='y', labelsize=24)
+ax.set_xticks(x + width/2, labels=metrics, fontsize=24)
+ax.set_title("Optimization Impact on Global Memory Transfer", fontsize=24)
+plt.savefig(f"{directory_path}/profile/figure/memtransfer.png", dpi=500)
+print(f"Figure saved at {directory_path}/profile/figure/memtransfer.png")

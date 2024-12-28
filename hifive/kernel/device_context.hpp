@@ -53,8 +53,9 @@ public:
     int n1;
     int n2;
 
-    long L; ///< Maximum Level that we want to support
-    long K; ///< The number of special modulus (usually L + 1)
+    long L;   ///< Maximum Level that we want to support
+    int limb; // Current limb Level
+    long K;   ///< The number of special modulus (usually L + 1)
 
     double sigma;
 
