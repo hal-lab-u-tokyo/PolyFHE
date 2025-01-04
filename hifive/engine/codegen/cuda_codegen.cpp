@@ -124,18 +124,21 @@ void CudaCodegen::generate_kernel_defs(
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
-                if (op_type == core::OpType::Add) {
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub ||
+                    op_type == core::OpType::Mult) {
                     // ==============================
-                    // Add
+                    // Add, Sub, Mult
                     // ==============================
-                    /*
-                    __device__ void Add_Elem(Params *params, uint64_t *dst,
-                    const uint64_t *a, const uint64_t *b, const int dst_global,
-                         const int a_global, const int b_global,
-                         const int sPoly_x, const int l_idx, const int n_idx) {
-                         */
                     std::vector<std::string> args;
                     std::vector<std::string> args_if_gmem;
+                    if (op_type == core::OpType::Add) {
+                        args.push_back("ElemWiseOp::Add");
+                    } else if (op_type == core::OpType::Sub) {
+                        args.push_back("ElemWiseOp::Sub");
+                    } else if (op_type == core::OpType::Mult) {
+                        args.push_back("ElemWiseOp::Mult");
+                    }
                     args.push_back("params");
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 2);
@@ -161,11 +164,10 @@ void CudaCodegen::generate_kernel_defs(
                     }
                     args.insert(args.end(), args_if_gmem.begin(),
                                 args_if_gmem.end());
-                    // TODO: avoid hardcoding
-                    args.push_back("128");
+                    args.push_back("blockDim.x");
                     args.push_back("l_idx");
                     args.push_back("n_idx");
-                    w << "Add_Elem(" << GenerateArgs(args) << ");\n";
+                    w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
                 }
             }
             w.block_end();
@@ -376,6 +378,9 @@ void CudaCodegen::generate_call_kernels(
     w << "const int shared_size_phase2 = params_h->n2 * params_h->L * "
          "sizeof(uint64_t);\n";
     w << "const int shared_size_common = 128 * sizeof(uint64_t);\n";
+
+    w << "// Timer start\n";
+    w << "auto start = std::chrono::high_resolution_clock::now();\n";
     for (auto subgraph : graph->get_subgraphs()) {
         core::SubgraphType subgraph_type = subgraph->get_subgraph_type();
         if (subgraph_type == core::SubgraphType::Elem) {
@@ -417,8 +422,9 @@ void CudaCodegen::generate_call_kernels(
         }
         w << ");\n";
     }
-    w << "cudaDeviceSynchronize();\n";
-
+    w << "checkCudaErrors(cudaDeviceSynchronize());\n";
+    w << "// Timer Stop\n";
+    w << "auto end = std::chrono::high_resolution_clock::now();\n";
     w << "\n";
 }
 
@@ -590,17 +596,12 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "std::vector<double> elapsed_times;\n";
     w << "for (int i = 0; i < 5; i++)\n";
     w.block_begin();
-    w << "// Timer start\n";
-    w << "auto start = std::chrono::high_resolution_clock::now();\n";
 
     w << "\n";
     generate_call_kernels(graph, w);
 
     // Timer
     w << "\n";
-    w << "// Timer Stop\n";
-    w << "checkCudaErrors(cudaDeviceSynchronize());\n";
-    w << "auto end = std::chrono::high_resolution_clock::now();\n";
     w << "auto elapsed_usec = "
          "std::chrono::duration_cast<std::chrono::microseconds>(end - "
          "start);\n";
