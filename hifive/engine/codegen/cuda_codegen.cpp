@@ -109,56 +109,72 @@ void CudaCodegen::generate_kernel_defs(
         w << ")";
         w.block_begin();
 
-        if (subgraph->get_block_phase() !=
-            hifive::core::BlockPhase::NTTPhase0) {
+        if (subgraph->get_nodes().size() > 1) {
             w << "extern __shared__ uint64_t shared[];\n";
         }
+
+        core::SubgraphType s_type = subgraph->get_subgraph_type();
+        if (s_type == core::SubgraphType::Elem) {
+            w << "for (int idx = threadIdx.x + blockIdx.x * blockDim.x;";
+            w << "idx < params->N * params->L;";
+            w << "idx += blockDim.x * gridDim.x)";
+            w.block_begin();
+            w << "const int l_idx = idx / params->N;\n";
+            w << "const int n_idx = idx % params->N;\n";
+            for (auto node : subgraph->get_nodes()) {
+                w << "// " << node->get_op_name() << "\n";
+                core::OpType op_type = node->get_op_type();
+                if (op_type == core::OpType::Add) {
+                    // ==============================
+                    // Add
+                    // ==============================
+                    /*
+                    __device__ void Add_Elem(Params *params, uint64_t *dst,
+                    const uint64_t *a, const uint64_t *b, const int dst_global,
+                         const int a_global, const int b_global,
+                         const int sPoly_x, const int l_idx, const int n_idx) {
+                         */
+                    std::vector<std::string> args;
+                    std::vector<std::string> args_if_gmem;
+                    args.push_back("params");
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_in_edges().size() == 2);
+                    for (auto edge : node->get_out_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back("shared");
+                            args_if_gmem.push_back("0");
+                        }
+                    }
+                    for (auto edge : node->get_in_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back("shared");
+                            args_if_gmem.push_back("0");
+                        }
+                    }
+                    args.insert(args.end(), args_if_gmem.begin(),
+                                args_if_gmem.end());
+                    // TODO: avoid hardcoding
+                    args.push_back("128");
+                    args.push_back("l_idx");
+                    args.push_back("n_idx");
+                    w << "Add_Elem(" << GenerateArgs(args) << ");\n";
+                }
+            }
+            w.block_end();
+        }
+        /*
         for (auto node : subgraph->get_nodes()) {
             w << "// " << node->get_op_name() << "\n";
             if (node->get_op_type() == core::OpType::Add) {
-                // ==============================
-                // Add
-                // ==============================
-                if (subgraph->get_block_phase() ==
-                    hifive::core::BlockPhase::NTTPhase1) {
-                    w << "Add_Phase1";
-                } else if (subgraph->get_block_phase() ==
-                           hifive::core::BlockPhase::NTTPhase2) {
-                    w << "Add_Phase2";
-                } else if (subgraph->get_block_phase() ==
-                           hifive::core::BlockPhase::NTTPhase0) {
-                    w << "Add_Phase0";
-                }
-                std::vector<std::string> args;
-                std::vector<std::string> args_if_gmem;
-                args.push_back("params");
-                assert(node->get_out_edges().size() == 1);
-                assert(node->get_in_edges().size() == 2);
-                for (auto edge : node->get_out_edges()) {
-                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                        args.push_back(edge->get_name());
-                        args_if_gmem.push_back("true");
-                    } else {
-                        args.push_back("shared");
-                        args_if_gmem.push_back("false");
-                    }
-                }
-                for (auto edge : node->get_in_edges()) {
-                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                        args.push_back(edge->get_name());
-                        args_if_gmem.push_back("true");
-                    } else {
-                        args.push_back("shared");
-                        args_if_gmem.push_back("false");
-                    }
-                }
-                if (subgraph->get_block_phase() !=
-                    hifive::core::BlockPhase::NTTPhase0) {
-                    args.push_back("nyBatch");
-                    args.insert(args.end(), args_if_gmem.begin(),
-                                args_if_gmem.end());
-                }
-                w << "(" << GenerateArgs(args) << ");\n";
+
             } else if (node->get_op_type() == core::OpType::Mult) {
                 // ==============================
                 // Mult
@@ -337,6 +353,7 @@ void CudaCodegen::generate_kernel_defs(
                 }
             }
         }
+        */
 
         w.block_end();
         w << "\n\n";
@@ -518,6 +535,10 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "// Test\n";
     w << "// =====================================\n";
     w << "std::cout << \"### Warm up and Test\" << std::endl;\n";
+    w << "std::cout << \"N : \" << params_h->N << std::endl;\n";
+    w << "std::cout << \"n1: \" << params_h->n1 << std::endl;\n";
+    w << "std::cout << \"n2: \" << params_h->n2 << std::endl;\n";
+    w << "std::cout << \"L : \" << params_h->L << std::endl;\n";
     w.block_begin();
     generate_call_kernels(graph, w);
 
