@@ -18,6 +18,8 @@ public:
                         const std::string& filename, const bool if_append);
     void generate_include(std::shared_ptr<hifive::core::Graph>& graph,
                           const std::string& filename, const bool if_append);
+    void generate_call_kernels(std::shared_ptr<hifive::core::Graph>& graph,
+                               CodeWriter& w);
 };
 } // namespace engine
 } // namespace hifive

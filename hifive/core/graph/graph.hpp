@@ -11,6 +11,23 @@ namespace core {
 
 enum class GraphType { FHE, Poly, Other };
 
+// =========================================================================
+// Ty| Operation                         | Phase  | ny   | grid    | Block
+// -------------------------------------------------------------------------
+// 0 | ElementWise                       | Phase0 | N/A  | 2048    | 128
+// 1 | ElementWise + LimbWise            | Phase1 | 1    | n2*limb | n1/8
+//                                       | Phase2 | 1    | n1*limb | n2/8
+// 2 | ElementWise + SlotWise            | Phase0 | N/A  |         |
+// 3 | ElementWise + SlotWise + LimbWise | Phase1 | limb |         |
+//                                       | Phase2 | limb |         |
+// -------------------------------------------------------------------------
+enum class sPolyType {
+    sPolyP1,
+    sPolyP2,
+    sPolyLimbStrip,
+    sPolySlotStrip,
+};
+
 class SubGraph {
 public:
     void add_node(std::shared_ptr<Node> node) { m_nodes.push_back(node); }
@@ -46,9 +63,12 @@ private:
     int m_idx;
     std::string m_name;
 
+    sPolyType m_sPoly_type;
     BlockPhase m_block_phase;
     int m_nx_batch;
     int m_ny_batch;
+    int m_gridX;
+    int m_blockX;
 };
 
 class Graph {
