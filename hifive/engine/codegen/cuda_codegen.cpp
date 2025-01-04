@@ -358,18 +358,20 @@ void CudaCodegen::generate_call_kernels(
          "sizeof(uint64_t);\n";
     w << "const int shared_size_phase2 = params_h->n2 * params_h->L * "
          "sizeof(uint64_t);\n";
+    w << "const int shared_size_common = 128 * sizeof(uint64_t);\n";
     for (auto subgraph : graph->get_subgraphs()) {
-        if (subgraph->get_block_phase() ==
-            hifive::core::BlockPhase::NTTPhase1) {
-            w << subgraph->get_name()
-              << "<<<gridPhase1, blockPhase1, shared_size_phase1>>>";
-        } else if (subgraph->get_block_phase() ==
-                   hifive::core::BlockPhase::NTTPhase2) {
-            w << subgraph->get_name()
-              << "<<<gridPhase2, blockPhase2, shared_size_phase2>>>";
-        } else if (subgraph->get_block_phase() ==
-                   hifive::core::BlockPhase::NTTPhase0) {
-            w << subgraph->get_name() << "<<<gridCommon, blockCommon>>>";
+        core::SubgraphType subgraph_type = subgraph->get_subgraph_type();
+        if (subgraph_type == core::SubgraphType::Elem) {
+            // If subgraph contains only ONE node, we don't need to malloc
+            // shared memory
+            if (subgraph->get_nodes().size() == 1) {
+                w << subgraph->get_name() << "<<<gridCommon, blockCommon>>>";
+            } else {
+                w << subgraph->get_name()
+                  << "<<<gridCommon, blockCommon, shared_size_common>>>";
+            }
+        } else {
+            LOG_ERROR("Not implemented\n");
         }
         w << "(params_d";
         if (subgraph->get_block_phase() !=

@@ -11,21 +11,20 @@ namespace core {
 
 enum class GraphType { FHE, Poly, Other };
 
-// =========================================================================
-// Ty| Operation                         | Phase  | ny   | grid    | Block
-// -------------------------------------------------------------------------
-// 0 | ElementWise                       | Phase0 | N/A  | 2048    | 128
-// 1 | ElementWise + LimbWise            | Phase1 | 1    | n2*limb | n1/8
-//                                       | Phase2 | 1    | n1*limb | n2/8
-// 2 | ElementWise + SlotWise            | Phase0 | N/A  |         |
-// 3 | ElementWise + SlotWise + LimbWise | Phase1 | limb |         |
-//                                       | Phase2 | limb |         |
-// -------------------------------------------------------------------------
 enum class sPolyType {
     sPolyP1,
     sPolyP2,
     sPolyLimbStrip,
     sPolySlotStrip,
+};
+
+enum class SubgraphType {
+    Elem,
+    ElemLimb1,
+    ElemLimb2,
+    ElemSlot,
+    ElemLimb1Slot,
+    ElemLimb2Slot,
 };
 
 class SubGraph {
@@ -53,16 +52,25 @@ public:
         m_block_phase = block_phase;
     }
     BlockPhase get_block_phase() { return m_block_phase; }
+
+    // batch
     int get_nx_batch() { return m_nx_batch; }
     int get_ny_batch() { return m_ny_batch; }
     void set_nx_batch(int nx_batch) { m_nx_batch = nx_batch; }
     void set_ny_batch(int ny_batch) { m_ny_batch = ny_batch; }
+
+    // subgraph type
+    void set_subgraph_type(SubgraphType subgraph_type) {
+        m_subgraph_type = subgraph_type;
+    }
+    SubgraphType get_subgraph_type() { return m_subgraph_type; }
 
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;
     std::string m_name;
 
+    SubgraphType m_subgraph_type;
     sPolyType m_sPoly_type;
     BlockPhase m_block_phase;
     int m_nx_batch;
