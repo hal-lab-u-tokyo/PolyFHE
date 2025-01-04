@@ -44,4 +44,6 @@ __device__ void ElemWiseOp_Elem(ElemWiseOp op, Params *params, uint64_t *dst,
 void Add_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);
 void Sub_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);
 void Mult_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);
+void NTT_h(Params *params, uint64_t *dst, uint64_t *src);
+void iNTT_h(Params *params, uint64_t *dst, uint64_t *src);
 }

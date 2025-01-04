@@ -382,8 +382,8 @@ void CudaCodegen::generate_call_kernels(
     w << "// Timer start\n";
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
     for (auto subgraph : graph->get_subgraphs()) {
-        core::SubgraphType subgraph_type = subgraph->get_subgraph_type();
-        if (subgraph_type == core::SubgraphType::Elem) {
+        core::SubgraphType s_type = subgraph->get_subgraph_type();
+        if (s_type == core::SubgraphType::Elem) {
             // If subgraph contains only ONE node, we don't need to malloc
             // shared memory
             if (subgraph->get_nodes().size() == 1) {
@@ -392,6 +392,17 @@ void CudaCodegen::generate_call_kernels(
                 w << subgraph->get_name()
                   << "<<<gridCommon, blockCommon, shared_size_common>>>";
             }
+        } else if (s_type == core::SubgraphType::ElemLimb1) {
+            // NTTPhase1 uses shared memory even if it contains only one node
+            w << subgraph->get_name()
+              << "<<<params_h->n2 * params_h->limb, params_h->n1/8, "
+                 "params_h->n1/8 * sizeof(uint64_t)>>>";
+
+        } else if (s_type == core::SubgraphType::ElemLimb2) {
+            // NTTPhase2 uses shared memory even if it contains only one node
+            w << subgraph->get_name()
+              << "<<<params_h->n1 * params_h->limb, params_h->n2/8, "
+                 "params_h->n2/8 * sizeof(uint64_t)>>>";
         } else {
             LOG_ERROR("Not implemented\n");
         }
@@ -552,7 +563,18 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "// Call CPU\n";
     for (auto subgraph : graph->get_subgraphs()) {
         for (auto node : subgraph->get_nodes()) {
-            w << node->get_op_type_str() << "_h";
+            core::OpType op_type = node->get_op_type();
+            if (op_type == core::OpType::NTTPhase1) {
+                w << "NTT_h";
+            } else if (op_type == core::OpType::iNTTPhase2) {
+                continue;
+                w << "iNTT_h";
+            } else if (op_type == core::OpType::NTTPhase2 ||
+                       op_type == core::OpType::iNTTPhase1) {
+                continue;
+            } else {
+                w << node->get_op_type_str() << "_h";
+            }
             w << "(params_h";
             for (auto edge : node->get_out_edges()) {
                 w << ", " << edge->get_name() << "_h";
