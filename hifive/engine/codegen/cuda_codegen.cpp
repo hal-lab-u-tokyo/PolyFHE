@@ -114,9 +114,10 @@ void CudaCodegen::generate_kernel_defs(
         }
 
         core::SubgraphType s_type = subgraph->get_subgraph_type();
+        std::cout << "Subgraph type: " << s_type << std::endl;
         if (s_type == core::SubgraphType::Elem) {
             w << "for (int idx = threadIdx.x + blockIdx.x * blockDim.x;";
-            w << "idx < params->N * params->L;";
+            w << "idx < params->N * params->limb;";
             w << "idx += blockDim.x * gridDim.x)";
             w.block_begin();
             w << "const int l_idx = idx / params->N;\n";
@@ -168,112 +169,49 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("l_idx");
                     args.push_back("n_idx");
                     w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
+                } else {
+                    LOG_ERROR(
+                        "Only Add, Sub, Mult are supported for "
+                        "SubgraphType::Elem\n");
+                    std::cerr << "op_type: " << core::toStringOpType(op_type)
+                              << std::endl;
                 }
             }
             w.block_end();
+        } else if (s_type == core::SubgraphType::ElemLimb1) {
+            w << "for (int idx = blockIdx.x;";
+            w << "idx < params->n2 * params->limb;";
+            w << "idx += blockDim.x)";
+            w.block_begin();
+            for (auto node : subgraph->get_nodes()) {
+                w << "// " << node->get_op_name() << "\n";
+                core::OpType op_type = node->get_op_type();
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub ||
+                    op_type == core::OpType::Mult) {
+                    LOG_ERROR("Not implemented\n");
+                } else if (op_type == core::OpType::NTTPhase1) {
+                    LOG_ERROR("Not implemented\n");
+                } else if (op_type == core::OpType::iNTTPhase1) {
+                    LOG_ERROR("Not implemented\n");
+                } else {
+                    LOG_ERROR(
+                        "Only ElementWiseOp, NTTPhase1 and iNTTPhase1 are "
+                        "supported for SubgraphType::ElemLimb1\n");
+                    std::cerr << "op_type: " << core::toStringOpType(op_type)
+                              << std::endl;
+                }
+            }
+            w.block_end();
+        } else if (s_type == core::SubgraphType::ElemLimb2) {
+        } else {
+            LOG_ERROR("Not implemented\n");
         }
         /*
         for (auto node : subgraph->get_nodes()) {
             w << "// " << node->get_op_name() << "\n";
             if (node->get_op_type() == core::OpType::Add) {
-
             } else if (node->get_op_type() == core::OpType::Mult) {
-                // ==============================
-                // Mult
-                // ==============================
-                std::shared_ptr<hifive::core::Edge> global_output = nullptr;
-                std::shared_ptr<hifive::core::Edge> shared_output = nullptr;
-                std::vector<std::string> args;
-                args.push_back("params");
-                args.push_back(GenerateN(subgraph->get_block_phase()));
-                args.push_back("params->L");
-                // output
-                if (node->get_out_edges().size() == 1) {
-                    // When only one output
-                    w << "// Mult";
-                    auto outedge = node->get_out_edges()[0];
-                    if (outedge->get_level() ==
-                        hifive::core::EdgeLevel::Global) {
-                        args.push_back(outedge->get_name());
-                    } else {
-                        args.push_back("shared");
-                    }
-                } else {
-                    // When multiple outputs
-                    // If there is no Global output, use Mult
-                    // If there is no Shared output, use Mult
-                    // If there is both Global and Shared outputs, use
-                    // MultOutputTwo
-                    for (auto edge : node->get_out_edges()) {
-                        if (edge->get_level() ==
-                            hifive::core::EdgeLevel::Global) {
-                            if (global_output != nullptr) {
-                                continue;
-                            }
-                            global_output = edge;
-                        } else if (edge->get_level() ==
-                                   hifive::core::EdgeLevel::Shared) {
-                            if (shared_output != nullptr) {
-                                continue;
-                            }
-                            shared_output = edge;
-                        }
-                    }
-                    if (global_output == nullptr) {
-                        // Some Shared outputs but no Global output
-                        w << "// Mult";
-                        args.push_back("shared");
-                    } else if (shared_output == nullptr) {
-                        // Some Global outputs but no Shared output
-                        w << "// Mult";
-                        args.push_back(global_output->get_name());
-                    } else {
-                        // One Global output and some Shared outputs
-                        // dst0: global_output
-                        // dst1: shared
-                        w << "// MultOutputTwo";
-                        args.push_back(global_output->get_name());
-                        args.push_back("shared");
-                    }
-                }
-                // input
-                assert(node->get_in_edges().size() == 2);
-                for (auto edge : node->get_in_edges()) {
-                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                        args.push_back(edge->get_name());
-                    } else {
-                        args.push_back("shared");
-                    }
-                }
-
-                // N
-                if (node->get_out_edges().size() == 1) {
-                    if (node->get_out_edges()[0]->get_level() ==
-                        hifive::core::EdgeLevel::Global) {
-                        args.push_back("N");
-                    } else {
-                        args.push_back(GenerateN(subgraph->get_block_phase()));
-                    }
-                } else {
-                    if (global_output == nullptr) {
-                        // Mult with only Shared output
-                        args.push_back(GenerateN(subgraph->get_block_phase()));
-                    } else if (shared_output == nullptr) {
-                        // Mult with only Global output
-                        args.push_back("N");
-                    } else {
-                        // MultOutputTwo
-                        // dst0: global_output
-                        // dst1: shared
-                        args.push_back("N");
-                        args.push_back(GenerateN(subgraph->get_block_phase()));
-                    }
-                }
-                args.push_back(GenerateNByLevel(node->get_in_edges()[0],
-                                                node->get_block_phase()));
-                args.push_back(GenerateNByLevel(node->get_in_edges()[1],
-                                                node->get_block_phase()));
-                w << "(" << GenerateArgs(args) << ");\n";
             } else if (node->get_op_type() == core::OpType::NTTPhase1) {
                 // ==============================
                 // NTTPhase1
@@ -367,17 +305,17 @@ void CudaCodegen::generate_kernel_defs(
 void CudaCodegen::generate_call_kernels(
     std::shared_ptr<hifive::core::Graph>& graph, CodeWriter& w) {
     w << "// Call kernel\n";
-    w << "dim3 gridPhase1(params_h->n2);\n";
-    w << "dim3 gridPhase2(params_h->n1);\n";
-    w << "dim3 gridCommon(2048);\n";
-    w << "dim3 blockPhase1(params_h->n1 / 8);\n";
-    w << "dim3 blockPhase2(params_h->n2 / 8);\n";
-    w << "dim3 blockCommon(128);\n";
-    w << "const int shared_size_phase1 = params_h->n1 * params_h->L * "
-         "sizeof(uint64_t);\n";
-    w << "const int shared_size_phase2 = params_h->n2 * params_h->L * "
-         "sizeof(uint64_t);\n";
-    w << "const int shared_size_common = 128 * sizeof(uint64_t);\n";
+    // w << "dim3 gridPhase1(params_h->n2);\n";
+    // w << "dim3 gridPhase2(params_h->n1);\n";
+    // w << "dim3 gridCommon(2048);\n";
+    // w << "dim3 blockPhase1(params_h->n1 / 8);\n";
+    // w << "dim3 blockPhase2(params_h->n2 / 8);\n";
+    // w << "dim3 blockCommon(128);\n";
+    // w << "const int shared_size_phase1 = params_h->n1 * params_h->L * "
+    //      "sizeof(uint64_t);\n";
+    // w << "const int shared_size_phase2 = params_h->n2 * params_h->L * "
+    //      "sizeof(uint64_t);\n";
+    // w << "const int shared_size_common = 128 * sizeof(uint64_t);\n";
 
     w << "// Timer start\n";
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
@@ -565,16 +503,25 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         for (auto node : subgraph->get_nodes()) {
             core::OpType op_type = node->get_op_type();
             if (op_type == core::OpType::NTTPhase1) {
-                w << "NTT_h";
+                auto phase2_node = node->get_out_edges()[0]->get_dst();
+                auto phase2_outedge = phase2_node->get_out_edges()[0];
+                w << "NTT_h(params_h,";
+                w << phase2_outedge->get_name() << "_h, ";
+                w << node->get_in_edges()[0]->get_name() << "_h);\n";
+                continue;
+            } else if (op_type == core::OpType::NTTPhase2) {
+                continue;
             } else if (op_type == core::OpType::iNTTPhase2) {
+                auto phase1_node = node->get_out_edges()[0]->get_dst();
+                auto phase1_outedge = phase1_node->get_out_edges()[0];
+                w << "iNTT_h(params_h,";
+                w << phase1_outedge->get_name() << "_h, ";
+                w << node->get_in_edges()[0]->get_name() << "_h);\n";
                 continue;
-                w << "iNTT_h";
-            } else if (op_type == core::OpType::NTTPhase2 ||
-                       op_type == core::OpType::iNTTPhase1) {
+            } else if (op_type == core::OpType::iNTTPhase1) {
                 continue;
-            } else {
-                w << node->get_op_type_str() << "_h";
             }
+            w << node->get_op_type_str() << "_h";
             w << "(params_h";
             for (auto edge : node->get_out_edges()) {
                 w << ", " << edge->get_name() << "_h";

@@ -27,6 +27,8 @@ enum class SubgraphType {
     ElemLimb2Slot,
 };
 
+std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type);
+
 class SubGraph {
 public:
     void add_node(std::shared_ptr<Node> node) { m_nodes.push_back(node); }

@@ -50,7 +50,7 @@ enum class OpType {
     HAdd,
     HMult
 };
-std::string OpType_str(OpType op_type);
+std::string toStringOpType(OpType op_type);
 MemoryAccessPattern OpType_access_pattern(OpType op_type);
 
 class Node : public std::enable_shared_from_this<Node> {
@@ -90,10 +90,10 @@ public:
 
     // Operation
     virtual OpType get_op_type() { return m_op_type; }
-    std::string get_op_type_str() { return OpType_str(m_op_type); }
+    std::string get_op_type_str() { return toStringOpType(m_op_type); }
     void set_op_type(OpType op_type) { m_op_type = op_type; }
     std::string get_op_name() {
-        return OpType_str(m_op_type) + "_" + std::to_string(m_id);
+        return toStringOpType(m_op_type) + "_" + std::to_string(m_id);
     }
     virtual std::vector<std::shared_ptr<Node>> get_nodes() {
         return {shared_from_this()};
