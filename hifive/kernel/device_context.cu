@@ -2,7 +2,6 @@
 #include <vector>
 
 #include "device_context.hpp"
-#include "hifive/core/param.hpp"
 #include "hifive/kernel/device_context.hpp"
 
 uint64_t NTTSampleSize(const uint64_t logN) {
@@ -246,12 +245,8 @@ void FHEContext::CopyParamsToDevice() {
     d_ntt_params = params_tmp.ntt_params;
 }
 
-void FHEContext::Init(const int logN, const int L) {
+FHEContext::FHEContext(const int logN, const int L) {
     LOG_INFO("Initializing Params\n");
     h_params = std::make_shared<Params>(logN, L);
     CopyParamsToDevice();
 }
-
-FHEContext::FHEContext() { Init(hifive::logN, hifive::L); }
-
-FHEContext::FHEContext(const int logN, const int L) { Init(logN, L); }

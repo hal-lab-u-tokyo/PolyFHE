@@ -150,7 +150,7 @@ bool LoweringCKKSToPolyPass::run_on_graph(
     LOG_INFO("Running LoweringCKKSToPolyPass\n");
 
     std::shared_ptr<hifive::core::Graph> graph_poly =
-        std::make_shared<hifive::core::Graph>();
+        std::make_shared<hifive::core::Graph>(graph->m_config);
 
     if (graph->get_graph_type() != hifive::core::GraphType::FHE) {
         LOG_ERROR("Graph type is not FHE\n");

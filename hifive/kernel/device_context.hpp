@@ -67,7 +67,6 @@ public:
 
 class FHEContext {
 public:
-    FHEContext();
     FHEContext(const int logN, const int L);
     ~FHEContext() = default;
 
@@ -76,7 +75,6 @@ public:
     std::shared_ptr<Params> get_h_params() { return h_params; }
 
 private:
-    void Init(const int logN, const int L);
     void CopyParamsToDevice();
 
     std::shared_ptr<Params> h_params;

@@ -1,6 +1,7 @@
 SRC=\
 	hifive/core/graph/graph.cpp \
 	hifive/core/graph/node.cpp \
+	hifive/core/config.cpp \
 	hifive/engine/codegen/cuda_codegen.cpp \
 	hifive/engine/pass/analyze_intra_node_pass.cpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
@@ -29,7 +30,7 @@ HDR=\
 	hifive/core/graph/graph.hpp \
 	hifive/core/graph/node.hpp \
 	hifive/core/logger.hpp \
-	hifive/core/param.hpp \
+	hifive/core/config.hpp \
 	hifive/engine/codegen/codegen_base.hpp \
 	hifive/engine/codegen/codegen_manager.hpp \
 	hifive/engine/codegen/codegen_writer.hpp \

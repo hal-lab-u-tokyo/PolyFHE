@@ -27,9 +27,10 @@ graph_t ParseDot(const std::string& dot) {
 }
 
 std::shared_ptr<hifive::core::Graph> ConvertDotToGraph(
-    const graph_t& g_dot, hifive::core::GraphType graph_type) {
+    const graph_t& g_dot, hifive::core::GraphType graph_type,
+    std::shared_ptr<hifive::Config> config) {
     std::shared_ptr<hifive::core::Graph> graph_hifive =
-        std::make_shared<hifive::core::Graph>();
+        std::make_shared<hifive::core::Graph>(config);
 
     // Add nodes in DFS order from the init node
     const int n = boost::num_vertices(g_dot);
@@ -110,10 +111,11 @@ std::shared_ptr<hifive::core::Graph> ConvertDotToGraph(
 }
 
 std::shared_ptr<hifive::core::Graph> ParseDotToGraph(
-    const std::string& dot, hifive::core::GraphType graph_type) {
+    const std::string& dot, hifive::core::GraphType graph_type,
+    std::shared_ptr<hifive::Config> config) {
     graph_t g_dot = ParseDot(dot);
     std::shared_ptr<hifive::core::Graph> graph =
-        ConvertDotToGraph(g_dot, graph_type);
+        ConvertDotToGraph(g_dot, graph_type, config);
     LOG_INFO("Successfully converted dot to graph, %ld nodes\n",
              graph->get_nodes().size());
     return graph;
