@@ -182,7 +182,7 @@ void CudaCodegen::generate_kernel_defs(
             w << "extern __shared__ uint64_t shared[];\n";
             w << "for (int idx = blockIdx.x;";
             w << "idx < params->n2 * params->limb;";
-            w << "idx += blockDim.x)";
+            w << "idx += gridDim.x)";
             w.block_begin();
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
@@ -202,8 +202,8 @@ void CudaCodegen::generate_kernel_defs(
                         args_load.push_back("params->N");
                         args_load.push_back("params->n1");
                         args_load.push_back("params->n2");
-                        // w << "load_g2s_phase1(" << GenerateArgs(args_load)
-                        //   << ");\n";
+                        w << "load_g2s_phase1(" << GenerateArgs(args_load)
+                          << ");\n";
                     }
                     // Call NTTPhase1
                     std::vector<std::string> args;
@@ -216,6 +216,16 @@ void CudaCodegen::generate_kernel_defs(
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_out_edges()[0]->get_level() ==
                            hifive::core::EdgeLevel::Global);
+                    // Store to global
+                    std::vector<std::string> args_store;
+                    args_store.push_back(node->get_out_edges()[0]->get_name());
+                    args_store.push_back("shared");
+                    args_store.push_back("params->N");
+                    args_store.push_back("params->n1");
+                    args_store.push_back("params->n2");
+                    w << "store_s2g_phase1(" << GenerateArgs(args_store)
+                      << ");\n";
+
                 } else if (op_type == core::OpType::iNTTPhase1) {
                     LOG_ERROR("Not implemented\n");
                 } else {
@@ -228,7 +238,68 @@ void CudaCodegen::generate_kernel_defs(
             }
             w.block_end();
         } else if (s_type == core::SubgraphType::ElemLimb2) {
-            LOG_ERROR("Not implemented\n");
+            w << "extern __shared__ uint64_t shared[];\n";
+            w << "for (int idx = blockIdx.x;";
+            w << "idx < params->n1 * params->limb;";
+            w << "idx += gridDim.x)";
+            w.block_begin();
+            for (auto node : subgraph->get_nodes()) {
+                w << "// " << node->get_op_name() << "\n";
+                core::OpType op_type = node->get_op_type();
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub ||
+                    op_type == core::OpType::Mult) {
+                    LOG_ERROR("Not implemented\n");
+                } else if (op_type == core::OpType::NTTPhase2) {
+                    // Inedge must be Global
+                    assert(node->get_in_edges().size() == 1);
+                    assert(node->get_in_edges()[0]->get_level() ==
+                           hifive::core::EdgeLevel::Global);
+                    std::vector<std::string> args_load;
+                    args_load.push_back(node->get_in_edges()[0]->get_name());
+                    args_load.push_back("shared");
+                    args_load.push_back("params->N");
+                    args_load.push_back("params->n1");
+                    args_load.push_back("params->n2");
+                    w << "load_g2s_phase2(" << GenerateArgs(args_load)
+                      << ");\n";
+
+                    // Call NTTPhase2
+                    std::vector<std::string> args;
+                    args.push_back("shared");
+                    args.push_back("params->ntt_params");
+                    args.push_back("idx/params->n1");
+                    args.push_back("threadIdx.x");
+                    args.push_back("tid % (params->N / 8)");
+                    w << "size_t tid = blockIdx.x * blockDim.x + "
+                         "threadIdx.x;\n";
+                    w << "NTTPhase2Op(" << GenerateArgs(args) << ");\n";
+
+                    // Store to global if required
+                    for (auto edge : node->get_out_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            std::vector<std::string> args_store;
+                            args_store.push_back(edge->get_name());
+                            args_store.push_back("shared");
+                            args_store.push_back("params->N");
+                            args_store.push_back("params->n1");
+                            args_store.push_back("params->n2");
+                            w << "store_s2g_phase2(" << GenerateArgs(args_store)
+                              << ");\n";
+                        }
+                    }
+                } else if (op_type == core::OpType::iNTTPhase2) {
+                    LOG_ERROR("Not implemented\n");
+                } else {
+                    LOG_ERROR(
+                        "Only ElementWiseOp, NTTPhase2 and iNTTPhase2 are "
+                        "supported for SubgraphType::ElemLimb1\n");
+                    std::cerr << "op_type: " << core::toStringOpType(op_type)
+                              << std::endl;
+                }
+            }
+            w.block_end();
         } else {
             LOG_ERROR("Not implemented\n");
         }
@@ -564,6 +635,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << "cudaMemcpy(" << edge->get_name() << "_h_from_d, "
           << edge->get_name()
           << "_d, N * L * sizeof(uint64_t), cudaMemcpyDeviceToHost);\n";
+        w << "bool if_fail = false;\n";
         w << "for (int i = 0; i < N * L; i++)";
         w.block_begin();
         w << "if (";
@@ -574,10 +646,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << "result: \" << " << edge->get_name() << "_h_from_d[i] << \" vs ";
         w << "expected: \" << " << edge->get_name() << "_h[i] << std::endl;\n";
         w << "std::cout << \"Check failed\" << std::endl;\n";
-        w << "return;\n";
+        w << "if_fail = true;\n";
+        w << "break;\n";
         w.block_end();
         w.block_end();
-        w << "std::cout << \"Check passed\" << std::endl;\n";
+        w << "if (!if_fail) {std::cout << \"Check passed\" << std::endl;}\n";
     }
     w.block_end(); // warm up
 
