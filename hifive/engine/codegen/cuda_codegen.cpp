@@ -187,13 +187,58 @@ void CudaCodegen::generate_kernel_defs(
             w << "idx < params->n2 * params->limb;";
             w << "idx += gridDim.x)";
             w.block_begin();
+            w << "const int l_idx = idx / params->n2;\n";
+            // TODO: fix n_idx for NTTPhase1: this is for NTTPhase2
+            w << "int n_idx = (idx % params->n2) * params->n1 + threadIdx.x;\n";
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
-                    LOG_ERROR("Not implemented\n");
+                    std::vector<std::string> args;
+                    std::vector<std::string> args_if_gmem;
+                    if (op_type == core::OpType::Add) {
+                        args.push_back("ElemWiseOp::Add");
+                    } else if (op_type == core::OpType::Sub) {
+                        args.push_back("ElemWiseOp::Sub");
+                    } else if (op_type == core::OpType::Mult) {
+                        args.push_back("ElemWiseOp::Mult");
+                    }
+                    args.push_back("params");
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_in_edges().size() == 2);
+                    for (auto edge : node->get_out_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back("shared");
+                            args_if_gmem.push_back("0");
+                        }
+                    }
+                    for (auto edge : node->get_in_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back("shared");
+                            args_if_gmem.push_back("0");
+                        }
+                    }
+                    args.insert(args.end(), args_if_gmem.begin(),
+                                args_if_gmem.end());
+                    args.push_back("params->n2");
+                    args.push_back("l_idx");
+                    args.push_back("n_idx");
+                    args.push_back("threadIdx.x + i * params->n2 / 8");
+                    w << "for (int i = 0; i < 8; i++)";
+                    w.block_begin();
+                    w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
+                    w << "n_idx += params->n2/8;\n";
+                    w.block_end();
                 } else if (op_type == core::OpType::NTTPhase1) {
                     // If inedge is Global, load from global at first
                     if (node->get_in_edges()[0]->get_level() ==

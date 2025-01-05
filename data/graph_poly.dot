@@ -3,8 +3,8 @@ Init[label="Init"];
 NTT0[label="NTT"];
 Add0[label="Add"];
 End[label="End"];
-Init->NTT0[label="6553620"];
 Init->Add0[label="6553620"];
-NTT0->Add0[label="6553620"];
-Add0->End[label="6553620"];
+Init->Add0[label="6553620"];
+Add0->NTT0[label="6553620"];
+NTT0->End[label="6553620"];
 }
