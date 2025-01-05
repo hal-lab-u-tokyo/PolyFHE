@@ -696,6 +696,8 @@ void CudaCodegen::generate_include(
     w << "#include <chrono>\n";
     w << "#include <iostream>\n\n";
     w << "#include <numeric>\n";
+    w << "#include <vector>\n";
+    w << "#include <stdio.h>\n";
     w << "#include \"hifive/kernel/device_context.hpp\"\n\n";
     w << "#include \"hifive/kernel/polynomial.hpp\"\n\n";
     w << "#include \"hifive/kernel/ntt.hpp\"\n\n";

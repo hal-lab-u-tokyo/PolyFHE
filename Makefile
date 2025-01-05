@@ -52,8 +52,8 @@ CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph -lboost_program_options
 BIN=build/cc-hifive
 
-CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./hifive/kernel/FullRNS-HEAAN/src/ -I./  --relocatable-device-code true
-LDFLAGS_RUNTIME=-L./hifive/kernel/FullRNS-HEAAN/lib/ -lFRNSHEAAN
+CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./  --relocatable-device-code true
+LDFLAGS_RUNTIME=
 BIN_RUNTIME=build/bench
 
 $(BIN): $(SRC) $(HDR) $(OBJ)
