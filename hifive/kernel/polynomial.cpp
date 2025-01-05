@@ -1,7 +1,88 @@
 #include "hifive/kernel/polynomial.hpp"
 
+#include <cstdint>
+
+#include "hifive/kernel/device_context.hpp"
+
 void Add_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b) {
-    for (int i = 0; i < params->N * params->limb; i++) {
-        dst[i] = a[i] + b[i];
+    for (int i = 0; i < params->limb; i++) {
+        uint64_t qi = params->ntt_params->q[i];
+        for (int j = 0; j < params->N; j++) {
+            dst[i * params->N + j] =
+                (a[i * params->N + j] + b[i * params->N + j]) % qi;
+        }
+    }
+}
+
+void Sub_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b) {
+    for (int i = 0; i < params->limb; i++) {
+        uint64_t qi = params->ntt_params->q[i];
+        for (int j = 0; j < params->N; j++) {
+            dst[i * params->N + j] =
+                (a[i * params->N + j] + qi - b[i * params->N + j]) % qi;
+        }
+    }
+}
+
+void Mult_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b) {
+    for (int i = 0; i < params->limb; i++) {
+        uint64_t qi = params->ntt_params->q[i];
+        for (int j = 0; j < params->N; j++) {
+            dst[i * params->N + j] =
+                (a[i * params->N + j] * b[i * params->N + j]) % qi;
+        }
+    }
+}
+
+void NTT_h(Params *params, uint64_t *dst, uint64_t *src) {
+    for (int l = 0; l < params->limb; l++) {
+        const uint64_t q = params->ntt_params->q[l];
+        uint64_t *dst_l = dst + l * params->N;
+        uint64_t *src_l = src + l * params->N;
+        uint64_t t = params->N;
+        uint64_t j1, j2;
+        for (int m = 1; m < params->N; m <<= 1) {
+            t >>= 1;
+            for (int i = 0; i < m; i++) {
+                j1 = i * t * 2;
+                j2 = j1 + t - 1;
+                for (int j = j1; j <= j2; j++) {
+                    uint64_t u = src_l[j];
+                    uint64_t v = src_l[j + t];
+                    v = (v * params->ntt_params->roots_pow[l][m + i]) % q;
+                    dst_l[j] = (u + v) % q;
+                    dst_l[j + t] = (u + q - v) % q;
+                }
+            }
+        }
+    }
+}
+
+void iNTT_h(Params *params, uint64_t *dst, uint64_t *src) {
+    for (int l = 0; l < params->limb; l++) {
+        const uint64_t q = params->ntt_params->q[l];
+        uint64_t *dst_l = dst + l * params->N;
+        uint64_t *src_l = src + l * params->N;
+        uint64_t t = 1;
+        uint64_t j1, j2, h;
+        for (int m = params->N; m > 1; m >>= 1) {
+            j1 = 0;
+            h = m >> 1;
+            for (int i = 0; i < h; i++) {
+                j2 = j1 + t - 1;
+                for (int j = j1; j <= j2; j++) {
+                    uint64_t u = src_l[j];
+                    uint64_t v = src_l[j + t];
+                    uint64_t root = params->ntt_params->roots_pow_inv[l][h + i];
+                    dst_l[j] = (u + v) % q;
+                    dst_l[j + t] = (((u + q - v) % q) * root) % q;
+                }
+                j1 += t << 1;
+            }
+            t <<= 1;
+        }
+        for (int i = 0; i < params->N; i++) {
+            dst_l[i] = (dst_l[i] * params->ntt_params->N_inv[l]) % q;
+        }
     }
 }

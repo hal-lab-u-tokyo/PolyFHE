@@ -1,5 +1,6 @@
 #include "hifive/engine/codegen/cuda_codegen.hpp"
 
+#include <iostream>
 #include <string>
 
 #include "hifive/core/logger.hpp"
@@ -109,153 +110,204 @@ void CudaCodegen::generate_kernel_defs(
         w << ")";
         w.block_begin();
 
-        if (subgraph->get_block_phase() !=
-            hifive::core::BlockPhase::NTTPhase0) {
-            w << "extern __shared__ uint64_t shared[];\n";
-        }
-        for (auto node : subgraph->get_nodes()) {
-            w << "// " << node->get_op_name() << "\n";
-            if (node->get_op_type() == core::OpType::Add) {
-                // ==============================
-                // Add
-                // ==============================
-                if (subgraph->get_block_phase() ==
-                    hifive::core::BlockPhase::NTTPhase1) {
-                    w << "Add_Phase1";
-                } else if (subgraph->get_block_phase() ==
-                           hifive::core::BlockPhase::NTTPhase2) {
-                    w << "Add_Phase2";
-                } else if (subgraph->get_block_phase() ==
-                           hifive::core::BlockPhase::NTTPhase0) {
-                    w << "Add_Phase0";
-                }
-                std::vector<std::string> args;
-                std::vector<std::string> args_if_gmem;
-                args.push_back("params");
-                assert(node->get_out_edges().size() == 1);
-                assert(node->get_in_edges().size() == 2);
-                for (auto edge : node->get_out_edges()) {
-                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                        args.push_back(edge->get_name());
-                        args_if_gmem.push_back("true");
-                    } else {
-                        args.push_back("shared");
-                        args_if_gmem.push_back("false");
+        core::SubgraphType s_type = subgraph->get_subgraph_type();
+        std::cout << "Subgraph type: " << s_type << std::endl;
+        if (s_type == core::SubgraphType::Elem) {
+            if (subgraph->get_nodes().size() > 1) {
+                w << "extern __shared__ uint64_t shared[];\n";
+            }
+            w << "for (int idx = threadIdx.x + blockIdx.x * blockDim.x;";
+            w << "idx < params->N * params->limb;";
+            w << "idx += blockDim.x * gridDim.x)";
+            w.block_begin();
+            w << "const int l_idx = idx / params->N;\n";
+            w << "const int n_idx = idx % params->N;\n";
+            for (auto node : subgraph->get_nodes()) {
+                w << "// " << node->get_op_name() << "\n";
+                core::OpType op_type = node->get_op_type();
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub ||
+                    op_type == core::OpType::Mult) {
+                    // ==============================
+                    // Add, Sub, Mult
+                    // ==============================
+                    std::vector<std::string> args;
+                    std::vector<std::string> args_if_gmem;
+                    if (op_type == core::OpType::Add) {
+                        args.push_back("ElemWiseOp::Add");
+                    } else if (op_type == core::OpType::Sub) {
+                        args.push_back("ElemWiseOp::Sub");
+                    } else if (op_type == core::OpType::Mult) {
+                        args.push_back("ElemWiseOp::Mult");
                     }
-                }
-                for (auto edge : node->get_in_edges()) {
-                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                        args.push_back(edge->get_name());
-                        args_if_gmem.push_back("true");
-                    } else {
-                        args.push_back("shared");
-                        args_if_gmem.push_back("false");
-                    }
-                }
-                if (subgraph->get_block_phase() !=
-                    hifive::core::BlockPhase::NTTPhase0) {
-                    args.push_back("nyBatch");
-                    args.insert(args.end(), args_if_gmem.begin(),
-                                args_if_gmem.end());
-                }
-                w << "(" << GenerateArgs(args) << ");\n";
-            } else if (node->get_op_type() == core::OpType::Mult) {
-                // ==============================
-                // Mult
-                // ==============================
-                std::shared_ptr<hifive::core::Edge> global_output = nullptr;
-                std::shared_ptr<hifive::core::Edge> shared_output = nullptr;
-                std::vector<std::string> args;
-                args.push_back("params");
-                args.push_back(GenerateN(subgraph->get_block_phase()));
-                args.push_back("params->L");
-                // output
-                if (node->get_out_edges().size() == 1) {
-                    // When only one output
-                    w << "// Mult";
-                    auto outedge = node->get_out_edges()[0];
-                    if (outedge->get_level() ==
-                        hifive::core::EdgeLevel::Global) {
-                        args.push_back(outedge->get_name());
-                    } else {
-                        args.push_back("shared");
-                    }
-                } else {
-                    // When multiple outputs
-                    // If there is no Global output, use Mult
-                    // If there is no Shared output, use Mult
-                    // If there is both Global and Shared outputs, use
-                    // MultOutputTwo
+                    args.push_back("params");
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_in_edges().size() == 2);
                     for (auto edge : node->get_out_edges()) {
                         if (edge->get_level() ==
                             hifive::core::EdgeLevel::Global) {
-                            if (global_output != nullptr) {
-                                continue;
-                            }
-                            global_output = edge;
-                        } else if (edge->get_level() ==
-                                   hifive::core::EdgeLevel::Shared) {
-                            if (shared_output != nullptr) {
-                                continue;
-                            }
-                            shared_output = edge;
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back("shared");
+                            args_if_gmem.push_back("0");
                         }
                     }
-                    if (global_output == nullptr) {
-                        // Some Shared outputs but no Global output
-                        w << "// Mult";
-                        args.push_back("shared");
-                    } else if (shared_output == nullptr) {
-                        // Some Global outputs but no Shared output
-                        w << "// Mult";
-                        args.push_back(global_output->get_name());
-                    } else {
-                        // One Global output and some Shared outputs
-                        // dst0: global_output
-                        // dst1: shared
-                        w << "// MultOutputTwo";
-                        args.push_back(global_output->get_name());
-                        args.push_back("shared");
+                    for (auto edge : node->get_in_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back("shared");
+                            args_if_gmem.push_back("0");
+                        }
                     }
-                }
-                // input
-                assert(node->get_in_edges().size() == 2);
-                for (auto edge : node->get_in_edges()) {
-                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                        args.push_back(edge->get_name());
-                    } else {
-                        args.push_back("shared");
-                    }
-                }
-
-                // N
-                if (node->get_out_edges().size() == 1) {
-                    if (node->get_out_edges()[0]->get_level() ==
-                        hifive::core::EdgeLevel::Global) {
-                        args.push_back("N");
-                    } else {
-                        args.push_back(GenerateN(subgraph->get_block_phase()));
-                    }
+                    args.insert(args.end(), args_if_gmem.begin(),
+                                args_if_gmem.end());
+                    args.push_back("blockDim.x");
+                    args.push_back("l_idx");
+                    args.push_back("n_idx");
+                    w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
                 } else {
-                    if (global_output == nullptr) {
-                        // Mult with only Shared output
-                        args.push_back(GenerateN(subgraph->get_block_phase()));
-                    } else if (shared_output == nullptr) {
-                        // Mult with only Global output
-                        args.push_back("N");
-                    } else {
-                        // MultOutputTwo
-                        // dst0: global_output
-                        // dst1: shared
-                        args.push_back("N");
-                        args.push_back(GenerateN(subgraph->get_block_phase()));
-                    }
+                    LOG_ERROR(
+                        "Only Add, Sub, Mult are supported for "
+                        "SubgraphType::Elem\n");
+                    std::cerr << "op_type: " << core::toStringOpType(op_type)
+                              << std::endl;
                 }
-                args.push_back(GenerateNByLevel(node->get_in_edges()[0],
-                                                node->get_block_phase()));
-                args.push_back(GenerateNByLevel(node->get_in_edges()[1],
-                                                node->get_block_phase()));
-                w << "(" << GenerateArgs(args) << ");\n";
+            }
+            w.block_end();
+        } else if (s_type == core::SubgraphType::ElemLimb1) {
+            w << "extern __shared__ uint64_t shared[];\n";
+            w << "for (int idx = blockIdx.x;";
+            w << "idx < params->n2 * params->limb;";
+            w << "idx += gridDim.x)";
+            w.block_begin();
+            for (auto node : subgraph->get_nodes()) {
+                w << "// " << node->get_op_name() << "\n";
+                core::OpType op_type = node->get_op_type();
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub ||
+                    op_type == core::OpType::Mult) {
+                    LOG_ERROR("Not implemented\n");
+                } else if (op_type == core::OpType::NTTPhase1) {
+                    // If inedge is Global, load from global at first
+                    if (node->get_in_edges()[0]->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        std::vector<std::string> args_load;
+                        args_load.push_back(
+                            node->get_in_edges()[0]->get_name());
+                        args_load.push_back("shared");
+                        args_load.push_back("params->N");
+                        args_load.push_back("params->n1");
+                        args_load.push_back("params->n2");
+                        w << "load_g2s_phase1(" << GenerateArgs(args_load)
+                          << ");\n";
+                    }
+                    // Call NTTPhase1
+                    std::vector<std::string> args;
+                    args.push_back("shared");
+                    args.push_back("params->ntt_params");
+                    args.push_back("idx/params->n2");
+                    args.push_back("threadIdx.x");
+                    w << "NTTPhase1Op(" << GenerateArgs(args) << ");\n";
+                    // Outedge must be Global
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_out_edges()[0]->get_level() ==
+                           hifive::core::EdgeLevel::Global);
+                    // Store to global
+                    std::vector<std::string> args_store;
+                    args_store.push_back(node->get_out_edges()[0]->get_name());
+                    args_store.push_back("shared");
+                    args_store.push_back("params->N");
+                    args_store.push_back("params->n1");
+                    args_store.push_back("params->n2");
+                    w << "store_s2g_phase1(" << GenerateArgs(args_store)
+                      << ");\n";
+
+                } else if (op_type == core::OpType::iNTTPhase1) {
+                    LOG_ERROR("Not implemented\n");
+                } else {
+                    LOG_ERROR(
+                        "Only ElementWiseOp, NTTPhase1 and iNTTPhase1 are "
+                        "supported for SubgraphType::ElemLimb1\n");
+                    std::cerr << "op_type: " << core::toStringOpType(op_type)
+                              << std::endl;
+                }
+            }
+            w.block_end();
+        } else if (s_type == core::SubgraphType::ElemLimb2) {
+            w << "extern __shared__ uint64_t shared[];\n";
+            w << "for (int idx = blockIdx.x;";
+            w << "idx < params->n1 * params->limb;";
+            w << "idx += gridDim.x)";
+            w.block_begin();
+            for (auto node : subgraph->get_nodes()) {
+                w << "// " << node->get_op_name() << "\n";
+                core::OpType op_type = node->get_op_type();
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub ||
+                    op_type == core::OpType::Mult) {
+                    LOG_ERROR("Not implemented\n");
+                } else if (op_type == core::OpType::NTTPhase2) {
+                    // Inedge must be Global
+                    assert(node->get_in_edges().size() == 1);
+                    assert(node->get_in_edges()[0]->get_level() ==
+                           hifive::core::EdgeLevel::Global);
+                    std::vector<std::string> args_load;
+                    args_load.push_back(node->get_in_edges()[0]->get_name());
+                    args_load.push_back("shared");
+                    args_load.push_back("params->N");
+                    args_load.push_back("params->n1");
+                    args_load.push_back("params->n2");
+                    w << "load_g2s_phase2(" << GenerateArgs(args_load)
+                      << ");\n";
+
+                    // Call NTTPhase2
+                    std::vector<std::string> args;
+                    args.push_back("shared");
+                    args.push_back("params->ntt_params");
+                    args.push_back("idx/params->n1");
+                    args.push_back("threadIdx.x");
+                    args.push_back("tid % (params->N / 8)");
+                    w << "size_t tid = blockIdx.x * blockDim.x + "
+                         "threadIdx.x;\n";
+                    w << "NTTPhase2Op(" << GenerateArgs(args) << ");\n";
+
+                    // Store to global if required
+                    for (auto edge : node->get_out_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            std::vector<std::string> args_store;
+                            args_store.push_back(edge->get_name());
+                            args_store.push_back("shared");
+                            args_store.push_back("params->N");
+                            args_store.push_back("params->n1");
+                            args_store.push_back("params->n2");
+                            w << "store_s2g_phase2(" << GenerateArgs(args_store)
+                              << ");\n";
+                        }
+                    }
+                } else if (op_type == core::OpType::iNTTPhase2) {
+                    LOG_ERROR("Not implemented\n");
+                } else {
+                    LOG_ERROR(
+                        "Only ElementWiseOp, NTTPhase2 and iNTTPhase2 are "
+                        "supported for SubgraphType::ElemLimb1\n");
+                    std::cerr << "op_type: " << core::toStringOpType(op_type)
+                              << std::endl;
+                }
+            }
+            w.block_end();
+        } else {
+            LOG_ERROR("Not implemented\n");
+        }
+        /*
+        for (auto node : subgraph->get_nodes()) {
+            w << "// " << node->get_op_name() << "\n";
+            if (node->get_op_type() == core::OpType::Add) {
+            } else if (node->get_op_type() == core::OpType::Mult) {
             } else if (node->get_op_type() == core::OpType::NTTPhase1) {
                 // ==============================
                 // NTTPhase1
@@ -337,12 +389,88 @@ void CudaCodegen::generate_kernel_defs(
                 }
             }
         }
+        */
 
         w.block_end();
         w << "\n\n";
     }
 
     w.write_to_file(filename, if_append);
+}
+
+void CudaCodegen::generate_call_kernels(
+    std::shared_ptr<hifive::core::Graph>& graph, CodeWriter& w) {
+    w << "// Call kernel\n";
+    // w << "dim3 gridPhase1(params_h->n2);\n";
+    // w << "dim3 gridPhase2(params_h->n1);\n";
+    // w << "dim3 gridCommon(2048);\n";
+    // w << "dim3 blockPhase1(params_h->n1 / 8);\n";
+    // w << "dim3 blockPhase2(params_h->n2 / 8);\n";
+    // w << "dim3 blockCommon(128);\n";
+    // w << "const int shared_size_phase1 = params_h->n1 * params_h->L * "
+    //      "sizeof(uint64_t);\n";
+    // w << "const int shared_size_phase2 = params_h->n2 * params_h->L * "
+    //      "sizeof(uint64_t);\n";
+    // w << "const int shared_size_common = 128 * sizeof(uint64_t);\n";
+
+    w << "// Timer start\n";
+    w << "auto start = std::chrono::high_resolution_clock::now();\n";
+    for (auto subgraph : graph->get_subgraphs()) {
+        core::SubgraphType s_type = subgraph->get_subgraph_type();
+        if (s_type == core::SubgraphType::Elem) {
+            // If subgraph contains only ONE node, we don't need to malloc
+            // shared memory
+            if (subgraph->get_nodes().size() == 1) {
+                w << subgraph->get_name() << "<<<gridCommon, blockCommon>>>";
+            } else {
+                w << subgraph->get_name()
+                  << "<<<gridCommon, blockCommon, shared_size_common>>>";
+            }
+        } else if (s_type == core::SubgraphType::ElemLimb1) {
+            // NTTPhase1 uses shared memory even if it contains only one node
+            w << subgraph->get_name()
+              << "<<<params_h->n2 * params_h->limb, params_h->n1/8, "
+                 "params_h->n1 * sizeof(uint64_t)>>>";
+
+        } else if (s_type == core::SubgraphType::ElemLimb2) {
+            // NTTPhase2 uses shared memory even if it contains only one node
+            w << subgraph->get_name()
+              << "<<<params_h->n1 * params_h->limb, params_h->n2/8, "
+                 "params_h->n2 * sizeof(uint64_t)>>>";
+        } else {
+            LOG_ERROR("Not implemented\n");
+        }
+        w << "(params_d";
+        if (subgraph->get_block_phase() !=
+            hifive::core::BlockPhase::NTTPhase0) {
+            w << ", " << subgraph->get_nx_batch();
+            w << ", " << subgraph->get_ny_batch();
+        }
+        for (auto node : subgraph->get_nodes()) {
+            for (auto edge : node->get_in_edges()) {
+                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                    auto same_result_edge = edge->get_same_result_edge();
+                    if (same_result_edge == nullptr) {
+                        LOG_ERROR("No same result global edge\n");
+                        assert(false);
+                    }
+                    w << ", " << same_result_edge->get_name() << "_d";
+                }
+            }
+            for (auto edge : node->get_out_edges()) {
+                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                    w << ", " << edge->get_name() << "_d";
+                    // We need to global-output only once
+                    break;
+                }
+            }
+        }
+        w << ");\n";
+    }
+    w << "checkCudaErrors(cudaDeviceSynchronize());\n";
+    w << "// Timer Stop\n";
+    w << "auto end = std::chrono::high_resolution_clock::now();\n";
+    w << "\n";
 }
 
 void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
@@ -458,64 +586,37 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "// Test\n";
     w << "// =====================================\n";
     w << "std::cout << \"### Warm up and Test\" << std::endl;\n";
+    w << "std::cout << \"N : \" << params_h->N << std::endl;\n";
+    w << "std::cout << \"n1: \" << params_h->n1 << std::endl;\n";
+    w << "std::cout << \"n2: \" << params_h->n2 << std::endl;\n";
+    w << "std::cout << \"L : \" << params_h->L << std::endl;\n";
     w.block_begin();
-    w << "// Call kernel\n";
-    w << "dim3 gridPhase1(params_h->n2);\n";
-    w << "dim3 gridPhase2(params_h->n1);\n";
-    w << "dim3 gridCommon(2048);\n";
-    w << "dim3 blockPhase1(params_h->n1 / 8);\n";
-    w << "dim3 blockPhase2(params_h->n2 / 8);\n";
-    w << "dim3 blockCommon(128);\n";
-    w << "const int shared_size_phase1 = params_h->n1 * params_h->L * "
-         "sizeof(uint64_t);\n";
-    w << "const int shared_size_phase2 = params_h->n2 * params_h->L * "
-         "sizeof(uint64_t);\n";
-    for (auto subgraph : graph->get_subgraphs()) {
-        if (subgraph->get_block_phase() ==
-            hifive::core::BlockPhase::NTTPhase1) {
-            w << subgraph->get_name()
-              << "<<<gridPhase1, blockPhase1, shared_size_phase1>>>";
-        } else if (subgraph->get_block_phase() ==
-                   hifive::core::BlockPhase::NTTPhase2) {
-            w << subgraph->get_name()
-              << "<<<gridPhase2, blockPhase2, shared_size_phase2>>>";
-        } else if (subgraph->get_block_phase() ==
-                   hifive::core::BlockPhase::NTTPhase0) {
-            w << subgraph->get_name() << "<<<gridCommon, blockCommon>>>";
-        }
-        w << "(params_d";
-        if (subgraph->get_block_phase() !=
-            hifive::core::BlockPhase::NTTPhase0) {
-            w << ", " << subgraph->get_nx_batch();
-            w << ", " << subgraph->get_ny_batch();
-        }
-        for (auto node : subgraph->get_nodes()) {
-            for (auto edge : node->get_in_edges()) {
-                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                    auto same_result_edge = edge->get_same_result_edge();
-                    if (same_result_edge == nullptr) {
-                        LOG_ERROR("No same result global edge\n");
-                        assert(false);
-                    }
-                    w << ", " << same_result_edge->get_name() << "_d";
-                }
-            }
-            for (auto edge : node->get_out_edges()) {
-                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                    w << ", " << edge->get_name() << "_d";
-                    // We need to global-output only once
-                    break;
-                }
-            }
-        }
-        w << ");\n";
-    }
-    w << "cudaDeviceSynchronize();\n";
+    generate_call_kernels(graph, w);
 
     w << "\n";
     w << "// Call CPU\n";
     for (auto subgraph : graph->get_subgraphs()) {
         for (auto node : subgraph->get_nodes()) {
+            core::OpType op_type = node->get_op_type();
+            if (op_type == core::OpType::NTTPhase1) {
+                auto phase2_node = node->get_out_edges()[0]->get_dst();
+                auto phase2_outedge = phase2_node->get_out_edges()[0];
+                w << "NTT_h(params_h,";
+                w << phase2_outedge->get_name() << "_h, ";
+                w << node->get_in_edges()[0]->get_name() << "_h);\n";
+                continue;
+            } else if (op_type == core::OpType::NTTPhase2) {
+                continue;
+            } else if (op_type == core::OpType::iNTTPhase2) {
+                auto phase1_node = node->get_out_edges()[0]->get_dst();
+                auto phase1_outedge = phase1_node->get_out_edges()[0];
+                w << "iNTT_h(params_h,";
+                w << phase1_outedge->get_name() << "_h, ";
+                w << node->get_in_edges()[0]->get_name() << "_h);\n";
+                continue;
+            } else if (op_type == core::OpType::iNTTPhase1) {
+                continue;
+            }
             w << node->get_op_type_str() << "_h";
             w << "(params_h";
             for (auto edge : node->get_out_edges()) {
@@ -534,6 +635,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << "cudaMemcpy(" << edge->get_name() << "_h_from_d, "
           << edge->get_name()
           << "_d, N * L * sizeof(uint64_t), cudaMemcpyDeviceToHost);\n";
+        w << "bool if_fail = false;\n";
         w << "for (int i = 0; i < N * L; i++)";
         w.block_begin();
         w << "if (";
@@ -544,10 +646,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << "result: \" << " << edge->get_name() << "_h_from_d[i] << \" vs ";
         w << "expected: \" << " << edge->get_name() << "_h[i] << std::endl;\n";
         w << "std::cout << \"Check failed\" << std::endl;\n";
-        w << "return;\n";
+        w << "if_fail = true;\n";
+        w << "break;\n";
         w.block_end();
         w.block_end();
-        w << "std::cout << \"Check passed\" << std::endl;\n";
+        w << "if (!if_fail) {std::cout << \"Check passed\" << std::endl;}\n";
     }
     w.block_end(); // warm up
 
@@ -560,63 +663,12 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "std::vector<double> elapsed_times;\n";
     w << "for (int i = 0; i < 5; i++)\n";
     w.block_begin();
-    w << "// Timer start\n";
-    w << "auto start = std::chrono::high_resolution_clock::now();\n";
 
     w << "\n";
-    w << "// Call kernels\n";
-    w << "dim3 gridPhase1(params_h->n2);\n";
-    w << "dim3 gridPhase2(params_h->n1);\n";
-    w << "dim3 gridCommon(2048);\n";
-    w << "dim3 blockPhase1(params_h->n2 / 8);\n";
-    w << "dim3 blockPhase2(params_h->n2 / 8);\n";
-    w << "dim3 blockCommon(128);\n";
-    w << "const int shared_size_phase1 = params_h->n1 * params_h->L * "
-         "sizeof(uint64_t);\n";
-    w << "const int shared_size_phase2 = params_h->n2 * params_h->L * "
-         "sizeof(uint64_t);\n";
-    for (auto subgraph : graph->get_subgraphs()) {
-        if (subgraph->get_block_phase() ==
-            hifive::core::BlockPhase::NTTPhase1) {
-            w << subgraph->get_name()
-              << "<<<gridPhase1, blockPhase1, shared_size_phase1>>>";
-        } else {
-            w << subgraph->get_name()
-              << "<<<gridPhase2, blockPhase2, shared_size_phase2>>>";
-        }
-        w << "(params_d";
-        if (subgraph->get_block_phase() !=
-            hifive::core::BlockPhase::NTTPhase0) {
-            w << ", " << subgraph->get_nx_batch();
-            w << ", " << subgraph->get_ny_batch();
-        }
-        for (auto node : subgraph->get_nodes()) {
-            for (auto edge : node->get_in_edges()) {
-                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                    auto same_result_edge = edge->get_same_result_edge();
-                    if (same_result_edge == nullptr) {
-                        LOG_ERROR("No same result global edge\n");
-                        assert(false);
-                    }
-                    w << ", " << same_result_edge->get_name() << "_d";
-                }
-            }
-            for (auto edge : node->get_out_edges()) {
-                if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                    w << ", " << edge->get_name() << "_d";
-                    // We need to global-output only once
-                    break;
-                }
-            }
-        }
-        w << ");\n";
-    }
+    generate_call_kernels(graph, w);
 
     // Timer
     w << "\n";
-    w << "// Timer Stop\n";
-    w << "checkCudaErrors(cudaDeviceSynchronize());\n";
-    w << "auto end = std::chrono::high_resolution_clock::now();\n";
     w << "auto elapsed_usec = "
          "std::chrono::duration_cast<std::chrono::microseconds>(end - "
          "start);\n";

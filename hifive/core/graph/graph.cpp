@@ -5,6 +5,33 @@
 namespace hifive {
 namespace core {
 
+std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type) {
+    switch (subgraph_type) {
+    case SubgraphType::Elem:
+        os << "Elem";
+        break;
+    case SubgraphType::ElemLimb1:
+        os << "ElemLimb1";
+        break;
+    case SubgraphType::ElemLimb2:
+        os << "ElemLimb2";
+        break;
+    case SubgraphType::ElemSlot:
+        os << "ElemSlot";
+        break;
+    case SubgraphType::ElemLimb1Slot:
+        os << "ElemLimb1Slot";
+        break;
+    case SubgraphType::ElemLimb2Slot:
+        os << "ElemLimb2Slot";
+        break;
+    default:
+        LOG_ERROR("Invalid SubgraphType\n");
+        exit(1);
+    }
+    return os;
+}
+
 void Graph::add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst) {
     add_edge(src, dst, "");
 }

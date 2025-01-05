@@ -1,4 +1,7 @@
+#include <csignal>
+
 #include "hifive/kernel/polynomial.hpp"
+#include "polynomial.hpp"
 
 struct uint128_t {
     uint64_t hi = 0;
@@ -179,4 +182,35 @@ __device__ void Mult(Params *params, const int n, const int l, uint64_t *dst,
         const int b_idx = l_idx * n_b + n_idx;
         dst[dst_idx] = modmul(a[a_idx], b[b_idx], qi, mu, twok);
     }
+}
+__device__ void ElemWiseOp_Elem(ElemWiseOp op, Params *params, uint64_t *dst,
+                                const uint64_t *a, const uint64_t *b,
+                                const int dst_global, const int a_global,
+                                const int b_global, const int sPoly_x,
+                                const int l_idx, const int n_idx) {
+    const uint64_t qi = params->qVec[l_idx];
+    // const uint64_t mu = params->qrVec[l_idx];
+    // const uint64_t twok = params->qTwok[l_idx];
+    const int dst_idx = dst_global * (l_idx * params->N + n_idx) +
+                        (1 - dst_global) * threadIdx.x;
+    const int a_idx =
+        a_global * (l_idx * params->N + n_idx) + (1 - a_global) * threadIdx.x;
+    const int b_idx =
+        b_global * (l_idx * params->N + n_idx) + (1 - b_global) * threadIdx.x;
+    uint64_t res;
+    if (op == ElemWiseOp::Add) {
+        res = a[a_idx] + b[b_idx];
+        if (res >= qi) {
+            res -= qi;
+        }
+    } else if (op == ElemWiseOp::Sub) {
+        res = a[a_idx] + qi - b[b_idx];
+        if (res >= qi) {
+            res -= qi;
+        }
+    } else if (op == ElemWiseOp::Mult) {
+        res = modmul(a[a_idx], b[b_idx], qi, params->qrVec[l_idx],
+                     params->qTwok[l_idx]);
+    }
+    dst[dst_idx] = res;
 }

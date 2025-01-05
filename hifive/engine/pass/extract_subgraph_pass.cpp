@@ -113,6 +113,75 @@ CheckIfSubgraphNodesVisited(std::shared_ptr<hifive::core::Node> node,
     return std::make_optional(subgraph);
 }
 
+core::SubgraphType GetSubgraphType(core::SubGraph& s) {
+    if (s.get_nodes().size() == 0) {
+        LOG_ERROR("Subgraph is empty\n");
+        assert(false);
+    }
+
+    bool contains_elemwise = false;
+    bool contains_limbwise = false;
+    bool contains_ntt1 = false;
+    bool contains_ntt2 = false;
+    bool contains_slotwise = false;
+    for (auto node : s.get_nodes()) {
+        core::MemoryAccessPattern pattern = node->get_access_pattern();
+        if (pattern == core::MemoryAccessPattern::ElementWise) {
+            contains_elemwise = true;
+        } else if (pattern == core::MemoryAccessPattern::LimbWise) {
+            contains_limbwise = true;
+            core::OpType op_type = node->get_op_type();
+            if (op_type == core::OpType::NTTPhase1 ||
+                op_type == core::OpType::iNTTPhase1) {
+                contains_ntt1 = true;
+            } else if (op_type == core::OpType::NTTPhase2 ||
+                       op_type == core::OpType::iNTTPhase2) {
+                contains_ntt2 = true;
+            }
+        } else if (pattern == core::MemoryAccessPattern::SlotWise) {
+            contains_slotwise = true;
+        }
+    }
+
+    // Check if Phase1 or Phase2 in advance
+    bool if_phase1 = false;
+    if (contains_limbwise) {
+        if (contains_ntt1) {
+            if (contains_ntt2) {
+                LOG_ERROR(
+                    "Unknown SubgraphType: Both NTTPhase1 and 2 is "
+                    "contained to one subgraph.\n");
+                assert(false);
+            }
+            if_phase1 = true;
+        } else if (contains_ntt2) {
+            if_phase1 = false;
+        } else {
+            LOG_ERROR(
+                "Unknown SubgraphType: None of NTTPhase1 and 2 is "
+                "contained to one subgraph.\n");
+        }
+    }
+
+    //
+    if (contains_slotwise) {
+        if (contains_limbwise) {
+            return if_phase1 ? core::SubgraphType::ElemLimb1Slot
+                             : core::SubgraphType::ElemLimb2Slot;
+        } else {
+            return core::SubgraphType::ElemSlot;
+        }
+    } else if (contains_limbwise) {
+        return if_phase1 ? core::SubgraphType::ElemLimb1
+                         : core::SubgraphType::ElemLimb2;
+    } else if (contains_elemwise) {
+        return core::SubgraphType::Elem;
+    } else {
+        LOG_ERROR("Unknown SubgraphType\n");
+        assert(false);
+    }
+}
+
 bool ExtractSubgraphPass::run_on_graph(
     std::shared_ptr<hifive::core::Graph>& graph) {
     LOG_INFO("Running ExtractSubgraphPass\n");
@@ -166,16 +235,12 @@ bool ExtractSubgraphPass::run_on_graph(
                 subnode->set_idx_subgraph(idx_subgraph);
                 subgraph.add_node(subnode);
             }
-            // TODO: if NTT is not contained in subgraph, we don't need to
-            // specify block_phase
+            // Set block_phase
             subgraph.set_block_phase(node->get_block_phase());
-            if (subgraph.get_nodes().size() == 1) {
-                auto node = subgraph.get_nodes()[0];
-                if (node->get_op_type() != core::OpType::NTTPhase1 &&
-                    node->get_op_type() != core::OpType::NTTPhase2) {
-                    subgraph.set_block_phase(core::BlockPhase::NTTPhase0);
-                }
-            }
+
+            // Set Subgraph Type
+            subgraph.set_subgraph_type(GetSubgraphType(subgraph));
+
             // TODO: search for optimal ny_batch
             subgraph.set_nx_batch(1);
             subgraph.set_ny_batch(L);

@@ -7,7 +7,7 @@
 namespace hifive {
 namespace core {
 
-std::string OpType_str(OpType op_type) {
+std::string toStringOpType(OpType op_type) {
     switch (op_type) {
     case OpType::Add:
         return "Add";

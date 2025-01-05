@@ -3,9 +3,9 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}",
-                "/home/members/nozaki/mount/include/cuda",
-                "/home/members/nozaki/mount/HiFive"
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/hifive/**",
+                "/home/members/nozaki/mount/include/cuda"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/g++",
