@@ -1,5 +1,6 @@
 #include "hifive/engine/codegen/cuda_codegen.hpp"
 
+#include <iostream>
 #include <string>
 
 #include "hifive/core/logger.hpp"
@@ -109,13 +110,12 @@ void CudaCodegen::generate_kernel_defs(
         w << ")";
         w.block_begin();
 
-        if (subgraph->get_nodes().size() > 1) {
-            w << "extern __shared__ uint64_t shared[];\n";
-        }
-
         core::SubgraphType s_type = subgraph->get_subgraph_type();
         std::cout << "Subgraph type: " << s_type << std::endl;
         if (s_type == core::SubgraphType::Elem) {
+            if (subgraph->get_nodes().size() > 1) {
+                w << "extern __shared__ uint64_t shared[];\n";
+            }
             w << "for (int idx = threadIdx.x + blockIdx.x * blockDim.x;";
             w << "idx < params->N * params->limb;";
             w << "idx += blockDim.x * gridDim.x)";
@@ -179,6 +179,7 @@ void CudaCodegen::generate_kernel_defs(
             }
             w.block_end();
         } else if (s_type == core::SubgraphType::ElemLimb1) {
+            w << "extern __shared__ uint64_t shared[];\n";
             w << "for (int idx = blockIdx.x;";
             w << "idx < params->n2 * params->limb;";
             w << "idx += blockDim.x)";
@@ -191,7 +192,30 @@ void CudaCodegen::generate_kernel_defs(
                     op_type == core::OpType::Mult) {
                     LOG_ERROR("Not implemented\n");
                 } else if (op_type == core::OpType::NTTPhase1) {
-                    LOG_ERROR("Not implemented\n");
+                    // If inedge is Global, load from global at first
+                    if (node->get_in_edges()[0]->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        std::vector<std::string> args_load;
+                        args_load.push_back(
+                            node->get_in_edges()[0]->get_name());
+                        args_load.push_back("shared");
+                        args_load.push_back("params->N");
+                        args_load.push_back("params->n1");
+                        args_load.push_back("params->n2");
+                        // w << "load_g2s_phase1(" << GenerateArgs(args_load)
+                        //   << ");\n";
+                    }
+                    // Call NTTPhase1
+                    std::vector<std::string> args;
+                    args.push_back("shared");
+                    args.push_back("params->ntt_params");
+                    args.push_back("idx/params->n2");
+                    args.push_back("threadIdx.x");
+                    w << "NTTPhase1Op(" << GenerateArgs(args) << ");\n";
+                    // Outedge must be Global
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_out_edges()[0]->get_level() ==
+                           hifive::core::EdgeLevel::Global);
                 } else if (op_type == core::OpType::iNTTPhase1) {
                     LOG_ERROR("Not implemented\n");
                 } else {
@@ -204,6 +228,7 @@ void CudaCodegen::generate_kernel_defs(
             }
             w.block_end();
         } else if (s_type == core::SubgraphType::ElemLimb2) {
+            LOG_ERROR("Not implemented\n");
         } else {
             LOG_ERROR("Not implemented\n");
         }
@@ -334,13 +359,13 @@ void CudaCodegen::generate_call_kernels(
             // NTTPhase1 uses shared memory even if it contains only one node
             w << subgraph->get_name()
               << "<<<params_h->n2 * params_h->limb, params_h->n1/8, "
-                 "params_h->n1/8 * sizeof(uint64_t)>>>";
+                 "params_h->n1 * sizeof(uint64_t)>>>";
 
         } else if (s_type == core::SubgraphType::ElemLimb2) {
             // NTTPhase2 uses shared memory even if it contains only one node
             w << subgraph->get_name()
               << "<<<params_h->n1 * params_h->limb, params_h->n2/8, "
-                 "params_h->n2/8 * sizeof(uint64_t)>>>";
+                 "params_h->n2 * sizeof(uint64_t)>>>";
         } else {
             LOG_ERROR("Not implemented\n");
         }
