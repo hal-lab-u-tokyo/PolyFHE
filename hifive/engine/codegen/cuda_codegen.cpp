@@ -101,8 +101,9 @@ void CudaCodegen::generate_kernel_defs(
             for (auto edge : node->get_out_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
                     w << ", uint64_t *" << edge->get_name();
+                    // TODO: why?
                     // We need to global-output only once
-                    break;
+                    // break;
                 }
             }
         }
@@ -188,8 +189,8 @@ void CudaCodegen::generate_kernel_defs(
             w << "idx += gridDim.x)";
             w.block_begin();
             w << "const int l_idx = idx / params->n2;\n";
-            // TODO: fix n_idx for NTTPhase1: this is for NTTPhase2
-            w << "int n_idx = (idx % params->n2) * params->n1 + threadIdx.x;\n";
+            w << "const int n_idx = idx % params->n2;\n";
+            w << "int n_gidx = n_idx + threadIdx.x * params->n1;\n";
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
@@ -232,12 +233,12 @@ void CudaCodegen::generate_kernel_defs(
                                 args_if_gmem.end());
                     args.push_back("params->n2");
                     args.push_back("l_idx");
-                    args.push_back("n_idx");
-                    args.push_back("threadIdx.x + i * params->n2 / 8");
+                    args.push_back("n_gidx");
+                    args.push_back("threadIdx.x + i * params->n1 / 8");
                     w << "for (int i = 0; i < 8; i++)";
                     w.block_begin();
                     w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
-                    w << "n_idx += params->n2/8;\n";
+                    w << "n_gidx += params->n1 * blockDim.x;\n";
                     w.block_end();
                 } else if (op_type == core::OpType::NTTPhase1) {
                     // If inedge is Global, load from global at first
@@ -555,8 +556,9 @@ void CudaCodegen::generate_call_kernels(
             for (auto edge : node->get_out_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
                     w << ", " << edge->get_name() << "_d";
+                    // TODO: why?
                     // We need to global-output only once
-                    break;
+                    // break;
                 }
             }
         }
@@ -603,7 +605,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << "cudaMalloc((void **)&" << edge->get_name()
           << "_d, N * L * sizeof(uint64_t));\n";
         w << "for (int i = 0; i < N * L; i++) {" << edge->get_name()
-          << "_h[i] = 1;}\n";
+          << "_h[i] = i % 10;}\n";
         w << "cudaMemcpy(" << edge->get_name() << "_d, " << edge->get_name()
           << "_h, N * L * sizeof(uint64_t), cudaMemcpyHostToDevice);\n";
         i++;
@@ -651,9 +653,12 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                     continue;
                 }
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                    /*
+                    // TODO: Why we need to define global edge only once?
                     if (has_global_edge) {
                         continue;
                     }
+                    */
                     w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
                       << edge->get_dst()->get_op_name() << "\n";
                     w << "uint64_t *" << edge->get_name() << "_d;\n";
@@ -731,11 +736,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
 
     w << "\n";
     w << "// Copy back to host and check\n";
+    w << "bool if_fail = false;\n";
     for (auto edge : output_node->get_in_edges()) {
         w << "cudaMemcpy(" << edge->get_name() << "_h_from_d, "
           << edge->get_name()
           << "_d, N * L * sizeof(uint64_t), cudaMemcpyDeviceToHost);\n";
-        w << "bool if_fail = false;\n";
         w << "for (int i = 0; i < N * L; i++)";
         w.block_begin();
         w << "if (";
