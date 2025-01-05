@@ -15,14 +15,14 @@
 #include "hifive/frontend/exporter.hpp"
 #include "hifive/frontend/parser.hpp"
 
-struct Config {
+struct Args {
     std::string input_file;
     hifive::core::GraphType type;
     bool if_not_optimize;
 };
 
-Config define_and_parse_arguments(int argc, char** argv) {
-    Config config;
+Args define_and_parse_arguments(int argc, char** argv) {
+    Args args;
     boost::program_options::options_description desc("Hifive Options");
     desc.add_options()("noopt,n", "Not optimize graph")(
         "poly,p", "Input *.dot if poly graph")("help,h", "Print help message")(
@@ -43,27 +43,34 @@ Config define_and_parse_arguments(int argc, char** argv) {
         LOG_ERROR("Input file is required\n");
         exit(1);
     }
-    config.input_file = vm["input"].as<std::string>();
+    args.input_file = vm["input"].as<std::string>();
 
-    config.if_not_optimize = vm.count("noopt");
+    args.if_not_optimize = vm.count("noopt");
 
     if (vm.count("poly")) {
-        config.type = hifive::core::GraphType::Poly;
+        args.type = hifive::core::GraphType::Poly;
     } else {
-        config.type = hifive::core::GraphType::FHE;
+        args.type = hifive::core::GraphType::FHE;
     }
 
-    return config;
+    return args;
 }
 
 int main(int argc, char** argv) {
-    Config config = define_and_parse_arguments(argc, argv);
-    std::string input_file_tail = config.input_file.substr(
-        config.input_file.find_last_of("/") + 1, config.input_file.size());
+    // Read arguments
+    Args args = define_and_parse_arguments(argc, argv);
+    std::string input_file_tail = args.input_file.substr(
+        args.input_file.find_last_of("/") + 1, args.input_file.size());
     LOG_INFO("Input file: %s\n", input_file_tail.c_str());
 
+    // Read Hifive config file
+    hifive::Config config("config.csv");
+
+    // Parse dot file
     std::shared_ptr<hifive::core::Graph> graph =
-        hifive::frontend::ParseDotToGraph(config.input_file, config.type);
+        hifive::frontend::ParseDotToGraph(
+            args.input_file, args.type,
+            std::make_shared<hifive::Config>(config));
     hifive::frontend::export_graph_to_dot(graph, "build/" + input_file_tail);
 
     // PassManager
@@ -72,7 +79,7 @@ int main(int argc, char** argv) {
     // ==================================================
     //    Pass to FHE graph
     // ==================================================
-    if (config.type == hifive::core::GraphType::FHE) {
+    if (args.type == hifive::core::GraphType::FHE) {
         pass_manager.push_back(
             std::make_shared<hifive::engine::LoweringCKKSToPolyPass>());
     }
@@ -88,7 +95,7 @@ int main(int argc, char** argv) {
         std::make_shared<hifive::engine::SetBlockPhasePass>());
 
     // Pass: Data reuse
-    if (config.if_not_optimize) {
+    if (args.if_not_optimize) {
         LOG_INFO("Do not optimize graph\n");
         pass_manager.push_back(
             std::make_shared<hifive::engine::ExtractSubgraphPass>());
@@ -108,9 +115,9 @@ int main(int argc, char** argv) {
     std::cout << "==================================================\n";
     std::cout << "    Input file: " << input_file_tail << std::endl;
     std::cout << "    Graph type: "
-              << (config.type == hifive::core::GraphType::FHE ? "FHE" : "Poly")
+              << (args.type == hifive::core::GraphType::FHE ? "FHE" : "Poly")
               << std::endl;
-    std::cout << "    Optimize: " << (config.if_not_optimize ? "No" : "Yes")
+    std::cout << "    Optimize: " << (args.if_not_optimize ? "No" : "Yes")
               << std::endl;
     pass_manager.display_passes();
     std::cout << "==================================================\n";

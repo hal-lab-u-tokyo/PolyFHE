@@ -3,7 +3,6 @@
 #include <optional>
 
 #include "hifive/core/logger.hpp"
-#include "hifive/core/param.hpp"
 #include "hifive/engine/pass/data_reuse_pass.hpp"
 #include "hifive/frontend/exporter.hpp"
 
@@ -243,7 +242,7 @@ bool ExtractSubgraphPass::run_on_graph(
 
             // TODO: search for optimal ny_batch
             subgraph.set_nx_batch(1);
-            subgraph.set_ny_batch(L);
+            subgraph.set_ny_batch(1);
             graph->add_subgraph(
                 std::make_shared<hifive::core::SubGraph>(subgraph));
             idx_subgraph += 1;

@@ -4,7 +4,6 @@
 #include <string>
 
 #include "hifive/core/logger.hpp"
-#include "hifive/core/param.hpp"
 #include "hifive/engine/codegen/codegen_writer.hpp"
 
 namespace hifive {
@@ -590,6 +589,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "std::cout << \"n1: \" << params_h->n1 << std::endl;\n";
     w << "std::cout << \"n2: \" << params_h->n2 << std::endl;\n";
     w << "std::cout << \"L : \" << params_h->L << std::endl;\n";
+    w << "std::cout << \"q[0] : \" << params_h->ntt_params->q[0] << "
+         "std::endl;\n";
+    w << "std::cout << \"root[0] : \" << params_h->ntt_params->root[0] << "
+         "std::endl;\n";
+    w << "std::cout << \"------------------------------\" << std::endl;\n";
     w.block_begin();
     generate_call_kernels(graph, w);
 
@@ -696,6 +700,8 @@ void CudaCodegen::generate_include(
     w << "#include <chrono>\n";
     w << "#include <iostream>\n\n";
     w << "#include <numeric>\n";
+    w << "#include <vector>\n";
+    w << "#include <stdio.h>\n";
     w << "#include \"hifive/kernel/device_context.hpp\"\n\n";
     w << "#include \"hifive/kernel/polynomial.hpp\"\n\n";
     w << "#include \"hifive/kernel/ntt.hpp\"\n\n";
@@ -715,7 +721,9 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w << "int main(int argc, char *argv[])";
     w.block_begin();
     w << "std::cout << \"Starting Benchmarking...\" << std::endl;\n";
-    w << "FHEContext context;\n";
+    w << "FHEContext context(";
+    w << graph->m_config->logN << ", ";
+    w << graph->m_config->L << ");\n";
 
     w << "\n// Run the graph\n";
     w << "entry_kernel(context);\n";

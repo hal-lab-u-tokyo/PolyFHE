@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 
+#include "hifive/core/config.hpp"
 #include "hifive/core/graph/graph.hpp"
 
 namespace hifive {
@@ -26,6 +27,7 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS,
     graph_t;
 
 std::shared_ptr<hifive::core::Graph> ParseDotToGraph(
-    const std::string& dot, hifive::core::GraphType graph_type);
+    const std::string& dot, hifive::core::GraphType graph_type,
+    std::shared_ptr<hifive::Config> config);
 } // namespace frontend
 } // namespace hifive

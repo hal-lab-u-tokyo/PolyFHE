@@ -1,15 +1,7 @@
 #include <cstring>
+#include <vector>
 
 #include "device_context.hpp"
-#include "hifive/core/param.hpp"
-#include "hifive/kernel/FullRNS-HEAAN/src/Context.h"
-#include "hifive/kernel/FullRNS-HEAAN/src/EvaluatorUtils.h"
-#include "hifive/kernel/FullRNS-HEAAN/src/Numb.h"
-#include "hifive/kernel/FullRNS-HEAAN/src/Scheme.h"
-#include "hifive/kernel/FullRNS-HEAAN/src/SchemeAlgo.h"
-#include "hifive/kernel/FullRNS-HEAAN/src/SecretKey.h"
-#include "hifive/kernel/FullRNS-HEAAN/src/StringUtils.h"
-#include "hifive/kernel/FullRNS-HEAAN/src/TimeUtils.h"
 #include "hifive/kernel/device_context.hpp"
 
 uint64_t NTTSampleSize(const uint64_t logN) {
@@ -31,6 +23,63 @@ uint64_t NTTSampleSize(const uint64_t logN) {
     }
 }
 
+// from https://github.com/snucrypto/HEAAN, 131d275
+void mulMod(uint64_t &r, uint64_t a, uint64_t b, uint64_t m) {
+    unsigned __int128 mul = static_cast<unsigned __int128>(a) * b;
+    mul %= static_cast<unsigned __int128>(m);
+    r = static_cast<uint64_t>(mul);
+}
+
+// from https://github.com/snucrypto/HEAAN, 131d275
+uint64_t powMod(uint64_t x, uint64_t y, uint64_t modulus) {
+    uint64_t res = 1;
+    while (y > 0) {
+        if (y & 1) {
+            mulMod(res, res, x, modulus);
+        }
+        y = y >> 1;
+        mulMod(x, x, x, modulus);
+    }
+    return res;
+}
+
+// from https://github.com/snucrypto/HEAAN, 131d275
+void findPrimeFactors(std::vector<uint64_t> &s, uint64_t number) {
+    while (number % 2 == 0) {
+        s.push_back(2);
+        number /= 2;
+    }
+    for (uint64_t i = 3; i < sqrt(number); i++) {
+        while (number % i == 0) {
+            s.push_back(i);
+            number /= i;
+        }
+    }
+    if (number > 2) {
+        s.push_back(number);
+    }
+}
+
+// from https://github.com/snucrypto/HEAAN, 131d275
+uint64_t findPrimitiveRoot(uint64_t modulus) {
+    std::vector<uint64_t> s;
+    uint64_t phi = modulus - 1;
+    findPrimeFactors(s, phi);
+    for (uint64_t r = 2; r <= phi; r++) {
+        bool flag = false;
+        for (auto it = s.begin(); it != s.end(); it++) {
+            if (powMod(r, phi / (*it), modulus) == 1) {
+                flag = true;
+                break;
+            }
+        }
+        if (flag == false) {
+            return r;
+        }
+    }
+    throw "Cannot find the primitive root of unity";
+}
+
 uint64_t compute_shoup(const uint64_t operand, const uint64_t modulus) {
     if (operand >= modulus) {
         throw "Operand must be less than modulus";
@@ -41,20 +90,21 @@ uint64_t compute_shoup(const uint64_t operand, const uint64_t modulus) {
     return temp / modulus;
 }
 
-Params::Params(std::shared_ptr<HEAANContext> context) {
-    logN = context->logN;
-    L = context->L;
-    limb = context->L;
-    K = context->K;
-    N = context->N;
+Params::Params(int logN, int L) : logN(logN), L(L) {
+    limb = L;
+    K = L + 1;
+    N = 1 << logN;
     n1 = NTTSampleSize(logN);
     n2 = N / n1;
-    sigma = context->sigma;
-
-    qVec = context->qVec;
-    qrVec = context->qrVec;
-    qTwok = context->qTwok;
-    pVec = context->pVec;
+    sigma = 3.2;
+    qVec = new uint64_t[L];
+    pVec = new uint64_t[K];
+    for (int i = 0; i < L; i++) {
+        qVec[i] = 998244353; // 51-bit
+    }
+    for (int i = 0; i < K; i++) {
+        pVec[i] = 998244353; // 51-bit
+    }
 
     ntt_params = new NTTParams();
     ntt_params->N = N;
@@ -62,27 +112,40 @@ Params::Params(std::shared_ptr<HEAANContext> context) {
     ntt_params->n2 = n2;
     ntt_params->logN = logN;
     ntt_params->batch = L;
-
     ntt_params->q = qVec;
-    ntt_params->root = context->qRoots;
-    ntt_params->root_inv = context->qRootsInv;
-    ntt_params->N_inv = context->NInvModp;
-
-    ntt_params->roots_pow = new uint64_t *[L];
-    ntt_params->roots_pow_inv = new uint64_t *[L];
-    ntt_params->roots_pow_shoup = new uint64_t *[L];
-    ntt_params->roots_pow_inv_shoup = new uint64_t *[L];
-    memcpy(ntt_params->roots_pow, context->qRootPows, L * sizeof(uint64_t *));
-    memcpy(ntt_params->roots_pow_inv, context->qRootPowsInv,
-           L * sizeof(uint64_t *));
+    ntt_params->root = new uint64_t[L];
+    ntt_params->root_inv = new uint64_t[L];
+    ntt_params->N_inv = new uint64_t[L];
     for (int i = 0; i < L; i++) {
+        ntt_params->root[i] = findPrimitiveRoot(qVec[i]);
+        ntt_params->root_inv[i] =
+            powMod(ntt_params->root[i], qVec[i] - 2, qVec[i]);
+        ntt_params->N_inv[i] = powMod(N, qVec[i] - 2, qVec[i]);
+    }
+    ntt_params->roots_pow = new uint64_t *[L];
+    ntt_params->roots_pow_shoup = new uint64_t *[L];
+    ntt_params->roots_pow_inv = new uint64_t *[L];
+    ntt_params->roots_pow_inv_shoup = new uint64_t *[L];
+    for (int i = 0; i < L; i++) {
+        ntt_params->roots_pow[i] = new uint64_t[N];
+        ntt_params->roots_pow_inv[i] = new uint64_t[N];
         ntt_params->roots_pow_shoup[i] = new uint64_t[N];
         ntt_params->roots_pow_inv_shoup[i] = new uint64_t[N];
-        for (int j = 0; j < N; j++) {
+        ntt_params->roots_pow[i][0] = 1;
+        ntt_params->roots_pow_inv[i][0] = 1;
+        ntt_params->roots_pow_shoup[i][0] = compute_shoup(1, ntt_params->q[i]);
+        ntt_params->roots_pow_inv_shoup[i][0] =
+            compute_shoup(1, ntt_params->q[i]);
+        for (int j = 1; j < N; j++) {
+            mulMod(ntt_params->roots_pow[i][j], ntt_params->roots_pow[i][j - 1],
+                   ntt_params->root[i], ntt_params->q[i]);
+            mulMod(ntt_params->roots_pow_inv[i][j],
+                   ntt_params->roots_pow_inv[i][j - 1], ntt_params->root_inv[i],
+                   ntt_params->q[i]);
             ntt_params->roots_pow_shoup[i][j] =
-                compute_shoup(context->qRootPows[i][j], qVec[i]);
-            ntt_params->roots_pow_inv_shoup[i][j] =
-                compute_shoup(context->qRootPowsInv[i][j], qVec[i]);
+                compute_shoup(ntt_params->roots_pow[i][j], ntt_params->q[i]);
+            ntt_params->roots_pow_inv_shoup[i][j] = compute_shoup(
+                ntt_params->roots_pow_inv[i][j], ntt_params->q[i]);
         }
     }
 }
@@ -92,28 +155,16 @@ void FHEContext::CopyParamsToDevice() {
     memcpy(&params_tmp, h_params.get(), sizeof(Params));
 
     uint64_t *d_qVec;
-    uint64_t *d_qrVec;
-    long *d_qTwok;
     uint64_t *d_pVec;
     checkCudaErrors(cudaMalloc(&d_qVec, h_params->L * sizeof(uint64_t)));
-    checkCudaErrors(cudaMalloc(&d_qrVec, h_params->L * sizeof(uint64_t)));
-    checkCudaErrors(cudaMalloc(&d_qTwok, h_params->L * sizeof(uint64_t)));
     checkCudaErrors(cudaMalloc(&d_pVec, h_params->K * sizeof(uint64_t)));
     checkCudaErrors(cudaMemcpy(d_qVec, h_params->qVec,
-                               params_tmp.L * sizeof(uint64_t),
-                               cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_qrVec, h_params->qrVec,
-                               params_tmp.L * sizeof(uint64_t),
-                               cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_qTwok, h_params->qTwok,
                                params_tmp.L * sizeof(uint64_t),
                                cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_pVec, h_params->pVec,
                                params_tmp.K * sizeof(uint64_t),
                                cudaMemcpyHostToDevice));
     params_tmp.qVec = d_qVec;
-    params_tmp.qrVec = d_qrVec;
-    params_tmp.qTwok = d_qTwok;
     params_tmp.pVec = d_pVec;
 
     NTTParams ntt_params_tmp;
@@ -194,19 +245,8 @@ void FHEContext::CopyParamsToDevice() {
     d_ntt_params = params_tmp.ntt_params;
 }
 
-void FHEContext::Init(const int logN, const int L) {
+FHEContext::FHEContext(const int logN, const int L) {
     LOG_INFO("Initializing Params\n");
-    const uint64_t logp = 55;
-    HEAANContext heaan(logN, logp, L, L + 1);
-    SecretKey secretKey(heaan);
-    Scheme scheme(secretKey, heaan);
-    Key key = scheme.keyMap.at(MULTIPLICATION);
-
-    heaan_context = std::make_shared<HEAANContext>(heaan);
-    h_params = std::make_shared<Params>(heaan_context);
+    h_params = std::make_shared<Params>(logN, L);
     CopyParamsToDevice();
 }
-
-FHEContext::FHEContext() { Init(hifive::logN, hifive::L); }
-
-FHEContext::FHEContext(const int logN, const int L) { Init(logN, L); }

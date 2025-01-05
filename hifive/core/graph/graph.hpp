@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+#include "hifive/core/config.hpp"
 #include "hifive/core/graph/edge.hpp"
 #include "hifive/core/graph/node.hpp"
 namespace hifive {
@@ -83,6 +84,7 @@ private:
 
 class Graph {
 public:
+    Graph(std::shared_ptr<Config>(config)) : m_config(config) {}
     void add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst);
     void add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
                   std::string label);
@@ -124,6 +126,9 @@ public:
     std::vector<std::shared_ptr<SubGraph>> &get_subgraphs() {
         return m_subgraphs;
     }
+
+    // HiFive Config
+    std::shared_ptr<Config> m_config;
 
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;

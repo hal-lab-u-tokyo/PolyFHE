@@ -1,7 +1,7 @@
 #include "hifive/engine/pass/data_reuse_pass.hpp"
 
+#include "hifive/core/config.hpp"
 #include "hifive/core/logger.hpp"
-#include "hifive/core/param.hpp"
 #include "hifive/frontend/exporter.hpp"
 
 namespace hifive {
@@ -34,8 +34,8 @@ bool CanReuse(std::shared_ptr<hifive::core::Node> src,
     }
 }
 
-uint64_t CalculateSharedMemSizePerEdge(
-    std::shared_ptr<hifive::core::Edge> edge) {
+int CalculateSharedMemSizePerEdge(std::shared_ptr<hifive::core::Edge> edge,
+                                  std::shared_ptr<Config> config) {
     // Check if the edge can be inplaced with the previous edge
     auto src = edge->get_src();
     if (src->get_out_edges().size() == 1 &&
@@ -44,17 +44,15 @@ uint64_t CalculateSharedMemSizePerEdge(
         return 0;
     }
 
-    uint64_t size = 1;
+    int size = 1;
     // width
     switch (edge->get_src()->get_block_phase()) {
     case hifive::core::BlockPhase::NTTPhase1:
         // TODO: consider N1
-        size *= hifive::N;
-        // size *= hifive::N1;
+        size *= config->N;
         break;
     case hifive::core::BlockPhase::NTTPhase2:
-        size *= hifive::N;
-        // size *= hifive::N2;
+        size *= config->N;
         break;
     default:
         break;
@@ -65,10 +63,11 @@ uint64_t CalculateSharedMemSizePerEdge(
     return size * sizeof(uint64_t);
 }
 
-uint64_t CalculateSubgraphSharedMemFootprint(
+int CalculateSubgraphSharedMemFootprint(
     std::shared_ptr<hifive::core::Node> node,
-    std::vector<std::shared_ptr<hifive::core::Edge>>& visited) {
-    uint64_t footprint = 0;
+    std::vector<std::shared_ptr<hifive::core::Edge>>& visited,
+    std::shared_ptr<Config> config) {
+    int footprint = 0;
     for (auto edge : node->get_out_edges()) {
         auto found = std::find(visited.begin(), visited.end(), edge);
         if (found != visited.end()) {
@@ -76,9 +75,9 @@ uint64_t CalculateSubgraphSharedMemFootprint(
         }
         if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
             visited.push_back(edge);
-            footprint += CalculateSharedMemSizePerEdge(edge);
-            footprint +=
-                CalculateSubgraphSharedMemFootprint(edge->get_dst(), visited);
+            footprint += CalculateSharedMemSizePerEdge(edge, config);
+            footprint += CalculateSubgraphSharedMemFootprint(edge->get_dst(),
+                                                             visited, config);
         }
     }
     for (auto edge : node->get_in_edges()) {
@@ -88,9 +87,9 @@ uint64_t CalculateSubgraphSharedMemFootprint(
         }
         if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
             visited.push_back(edge);
-            footprint += CalculateSharedMemSizePerEdge(edge);
-            footprint +=
-                CalculateSubgraphSharedMemFootprint(edge->get_src(), visited);
+            footprint += CalculateSharedMemSizePerEdge(edge, config);
+            footprint += CalculateSubgraphSharedMemFootprint(edge->get_src(),
+                                                             visited, config);
         }
     }
     return footprint;
@@ -130,13 +129,14 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
                 continue;
             }
             std::vector<std::shared_ptr<hifive::core::Edge>> visited;
-            uint64_t footprint_kb =
-                CalculateSubgraphSharedMemFootprint(node, visited) / 1000;
-            if (footprint_kb > hifive::SharedMemKB) {
+            int footprint_kb = CalculateSubgraphSharedMemFootprint(
+                                   node, visited, graph->m_config) /
+                               1000;
+            if (footprint_kb > graph->m_config->SharedMemKB) {
                 edge->set_level(hifive::core::EdgeLevel::Global);
                 continue;
             }
-            LOG_INFO("Total shared mem around %s is %s: %lu KB\n",
+            LOG_INFO("Total shared mem around %s is %s: %u KB\n",
                      node->get_op_name().c_str(),
                      edge->get_dst()->get_op_name().c_str(), footprint_kb);
             LOG_INFO("Reuse %s -> %s\n", node->get_op_name().c_str(),

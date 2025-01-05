@@ -168,21 +168,6 @@ __device__ void Add_Phase0(Params *params, uint64_t *dst, const uint64_t *a,
     }
 }
 
-__device__ void Mult(Params *params, const int n, const int l, uint64_t *dst,
-                     const uint64_t *a, const uint64_t *b, const int n_dst,
-                     const int n_a, const int n_b) {
-    for (int i = threadIdx.x; i < n * l; i += blockDim.x) {
-        const int l_idx = i / n;
-        const int n_idx = i % n;
-        const uint64_t qi = params->qVec[l_idx];
-        const uint64_t mu = params->qrVec[l_idx];
-        const uint64_t twok = params->qTwok[l_idx];
-        const int dst_idx = l_idx * n_dst + n_idx;
-        const int a_idx = l_idx * n_a + n_idx;
-        const int b_idx = l_idx * n_b + n_idx;
-        dst[dst_idx] = modmul(a[a_idx], b[b_idx], qi, mu, twok);
-    }
-}
 __device__ void ElemWiseOp_Elem(ElemWiseOp op, Params *params, uint64_t *dst,
                                 const uint64_t *a, const uint64_t *b,
                                 const int dst_global, const int a_global,
@@ -209,8 +194,8 @@ __device__ void ElemWiseOp_Elem(ElemWiseOp op, Params *params, uint64_t *dst,
             res -= qi;
         }
     } else if (op == ElemWiseOp::Mult) {
-        res = modmul(a[a_idx], b[b_idx], qi, params->qrVec[l_idx],
-                     params->qTwok[l_idx]);
+        // TODO: Faster modmul
+        res = (a[a_idx] * b[b_idx]) % qi;
     }
     dst[dst_idx] = res;
 }
