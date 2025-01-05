@@ -112,6 +112,9 @@ void CudaCodegen::generate_kernel_defs(
         core::SubgraphType s_type = subgraph->get_subgraph_type();
         std::cout << "Subgraph type: " << s_type << std::endl;
         if (s_type == core::SubgraphType::Elem) {
+            // ==============================
+            // Elem
+            // ==============================
             if (subgraph->get_nodes().size() > 1) {
                 w << "extern __shared__ uint64_t shared[];\n";
             }
@@ -127,9 +130,6 @@ void CudaCodegen::generate_kernel_defs(
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
-                    // ==============================
-                    // Add, Sub, Mult
-                    // ==============================
                     std::vector<std::string> args;
                     std::vector<std::string> args_if_gmem;
                     if (op_type == core::OpType::Add) {
@@ -167,6 +167,7 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("blockDim.x");
                     args.push_back("l_idx");
                     args.push_back("n_idx");
+                    args.push_back("threadIdx.x");
                     w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
                 } else {
                     LOG_ERROR(
@@ -178,6 +179,9 @@ void CudaCodegen::generate_kernel_defs(
             }
             w.block_end();
         } else if (s_type == core::SubgraphType::ElemLimb1) {
+            // ==============================
+            // ElemLimb1
+            // ==============================
             w << "extern __shared__ uint64_t shared[];\n";
             w << "for (int idx = blockIdx.x;";
             w << "idx < params->n2 * params->limb;";
@@ -237,18 +241,65 @@ void CudaCodegen::generate_kernel_defs(
             }
             w.block_end();
         } else if (s_type == core::SubgraphType::ElemLimb2) {
+            // ==============================
+            // ElemLimb2
+            // ==============================
             w << "extern __shared__ uint64_t shared[];\n";
             w << "for (int idx = blockIdx.x;";
             w << "idx < params->n1 * params->limb;";
             w << "idx += gridDim.x)";
             w.block_begin();
+            w << "const int l_idx = idx / params->n1;\n";
+            w << "int n_idx = (idx % params->n1) * params->n2 + threadIdx.x;\n";
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
-                    LOG_ERROR("Not implemented\n");
+                    std::vector<std::string> args;
+                    std::vector<std::string> args_if_gmem;
+                    if (op_type == core::OpType::Add) {
+                        args.push_back("ElemWiseOp::Add");
+                    } else if (op_type == core::OpType::Sub) {
+                        args.push_back("ElemWiseOp::Sub");
+                    } else if (op_type == core::OpType::Mult) {
+                        args.push_back("ElemWiseOp::Mult");
+                    }
+                    args.push_back("params");
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_in_edges().size() == 2);
+                    for (auto edge : node->get_out_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back("shared");
+                            args_if_gmem.push_back("0");
+                        }
+                    }
+                    for (auto edge : node->get_in_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back("shared");
+                            args_if_gmem.push_back("0");
+                        }
+                    }
+                    args.insert(args.end(), args_if_gmem.begin(),
+                                args_if_gmem.end());
+                    args.push_back("params->n2");
+                    args.push_back("l_idx");
+                    args.push_back("n_idx");
+                    args.push_back("threadIdx.x + i * params->n2 / 8");
+                    w << "for (int i = 0; i < 8; i++)";
+                    w.block_begin();
+                    w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
+                    w << "n_idx += params->n2/8;\n";
+                    w.block_end();
                 } else if (op_type == core::OpType::NTTPhase2) {
                     // Inedge must be Global
                     assert(node->get_in_edges().size() == 1);
@@ -420,10 +471,10 @@ void CudaCodegen::generate_call_kernels(
             // If subgraph contains only ONE node, we don't need to malloc
             // shared memory
             if (subgraph->get_nodes().size() == 1) {
-                w << subgraph->get_name() << "<<<gridCommon, blockCommon>>>";
+                w << subgraph->get_name() << "<<<2048, 128>>>";
             } else {
                 w << subgraph->get_name()
-                  << "<<<gridCommon, blockCommon, shared_size_common>>>";
+                  << "<<<2048, 128, 128 * sizeof(uint64_t)>>>";
             }
         } else if (s_type == core::SubgraphType::ElemLimb1) {
             // NTTPhase1 uses shared memory even if it contains only one node
@@ -465,8 +516,8 @@ void CudaCodegen::generate_call_kernels(
             }
         }
         w << ");\n";
+        w << "checkCudaErrors(cudaDeviceSynchronize());\n";
     }
-    w << "checkCudaErrors(cudaDeviceSynchronize());\n";
     w << "// Timer Stop\n";
     w << "auto end = std::chrono::high_resolution_clock::now();\n";
     w << "\n";

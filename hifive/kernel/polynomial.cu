@@ -168,34 +168,54 @@ __device__ void Add_Phase0(Params *params, uint64_t *dst, const uint64_t *a,
     }
 }
 
+__device__ uint64_t calc_elemwise(ElemWiseOp op, const uint64_t a,
+                                  const uint64_t b, const uint64_t q) {
+    uint64_t res;
+    if (op == ElemWiseOp::Add) {
+        res = a + b;
+        if (res >= q) {
+            res -= q;
+        }
+    } else if (op == ElemWiseOp::Sub) {
+        res = a + q - b;
+        if (res >= q) {
+            res -= q;
+        }
+    } else if (op == ElemWiseOp::Mult) {
+        // TODO: Faster modmul
+        res = (a * b) % q;
+    }
+    return res;
+}
+
 __device__ void ElemWiseOp_Elem(ElemWiseOp op, Params *params, uint64_t *dst,
                                 const uint64_t *a, const uint64_t *b,
                                 const int dst_global, const int a_global,
                                 const int b_global, const int sPoly_x,
-                                const int l_idx, const int n_idx) {
+                                const int l_idx, const int n_gidx,
+                                const int n_sidx) {
     const uint64_t qi = params->qVec[l_idx];
-    // const uint64_t mu = params->qrVec[l_idx];
-    // const uint64_t twok = params->qTwok[l_idx];
+    const int dst_idx =
+        dst_global * (l_idx * params->N + n_gidx) + (1 - dst_global) * n_sidx;
+    const int a_idx =
+        a_global * (l_idx * params->N + n_gidx) + (1 - a_global) * n_sidx;
+    const int b_idx =
+        b_global * (l_idx * params->N + n_gidx) + (1 - b_global) * n_sidx;
+    dst[dst_idx] = calc_elemwise(op, a[a_idx], b[b_idx], qi);
+}
+
+__device__ void ElemWiseOp_ElemLimb1(ElemWiseOp op, Params *params,
+                                     uint64_t *dst, const uint64_t *a,
+                                     const uint64_t *b, const int dst_global,
+                                     const int a_global, const int b_global,
+                                     const int sPoly_x, const int l_idx,
+                                     const int n_idx) {
+    const uint64_t qi = params->qVec[l_idx];
     const int dst_idx = dst_global * (l_idx * params->N + n_idx) +
                         (1 - dst_global) * threadIdx.x;
     const int a_idx =
         a_global * (l_idx * params->N + n_idx) + (1 - a_global) * threadIdx.x;
     const int b_idx =
         b_global * (l_idx * params->N + n_idx) + (1 - b_global) * threadIdx.x;
-    uint64_t res;
-    if (op == ElemWiseOp::Add) {
-        res = a[a_idx] + b[b_idx];
-        if (res >= qi) {
-            res -= qi;
-        }
-    } else if (op == ElemWiseOp::Sub) {
-        res = a[a_idx] + qi - b[b_idx];
-        if (res >= qi) {
-            res -= qi;
-        }
-    } else if (op == ElemWiseOp::Mult) {
-        // TODO: Faster modmul
-        res = (a[a_idx] * b[b_idx]) % qi;
-    }
-    dst[dst_idx] = res;
+    dst[dst_idx] = calc_elemwise(op, a[a_idx], b[b_idx], qi);
 }

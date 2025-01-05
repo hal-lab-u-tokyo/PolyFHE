@@ -39,7 +39,14 @@ __device__ void ElemWiseOp_Elem(ElemWiseOp op, Params *params, uint64_t *dst,
                                 const uint64_t *a, const uint64_t *b,
                                 const int dst_global, const int a_global,
                                 const int b_global, const int sPoly_x,
-                                const int l_idx, const int n_idx);
+                                const int l_idx, const int n_gidx,
+                                const int n_sidx);
+__device__ void ElemWiseOp_ElemLimb1(ElemWiseOp op, Params *params,
+                                     uint64_t *dst, const uint64_t *a,
+                                     const uint64_t *b, const int dst_global,
+                                     const int a_global, const int b_global,
+                                     const int sPoly_x, const int l_idx,
+                                     const int n_idx);
 
 void Add_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);
 void Sub_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);
