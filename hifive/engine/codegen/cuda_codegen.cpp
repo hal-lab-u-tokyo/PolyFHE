@@ -590,6 +590,10 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "std::cout << \"n1: \" << params_h->n1 << std::endl;\n";
     w << "std::cout << \"n2: \" << params_h->n2 << std::endl;\n";
     w << "std::cout << \"L : \" << params_h->L << std::endl;\n";
+    w << "std::cout << \"q[0] : \" << params_h->ntt_params->q[0] << "
+         "std::endl;\n";
+    w << "std::cout << \"root[0] : \" << params_h->ntt_params->root[0] << "
+         "std::endl;\n";
     w.block_begin();
     generate_call_kernels(graph, w);
 
