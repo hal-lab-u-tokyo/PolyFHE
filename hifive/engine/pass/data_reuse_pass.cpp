@@ -209,6 +209,10 @@ void ReuseWithSuccessor(
 
     // Reuse!
     edge->set_level(hifive::core::EdgeLevel::Shared);
+
+    for (auto edge : successor->get_out_edges()) {
+        ReuseWithSuccessor(graph, successor, edge->get_dst(), subgraph);
+    }
 }
 
 bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
