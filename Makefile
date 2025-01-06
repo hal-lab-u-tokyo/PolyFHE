@@ -16,10 +16,8 @@ SRC=\
 
 SRC_RUNTIME=\
 	hifive/kernel/device_context.cu \
-	hifive/kernel/polynomial.cpp \
-	hifive/kernel/polynomial.cu \
-	hifive/kernel/ntt.cu
-
+	hifive/kernel/polynomial.cpp
+	
 SRC_TEST=\
 	test/test_ntt.cu \
 	test/main.cu \
@@ -53,7 +51,7 @@ CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph -lboost_program_options
 BIN=build/cc-hifive
 
-CXXFLAGS_RUNTIME=-g -std=c++17 -O2 -I./  --relocatable-device-code true
+CXXFLAGS_RUNTIME=-g -std=c++17 -I./  --relocatable-device-code true 
 LDFLAGS_RUNTIME=
 BIN_RUNTIME=build/bench
 

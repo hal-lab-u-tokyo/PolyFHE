@@ -17,29 +17,44 @@
     }
 
 extern "C" {
-__device__ void Add_Phase0(Params *params, uint64_t *dst, const uint64_t *a,
-                           const uint64_t *b);
-__device__ void Add_Phase1(Params *params, uint64_t *dst, const uint64_t *a,
-                           const uint64_t *b, const int nyBatch,
-                           const bool if_dst_gmem, const bool if_a_gmem,
-                           const bool if_b_gmem);
-
-__device__ void Add_Phase2(Params *params, uint64_t *dst, const uint64_t *a,
-                           const uint64_t *b, const int nyBatch,
-                           const bool if_dst_gmem, const bool if_a_gmem,
-                           const bool if_b_gmem);
-
-__device__ void Mult(Params *p, const int n, const int l, uint64_t *dst,
-                     const uint64_t *a, const uint64_t *b, const int n_dst,
-                     const int n_a, const int n_b);
-
 enum class ElemWiseOp { Add, Sub, Mult };
 
-__device__ void ElemWiseOp_Elem(ElemWiseOp op, Params *params, uint64_t *dst,
-                                const uint64_t *a, const uint64_t *b,
-                                const int dst_global, const int a_global,
-                                const int b_global, const int sPoly_x,
-                                const int l_idx, const int n_idx);
+__forceinline__ __device__ uint64_t calc_elemwise(ElemWiseOp op,
+                                                  const uint64_t a,
+                                                  const uint64_t b,
+                                                  const uint64_t q) {
+    uint64_t res;
+    if (op == ElemWiseOp::Add) {
+        res = a + b;
+        if (res >= q) {
+            res -= q;
+        }
+    } else if (op == ElemWiseOp::Sub) {
+        res = a + q - b;
+        if (res >= q) {
+            res -= q;
+        }
+    } else if (op == ElemWiseOp::Mult) {
+        // TODO: Faster modmul
+        res = (a * b) % q;
+    }
+    return res;
+}
+
+__forceinline__ __device__ void ElemWiseOp_Elem(
+    ElemWiseOp op, Params *params, uint64_t *dst, const uint64_t *a,
+    const uint64_t *b, const int dst_global, const int a_global,
+    const int b_global, const int sPoly_x, const int l_idx, const int n_gidx,
+    const int n_sidx) {
+    const uint64_t qi = params->qVec[l_idx];
+    const int dst_idx =
+        dst_global * (l_idx * params->N + n_gidx) + (1 - dst_global) * n_sidx;
+    const int a_idx =
+        a_global * (l_idx * params->N + n_gidx) + (1 - a_global) * n_sidx;
+    const int b_idx =
+        b_global * (l_idx * params->N + n_gidx) + (1 - b_global) * n_sidx;
+    dst[dst_idx] = calc_elemwise(op, a[a_idx], b[b_idx], qi);
+}
 
 void Add_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);
 void Sub_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);

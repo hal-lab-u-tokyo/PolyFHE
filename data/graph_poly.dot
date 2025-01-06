@@ -1,7 +1,10 @@
 digraph G {
 Init[label="Init"];
-NTT0[label="NTT"];
 End[label="End"];
-Init->NTT0[label="65536*20"];
-NTT0->End[label="65536*20"];
+NTT[label="NTT"];
+Add[label="Add"];
+Init -> Add;
+Init -> Add;
+Add -> NTT;
+NTT -> End;
 }
