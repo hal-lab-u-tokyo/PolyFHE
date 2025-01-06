@@ -86,5 +86,6 @@ private:
         return size;
     }
 };
+
 } // namespace core
 } // namespace hifive

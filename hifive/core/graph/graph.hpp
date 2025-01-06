@@ -28,6 +28,8 @@ enum class SubgraphType {
     ElemLimb2Slot,
 };
 
+int GetsPolySize(SubgraphType subgraph_type, std::shared_ptr<Config> config);
+
 std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type);
 
 class SubGraph {
@@ -138,6 +140,9 @@ private:
 
     std::vector<std::shared_ptr<SubGraph>> m_subgraphs;
 };
+
+std::shared_ptr<Edge> get_edge(std::shared_ptr<Node> src,
+                               std::shared_ptr<Node> dst);
 
 } // namespace core
 } // namespace hifive

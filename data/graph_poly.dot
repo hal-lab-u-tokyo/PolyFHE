@@ -2,9 +2,13 @@ digraph G {
 Init[label="Init"];
 End[label="End"];
 NTT[label="NTT"];
-Add[label="Add"];
-Init -> Add;
-Init -> Add;
-Add -> NTT;
-NTT -> End;
+Mult0[label="Mult"];
+Mult1[label="Mult"];
+Init -> NTT;
+Init -> Mult0;
+Init -> Mult1;
+NTT -> Mult0;
+NTT -> Mult1;
+Mult0 -> End;
+Mult1 -> End;
 }
