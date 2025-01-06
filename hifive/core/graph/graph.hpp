@@ -139,5 +139,8 @@ private:
     std::vector<std::shared_ptr<SubGraph>> m_subgraphs;
 };
 
+std::shared_ptr<Edge> get_edge(std::shared_ptr<Node> src,
+                               std::shared_ptr<Node> dst);
+
 } // namespace core
 } // namespace hifive

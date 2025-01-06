@@ -82,5 +82,15 @@ void Graph::remove_node(std::shared_ptr<Node> node) {
     }
 }
 
+std::shared_ptr<Edge> get_edge(std::shared_ptr<Node> src,
+                               std::shared_ptr<Node> dst) {
+    for (auto edge : src->get_out_edges()) {
+        if (edge->get_dst() == dst) {
+            return edge;
+        }
+    }
+    return nullptr;
+}
+
 } // namespace core
 } // namespace hifive
