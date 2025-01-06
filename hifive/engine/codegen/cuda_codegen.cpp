@@ -188,9 +188,7 @@ void CudaCodegen::generate_kernel_defs(
             w << "idx < params->n2 * params->limb;";
             w << "idx += gridDim.x)";
             w.block_begin();
-            w << "const int l_idx = idx / params->n2;\n";
-            w << "const int n_idx = idx % params->n2;\n";
-            w << "int n_gidx = n_idx + threadIdx.x * params->n1;\n";
+            bool defined_l_idx = false;
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
@@ -235,6 +233,13 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("l_idx");
                     args.push_back("n_gidx");
                     args.push_back("threadIdx.x + i * params->n1 / 8");
+
+                    if (!defined_l_idx) {
+                        w << "const int l_idx = idx / params->n2;\n";
+                        w << "const int n_idx = idx % params->n2;\n";
+                        w << "int n_gidx = n_idx + threadIdx.x * params->n1;\n";
+                        defined_l_idx = true;
+                    }
                     w << "for (int i = 0; i < 8; i++)";
                     w.block_begin();
                     w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
@@ -295,8 +300,7 @@ void CudaCodegen::generate_kernel_defs(
             w << "idx < params->n1 * params->limb;";
             w << "idx += gridDim.x)";
             w.block_begin();
-            w << "const int l_idx = idx / params->n1;\n";
-            w << "int n_idx = (idx % params->n1) * params->n2 + threadIdx.x;\n";
+            bool defined_l_idx = false;
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
@@ -341,6 +345,13 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("l_idx");
                     args.push_back("n_idx");
                     args.push_back("threadIdx.x + i * params->n2 / 8");
+
+                    if (!defined_l_idx) {
+                        w << "const int l_idx = idx / params->n1;\n";
+                        w << "int n_idx = (idx % params->n1) * params->n2 + "
+                             "threadIdx.x;\n";
+                        defined_l_idx = true;
+                    }
                     w << "for (int i = 0; i < 8; i++)";
                     w.block_begin();
                     w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";

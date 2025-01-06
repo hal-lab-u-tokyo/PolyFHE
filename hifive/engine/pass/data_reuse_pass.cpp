@@ -100,7 +100,15 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     hifive::frontend::export_graph_to_dot(
         graph, "build/graph_data_reuse_pass_before.dot");
 
+    std::set<std::shared_ptr<hifive::core::Node>> unreused;
+    for (auto node : graph->get_nodes()) {
+        if (node == nullptr) {
+            continue;
+        }
+        unreused.insert(node);
+    }
     // Topological sort using DFS
+    /*
     const int n = graph->get_nodes().size();
     std::vector<bool> visited(n, false);
     std::vector<int> stack;
@@ -147,6 +155,7 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
             stack.push_back(edge->get_dst()->get_id());
         }
     }
+    */
 
     hifive::frontend::export_graph_to_dot(
         graph, "build/graph_data_reuse_pass_after.dot");
