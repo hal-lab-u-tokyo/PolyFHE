@@ -28,6 +28,8 @@ enum class SubgraphType {
     ElemLimb2Slot,
 };
 
+int GetsPolySize(SubgraphType subgraph_type, std::shared_ptr<Config> config);
+
 std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type);
 
 class SubGraph {

@@ -3,25 +3,7 @@
 
 #include "device_context.hpp"
 #include "hifive/kernel/device_context.hpp"
-
-uint64_t NTTSampleSize(const uint64_t logN) {
-    if (logN == 12) {
-        return 1 << 6;
-    } else if (logN == 13) {
-        return 1 << 7;
-    } else if (logN == 14) {
-        return 1 << 7;
-    } else if (logN == 15) {
-        return 1 << 8;
-    } else if (logN == 16) {
-        return 1 << 8;
-    } else if (logN == 17) {
-        return 1 << 9;
-    } else {
-        LOG_ERROR("Invalid logN: %ld\n", logN);
-        return 0;
-    }
-}
+#include "hifive/utils.hpp"
 
 // from https://github.com/snucrypto/HEAAN, 131d275
 void mulMod(uint64_t &r, uint64_t a, uint64_t b, uint64_t m) {
@@ -94,7 +76,7 @@ Params::Params(int logN, int L) : logN(logN), L(L) {
     limb = L;
     K = L + 1;
     N = 1 << logN;
-    n1 = NTTSampleSize(logN);
+    n1 = hifive::NTTSampleSize(logN);
     n2 = N / n1;
     sigma = 3.2;
     qVec = new uint64_t[L];

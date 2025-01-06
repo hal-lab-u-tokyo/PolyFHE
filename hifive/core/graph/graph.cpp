@@ -1,7 +1,8 @@
 #include "hifive/core/graph/graph.hpp"
 
+#include "graph.hpp"
 #include "hifive/core/logger.hpp"
-
+#include "hifive/utils.hpp"
 namespace hifive {
 namespace core {
 
@@ -90,6 +91,35 @@ std::shared_ptr<Edge> get_edge(std::shared_ptr<Node> src,
         }
     }
     return nullptr;
+}
+
+int GetsPolySize(SubgraphType subgraph_type, std::shared_ptr<Config> config) {
+    int spoly_size = 0;
+    switch (subgraph_type) {
+    case SubgraphType::Elem:
+        spoly_size = 128;
+        break;
+    case SubgraphType::ElemLimb1:
+        spoly_size = NTTSampleSize(config->logN);
+        break;
+    case SubgraphType::ElemLimb2:
+        spoly_size = config->N / NTTSampleSize(config->logN);
+        break;
+    case SubgraphType::ElemSlot:
+        // TODO: consider limb
+        spoly_size = config->L;
+        break;
+    case SubgraphType::ElemLimb1Slot:
+        spoly_size = NTTSampleSize(config->logN) * config->L;
+        break;
+    case SubgraphType::ElemLimb2Slot:
+        spoly_size = config->N / NTTSampleSize(config->logN) * config->L;
+        break;
+    default:
+        LOG_ERROR("Invalid SubgraphType\n");
+        assert(false);
+    }
+    return spoly_size * sizeof(uint64_t);
 }
 
 } // namespace core

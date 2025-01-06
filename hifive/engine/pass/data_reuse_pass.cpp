@@ -34,67 +34,6 @@ bool CanReuse(std::shared_ptr<hifive::core::Node> src,
     }
 }
 
-int CalculateSharedMemSizePerEdge(std::shared_ptr<hifive::core::Edge> edge,
-                                  std::shared_ptr<Config> config) {
-    // Check if the edge can be inplaced with the previous edge
-    auto src = edge->get_src();
-    if (src->get_out_edges().size() == 1 &&
-        src->get_out_edges()[0]->get_level() ==
-            hifive::core::EdgeLevel::Shared) {
-        return 0;
-    }
-
-    int size = 1;
-    // width
-    switch (edge->get_src()->get_block_phase()) {
-    case hifive::core::BlockPhase::NTTPhase1:
-        // TODO: consider N1
-        size *= config->N;
-        break;
-    case hifive::core::BlockPhase::NTTPhase2:
-        size *= config->N;
-        break;
-    default:
-        break;
-    }
-
-    // height
-    size *= edge->get_shape(1);
-    return size * sizeof(uint64_t);
-}
-
-int CalculateSubgraphSharedMemFootprint(
-    std::shared_ptr<hifive::core::Node> node,
-    std::vector<std::shared_ptr<hifive::core::Edge>>& visited,
-    std::shared_ptr<Config> config) {
-    int footprint = 0;
-    for (auto edge : node->get_out_edges()) {
-        auto found = std::find(visited.begin(), visited.end(), edge);
-        if (found != visited.end()) {
-            continue;
-        }
-        if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
-            visited.push_back(edge);
-            footprint += CalculateSharedMemSizePerEdge(edge, config);
-            footprint += CalculateSubgraphSharedMemFootprint(edge->get_dst(),
-                                                             visited, config);
-        }
-    }
-    for (auto edge : node->get_in_edges()) {
-        auto found = std::find(visited.begin(), visited.end(), edge);
-        if (found != visited.end()) {
-            continue;
-        }
-        if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
-            visited.push_back(edge);
-            footprint += CalculateSharedMemSizePerEdge(edge, config);
-            footprint += CalculateSubgraphSharedMemFootprint(edge->get_src(),
-                                                             visited, config);
-        }
-    }
-    return footprint;
-}
-
 std::shared_ptr<hifive::core::Node> GenSeed(
     std::set<std::shared_ptr<hifive::core::Node>>& unreused) {
     if (unreused.empty()) {
@@ -194,10 +133,47 @@ core::SubgraphType GetSubgraphType(
 }
 
 int GetSubgraphSmemFoorprint(
-    std::vector<std::shared_ptr<hifive::core::Node>>& s,
+    std::vector<std::shared_ptr<hifive::core::Node>>& subgraph,
     core::SubgraphType s_type, std::shared_ptr<Config> config) {
-    int footprint = 0;
-    return footprint;
+    int spoly_size = core::GetsPolySize(s_type, config);
+    int n_spoly = 1;
+
+    const int n = subgraph.size();
+    std::vector<bool> visited(n, false);
+    std::vector<int> stack;
+    stack.push_back(0);
+    while (!stack.empty()) {
+        int idx = stack.back();
+        stack.pop_back();
+        if (visited[idx]) {
+            continue;
+        }
+        visited[idx] = true;
+
+        auto node = subgraph[idx];
+
+        // TODO
+        // If output edge is more than 1, it cannot be overwrited
+        if (node->get_out_edges().size() > 1) {
+            n_spoly += node->get_out_edges().size() - 1;
+        }
+
+        for (auto edge : subgraph[idx]->get_out_edges()) {
+            auto dst = edge->get_dst();
+            int dst_idx = -1;
+            for (int i = 0; i < n; i++) {
+                if (subgraph[i] == dst) {
+                    dst_idx = i;
+                    break;
+                }
+            }
+            if (dst_idx != -1) {
+                stack.push_back(dst_idx);
+            }
+        }
+    }
+
+    return spoly_size * n_spoly;
 }
 
 void ReuseWithSuccessor(

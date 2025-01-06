@@ -12,11 +12,13 @@ SRC=\
 	hifive/engine/pass/set_block_phase_pass.cpp \
 	hifive/frontend/exporter.cpp \
 	hifive/frontend/parser.cpp \
-	hifive/tools/hifive.cpp
+	hifive/tools/hifive.cpp \
+	hifive/utils.cpp
 
 SRC_RUNTIME=\
 	hifive/kernel/device_context.cu \
-	hifive/kernel/polynomial.cpp
+	hifive/kernel/polynomial.cpp \
+	hifive/utils.cpp
 	
 SRC_TEST=\
 	test/test_ntt.cu \
@@ -43,7 +45,8 @@ HDR=\
 	hifive/engine/pass/rewrite_ntt_pass.hpp \
 	hifive/engine/pass/set_block_phase_pass.hpp \
 	hifive/frontend/exporter.hpp \
-	hifive/frontend/parser.hpp
+	hifive/frontend/parser.hpp \
+	hifive/utils.hpp
 
 OBJ=$(SRC:.cpp=.o)
 
