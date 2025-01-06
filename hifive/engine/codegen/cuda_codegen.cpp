@@ -704,20 +704,24 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         for (auto node : subgraph->get_nodes()) {
             core::OpType op_type = node->get_op_type();
             if (op_type == core::OpType::NTTPhase1) {
+                assert(node->get_out_edges().size() == 1);
                 auto phase2_node = node->get_out_edges()[0]->get_dst();
-                auto phase2_outedge = phase2_node->get_out_edges()[0];
-                w << "NTT_h(params_h,";
-                w << phase2_outedge->get_name() << "_h, ";
-                w << node->get_in_edges()[0]->get_name() << "_h);\n";
+                for (auto outedge : phase2_node->get_out_edges()) {
+                    w << "NTT_h(params_h,";
+                    w << outedge->get_name() << "_h, ";
+                    w << node->get_in_edges()[0]->get_name() << "_h);\n";
+                }
                 continue;
             } else if (op_type == core::OpType::NTTPhase2) {
                 continue;
             } else if (op_type == core::OpType::iNTTPhase2) {
+                assert(node->get_out_edges().size() == 1);
                 auto phase1_node = node->get_out_edges()[0]->get_dst();
-                auto phase1_outedge = phase1_node->get_out_edges()[0];
-                w << "iNTT_h(params_h,";
-                w << phase1_outedge->get_name() << "_h, ";
-                w << node->get_in_edges()[0]->get_name() << "_h);\n";
+                for (auto outedge : phase1_node->get_out_edges()) {
+                    w << "iNTT_h(params_h,";
+                    w << outedge->get_name() << "_h, ";
+                    w << node->get_in_edges()[0]->get_name() << "_h);\n";
+                }
                 continue;
             } else if (op_type == core::OpType::iNTTPhase1) {
                 continue;
