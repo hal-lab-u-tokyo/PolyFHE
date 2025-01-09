@@ -82,22 +82,21 @@ def filter_labels(data, labels):
     return [label if (value / total) * 100 >= 20 else '' for label, value in zip(labels, data)]
 
 def filter_autopct(pct):
-    return f'{pct:.1f}%' if pct >= 20 else ''
+    return f'{pct:.1f}%' if pct >= 10 else ''
 
 # Plot pie chart
-fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
 for i in range(len(datas)):
     data = datas[i]
     ax = axes[i]
     ax.set_title(f"{title[i]}", fontsize=24)
-    ax.pie(data, startangle=90, colors=cm.tab20.colors, labels=filter_labels(data, metrics), autopct=filter_autopct, textprops={'fontsize': 16})
+    #ax.pie(data, startangle=90, colors=cm.tab20.colors, labels=filter_labels(data, metrics), autopct=filter_autopct, textprops={'fontsize': 16})
+    ax.pie(data, startangle=90, colors=cm.tab20.colors, autopct=filter_autopct, textprops={'fontsize': 16})
     ax.axis('equal')
 
 
-#plt.xticks(rotation=60, fontsize=18, fontstyle='italic')
-#plt.yticks(fontsize=18)
-#plt.legend(reasons, fontsize=16, loc='best')
+#plt.legend(metrics, fontsize=16, loc='best')
 plt.tight_layout()
 plt.savefig(f"{directory_path}/profile/figure/stallreason.png", dpi=500)
 print(f"Figure saved as {directory_path}/profile/figure/stallreason.png")
