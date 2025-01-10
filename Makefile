@@ -5,6 +5,7 @@ SRC=\
 	hifive/engine/codegen/cuda_codegen.cpp \
 	hifive/engine/pass/analyze_intra_node_pass.cpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
+	hifive/engine/pass/calculate_smem_size_pass.cpp \
 	hifive/engine/pass/data_reuse_pass.cpp \
 	hifive/engine/pass/extract_subgraph_pass.cpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.cpp \
@@ -37,6 +38,7 @@ HDR=\
 	hifive/engine/codegen/cuda_codegen.hpp \
 	hifive/engine/pass/analyze_intra_node_pass.hpp \
 	hifive/engine/pass/calculate_memory_traffic_pass.hpp \
+	hifive/engine/pass/calculate_smem_size_pass.hpp \
 	hifive/engine/pass/data_reuse_pass.hpp \
 	hifive/engine/pass/extract_subgraph_pass.hpp \
 	hifive/engine/pass/lowering_ckks_to_poly_pass.hpp \

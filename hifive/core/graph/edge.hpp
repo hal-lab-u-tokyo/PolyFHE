@@ -71,12 +71,17 @@ public:
         return true;
     }
 
+    // offset
+    void set_offset_smem(int offset) { m_offset_smem = offset; }
+    int get_offset_smem() { return m_offset_smem; }
+
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;
     std::vector<int> m_shape;
     std::string m_name;
     EdgeLevel m_level = EdgeLevel::Global;
+    int m_offset_smem = 0;
 
     int get_size() {
         int size = 1;

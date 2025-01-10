@@ -149,7 +149,9 @@ void CudaCodegen::generate_kernel_defs(
                             args.push_back(edge->get_name());
                             args_if_gmem.push_back("1");
                         } else {
-                            args.push_back("shared");
+                            args.push_back(
+                                "shared + " +
+                                std::to_string(edge->get_offset_smem()));
                             args_if_gmem.push_back("0");
                         }
                     }
@@ -159,7 +161,9 @@ void CudaCodegen::generate_kernel_defs(
                             args.push_back(edge->get_name());
                             args_if_gmem.push_back("1");
                         } else {
-                            args.push_back("shared");
+                            args.push_back(
+                                "shared + " +
+                                std::to_string(edge->get_offset_smem()));
                             args_if_gmem.push_back("0");
                         }
                     }
@@ -213,7 +217,9 @@ void CudaCodegen::generate_kernel_defs(
                             args.push_back(edge->get_name());
                             args_if_gmem.push_back("1");
                         } else {
-                            args.push_back("shared");
+                            args.push_back(
+                                "shared + " +
+                                std::to_string(edge->get_offset_smem()));
                             args_if_gmem.push_back("0");
                         }
                     }
@@ -223,7 +229,9 @@ void CudaCodegen::generate_kernel_defs(
                             args.push_back(edge->get_name());
                             args_if_gmem.push_back("1");
                         } else {
-                            args.push_back("shared");
+                            args.push_back(
+                                "shared + " +
+                                std::to_string(edge->get_offset_smem()));
                             args_if_gmem.push_back("0");
                         }
                     }
@@ -254,6 +262,7 @@ void CudaCodegen::generate_kernel_defs(
                         std::vector<std::string> args_load;
                         args_load.push_back(
                             node->get_in_edges()[0]->get_name());
+                        // TODO: shared memory offset for NTTPhase1
                         args_load.push_back("shared");
                         args_load.push_back("params->N");
                         args_load.push_back("params->n1");
@@ -327,7 +336,9 @@ void CudaCodegen::generate_kernel_defs(
                             args.push_back(edge->get_name());
                             args_if_gmem.push_back("1");
                         } else {
-                            args.push_back("shared");
+                            args.push_back(
+                                "shared + " +
+                                std::to_string(edge->get_offset_smem()));
                             args_if_gmem.push_back("0");
                         }
                     }
@@ -337,7 +348,9 @@ void CudaCodegen::generate_kernel_defs(
                             args.push_back(edge->get_name());
                             args_if_gmem.push_back("1");
                         } else {
-                            args.push_back("shared");
+                            args.push_back(
+                                "shared + " +
+                                std::to_string(edge->get_offset_smem()));
                             args_if_gmem.push_back("0");
                         }
                     }
