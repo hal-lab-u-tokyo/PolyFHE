@@ -113,16 +113,55 @@ GetSortedSubgraph(std::shared_ptr<hifive::core::Node> node,
     return std::make_optional(subgraph);
 }
 
-void SetSharedMemOffset(hifive::core::SubGraph& subgraph) {
+void SetSharedMemOffset(hifive::core::SubGraph& subgraph,
+                        std::shared_ptr<hifive::Config>& config) {
+    int sPoly_size = core::GetsPolySize(subgraph.get_subgraph_type(), config);
+    int n_spoly = 0;
     for (auto node : subgraph.get_nodes()) {
-        for (auto outedge : node->get_out_edges()) {
-            if (outedge->get_level() == hifive::core::EdgeLevel::Shared) {
-                if (!outedge->can_overwrite()) {
-                    LOG_INFO("%s <-> %s cannot be overwritten\n",
-                             outedge->get_src()->get_op_name().c_str(),
-                             outedge->get_dst()->get_op_name().c_str());
+        bool can_overwrite = false;
+        bool all_global = true;
+        for (auto inedge : node->get_in_edges()) {
+            if (inedge->get_level() == hifive::core::EdgeLevel::Shared) {
+                if (inedge->can_overwrite()) {
+                    can_overwrite = true;
+                    for (auto outedge : node->get_out_edges()) {
+                        // Set offset_smem if dst node is in subgraph
+                        auto found = std::find(subgraph.get_nodes().begin(),
+                                               subgraph.get_nodes().end(),
+                                               outedge->get_dst());
+                        if (found != subgraph.get_nodes().end()) {
+                            outedge->set_offset_smem(inedge->get_offset_smem());
+                        }
+                    }
                 }
             }
+        }
+
+        for (auto outedge : node->get_out_edges()) {
+            if (outedge->get_level() != hifive::core::EdgeLevel::Global) {
+                all_global = false;
+            }
+        }
+
+        if (can_overwrite | all_global) {
+            continue;
+        } else {
+            for (auto outedge : node->get_out_edges()) {
+                // Set offset_smem if dst node is in subgraph
+                auto found =
+                    std::find(subgraph.get_nodes().begin(),
+                              subgraph.get_nodes().end(), outedge->get_dst());
+                if (found != subgraph.get_nodes().end()) {
+                    outedge->set_offset_smem(sPoly_size * n_spoly /
+                                             sizeof(uint64_t));
+                }
+            }
+            n_spoly++;
+        }
+        for (auto outedge : node->get_out_edges()) {
+            LOG_INFO("Offset of %s <-> %s: %d\n", node->get_op_name().c_str(),
+                     outedge->get_dst()->get_op_name().c_str(),
+                     outedge->get_offset_smem());
         }
     }
 }
@@ -190,6 +229,7 @@ bool ExtractSubgraphPass::run_on_graph(
                 graph->m_config));
 
             // Set SharedMemOffset
+            SetSharedMemOffset(subgraph, graph->m_config);
 
             // TODO: search for optimal ny_batch
             subgraph.set_nx_batch(1);

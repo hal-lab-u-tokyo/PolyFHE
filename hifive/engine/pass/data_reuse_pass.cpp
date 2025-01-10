@@ -103,9 +103,11 @@ void ReuseWithSuccessor(
     unreused.erase(successor);
 
     for (auto edge : successor->get_out_edges()) {
+        /*
         if (unreused.find(edge->get_dst()) == unreused.end()) {
             continue;
         }
+        */
         ReuseWithSuccessor(graph, successor, edge->get_dst(), subgraph,
                            unreused);
     }
@@ -148,9 +150,11 @@ void ReuseWithPredecessor(
     unreused.erase(pred);
 
     for (auto edge : pred->get_in_edges()) {
+        /*
         if (unreused.find(edge->get_src()) == unreused.end()) {
             continue;
         }
+        */
         ReuseWithPredecessor(graph, pred, edge->get_src(), subgraph, unreused);
     }
 }
@@ -180,19 +184,23 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
 
         // Check if append successors to subgraph
         for (auto edge : seed->get_out_edges()) {
+            /*
             // if successor is not in unreused, skip
             if (unreused.find(edge->get_dst()) == unreused.end()) {
                 continue;
             }
+            */
             ReuseWithSuccessor(graph, seed, edge->get_dst(), subgraph,
                                unreused);
         }
 
         for (auto edge : seed->get_in_edges()) {
+            /*
             // if predecessor is not in unreused, skip
             if (unreused.find(edge->get_src()) == unreused.end()) {
                 continue;
             }
+            */
             ReuseWithPredecessor(graph, seed, edge->get_src(), subgraph,
                                  unreused);
         }

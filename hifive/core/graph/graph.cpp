@@ -137,32 +137,43 @@ int GetSubgraphSmemFoorprint(
     int spoly_size = core::GetsPolySize(s_type, config);
 
     // Analyze each outedge can be overwritten or not
+    // Only if outedge is one, it can be overwritten
     for (auto node : subgraph) {
         const int n_outedges = node->get_out_edges().size();
-        for (int i = 0; i < n_outedges - 1; i++) {
-            auto edge = node->get_out_edges()[n_outedges - i - 1];
+        if (n_outedges == 1) {
+            auto edge = node->get_out_edges()[0];
             edge->set_can_overwrite(true);
+        } else {
+            for (int i = 0; i < n_outedges; i++) {
+                auto edge = node->get_out_edges()[i];
+                edge->set_can_overwrite(false);
+            }
         }
     }
 
     // Get number of sPoly
     int n_spoly = 1;
-    int smem_size = 0;
     for (auto node : subgraph) {
-        for (auto outedge : node->get_out_edges()) {
-            // If dst is not in subgraph, skip
-            if (std::find(subgraph.begin(), subgraph.end(),
-                          outedge->get_dst()) == subgraph.end()) {
-                continue;
-            }
-            if (outedge->get_level() == hifive::core::EdgeLevel::Shared) {
-                if (!outedge->can_overwrite()) {
-                    LOG_INFO("%s <-> %s cannot be overwritten\n",
-                             outedge->get_src()->get_op_name().c_str(),
-                             outedge->get_dst()->get_op_name().c_str());
-                    n_spoly++;
+        bool can_overwrite = false;
+        bool all_global = true;
+        for (auto inedge : node->get_in_edges()) {
+            if (inedge->get_level() == hifive::core::EdgeLevel::Shared) {
+                if (inedge->can_overwrite()) {
+                    can_overwrite = true;
                 }
             }
+        }
+
+        for (auto outedge : node->get_out_edges()) {
+            if (outedge->get_level() != hifive::core::EdgeLevel::Global) {
+                all_global = false;
+            }
+        }
+
+        if (can_overwrite | all_global) {
+            continue;
+        } else {
+            n_spoly++;
         }
     }
 

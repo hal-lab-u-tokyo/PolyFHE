@@ -548,20 +548,20 @@ void CudaCodegen::generate_call_kernels(
             if (subgraph->get_nodes().size() == 1) {
                 w << subgraph->get_name() << "<<<2048, 128>>>";
             } else {
-                w << subgraph->get_name()
-                  << "<<<2048, 128, 128 * sizeof(uint64_t)>>>";
+                w << subgraph->get_name() << "<<<2048, 128,"
+                  << subgraph->get_smem_size() << ">>>";
             }
         } else if (s_type == core::SubgraphType::ElemLimb1) {
             // NTTPhase1 uses shared memory even if it contains only one node
             w << subgraph->get_name()
               << "<<<params_h->n2 * params_h->limb, params_h->n1/8, "
-                 "params_h->n1 * sizeof(uint64_t)>>>";
+              << subgraph->get_smem_size() << ">>>";
 
         } else if (s_type == core::SubgraphType::ElemLimb2) {
             // NTTPhase2 uses shared memory even if it contains only one node
             w << subgraph->get_name()
               << "<<<params_h->n1 * params_h->limb, params_h->n2/8, "
-                 "params_h->n2 * sizeof(uint64_t)>>>";
+              << subgraph->get_smem_size() << ">>>";
         } else {
             LOG_ERROR("Not implemented\n");
         }
