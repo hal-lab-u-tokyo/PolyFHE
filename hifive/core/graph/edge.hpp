@@ -25,8 +25,11 @@ public:
     void set_dst(std::shared_ptr<Node> dst) { m_dst = dst; }
 
     // limb
-    void set_limb(int limb) { m_limb = limb; }
-    int get_limb() { return m_limb; }
+    void set_start_limb(int limb) { m_start_limb = limb; }
+    void set_end_limb(int limb) { m_end_limb = limb; }
+    int get_start_limb() { return m_start_limb; }
+    int get_end_limb() { return m_end_limb; }
+    int get_limb() { return m_end_limb - m_start_limb; }
 
     // name
     void update_name() {
@@ -76,7 +79,10 @@ public:
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;
-    int m_limb;
+
+    int m_start_limb = 0;
+    int m_end_limb = 0;
+
     std::string m_name;
     EdgeLevel m_level = EdgeLevel::Global;
     int m_offset_smem = 0;
