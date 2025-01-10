@@ -1,5 +1,7 @@
 #include "hifive/core/graph/graph.hpp"
 
+#include <iostream>
+
 #include "graph.hpp"
 #include "hifive/core/logger.hpp"
 #include "hifive/utils.hpp"
@@ -120,6 +122,124 @@ int GetsPolySize(SubgraphType subgraph_type, std::shared_ptr<Config> config) {
         assert(false);
     }
     return spoly_size * sizeof(uint64_t);
+}
+
+int GetSubgraphSmemFoorprint(
+    std::vector<std::shared_ptr<hifive::core::Node>> &subgraph,
+    core::SubgraphType s_type, std::shared_ptr<Config> config) {
+    LOG_INFO("Calculate Footprint for: ");
+    for (auto node : subgraph) {
+        std::cout << node->get_op_name() << ", ";
+    }
+    std::cout << std::endl;
+
+    // Get sPoly Size
+    int spoly_size = core::GetsPolySize(s_type, config);
+
+    // Analyze each outedge can be overwritten or not
+    for (auto node : subgraph) {
+        const int n_outedges = node->get_out_edges().size();
+        for (int i = 0; i < n_outedges - 1; i++) {
+            auto edge = node->get_out_edges()[n_outedges - i - 1];
+            edge->set_can_overwrite(true);
+        }
+    }
+
+    // Get number of sPoly
+    int n_spoly = 1;
+    int smem_size = 0;
+    for (auto node : subgraph) {
+        for (auto outedge : node->get_out_edges()) {
+            // If dst is not in subgraph, skip
+            if (std::find(subgraph.begin(), subgraph.end(),
+                          outedge->get_dst()) == subgraph.end()) {
+                continue;
+            }
+            if (outedge->get_level() == hifive::core::EdgeLevel::Shared) {
+                if (!outedge->can_overwrite()) {
+                    LOG_INFO("%s <-> %s cannot be overwritten\n",
+                             outedge->get_src()->get_op_name().c_str(),
+                             outedge->get_dst()->get_op_name().c_str());
+                    n_spoly++;
+                }
+            }
+        }
+    }
+
+    const int smem_footprint = spoly_size * n_spoly;
+    LOG_INFO("-> sPoly %.2f KB * %d = %.2f KB\n", spoly_size / 1000.0, n_spoly,
+             smem_footprint / 1000.0);
+    return smem_footprint;
+}
+
+core::SubgraphType GetSubgraphType(
+    std::vector<std::shared_ptr<hifive::core::Node>> &s) {
+    if (s.size() == 0) {
+        LOG_ERROR("Subgraph is empty\n");
+        assert(false);
+    }
+
+    bool contains_elemwise = false;
+    bool contains_limbwise = false;
+    bool contains_ntt1 = false;
+    bool contains_ntt2 = false;
+    bool contains_slotwise = false;
+    for (auto node : s) {
+        core::MemoryAccessPattern pattern = node->get_access_pattern();
+        if (pattern == core::MemoryAccessPattern::ElementWise) {
+            contains_elemwise = true;
+        } else if (pattern == core::MemoryAccessPattern::LimbWise) {
+            contains_limbwise = true;
+            core::OpType op_type = node->get_op_type();
+            if (op_type == core::OpType::NTTPhase1 ||
+                op_type == core::OpType::iNTTPhase1) {
+                contains_ntt1 = true;
+            } else if (op_type == core::OpType::NTTPhase2 ||
+                       op_type == core::OpType::iNTTPhase2) {
+                contains_ntt2 = true;
+            }
+        } else if (pattern == core::MemoryAccessPattern::SlotWise) {
+            contains_slotwise = true;
+        }
+    }
+
+    // Check if Phase1 or Phase2 in advance
+    bool if_phase1 = false;
+    if (contains_limbwise) {
+        if (contains_ntt1) {
+            if (contains_ntt2) {
+                LOG_ERROR(
+                    "Unknown SubgraphType: Both NTTPhase1 and 2 is "
+                    "contained to one subgraph.\n");
+                assert(false);
+            }
+            if_phase1 = true;
+        } else if (contains_ntt2) {
+            if_phase1 = false;
+        } else {
+            LOG_ERROR(
+                "Unknown SubgraphType: None of NTTPhase1 and 2 is "
+                "contained to one subgraph.\n");
+        }
+    }
+
+    //
+    if (contains_slotwise) {
+        if (contains_limbwise) {
+            return if_phase1 ? core::SubgraphType::ElemLimb1Slot
+                             : core::SubgraphType::ElemLimb2Slot;
+        } else {
+            return core::SubgraphType::ElemSlot;
+        }
+    } else if (contains_limbwise) {
+        return if_phase1 ? core::SubgraphType::ElemLimb1
+                         : core::SubgraphType::ElemLimb2;
+    } else if (contains_elemwise) {
+        return core::SubgraphType::Elem;
+    } else {
+        LOG_ERROR("Unknown SubgraphType\n");
+        assert(false);
+    }
 }
 
 } // namespace core

@@ -149,5 +149,12 @@ private:
 std::shared_ptr<Edge> get_edge(std::shared_ptr<Node> src,
                                std::shared_ptr<Node> dst);
 
+core::SubgraphType GetSubgraphType(
+    std::vector<std::shared_ptr<hifive::core::Node>> &s);
+
+int GetSubgraphSmemFoorprint(
+    std::vector<std::shared_ptr<hifive::core::Node>> &subgraph,
+    core::SubgraphType s_type, std::shared_ptr<Config> config);
+
 } // namespace core
 } // namespace hifive
