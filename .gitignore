@@ -6,5 +6,5 @@ build-*
 *.sqlite
 log.txt
 *.log
-*.txt
 *.ncu-rep
+thirdparty/*

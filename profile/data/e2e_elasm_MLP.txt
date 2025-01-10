@@ -1,0 +1,37 @@
+(.venv) root@c1184b5688a6:/opt/mount/elasm# hcott elasm 30 MLP
+===-------------------------------------------------------------------------===
+                         ... Execution time report ...
+===-------------------------------------------------------------------------===
+  Total Execution Time: 421.9433 seconds
+
+  ----Wall Time----  ----Name----
+    0.0183 (  0.0%)  Parser
+  421.8638 (100.0%)  'func.func' Pipeline
+  421.8525 (100.0%)    ELASMExplorer
+    0.0007 (  0.0%)      (A) hecate::ScaleManagementUnit
+    0.0024 (  0.0%)    ScaleManagementScheduler
+    0.0007 (  0.0%)      (A) hecate::ScaleManagementUnit
+    0.0031 (  0.0%)    SNRRescaling
+    0.0004 (  0.0%)      (A) hecate::ScaleManagementUnit
+    0.0057 (  0.0%)    UpscaleBubbling
+    0.0064 (  0.0%)  Canonicalizer
+    0.0018 (  0.0%)  'func.func' Pipeline
+    0.0018 (  0.0%)    EarlyModswitch
+    0.0034 (  0.0%)  Canonicalizer
+    0.0049 (  0.0%)  CSE
+    0.0000 (  0.0%)    (A) DominanceInfo
+    0.0290 (  0.0%)  'func.func' Pipeline
+    0.0008 (  0.0%)    ErrorEstimator
+    0.0001 (  0.0%)      (A) hecate::AutoDifferentiation
+    0.0006 (  0.0%)    LatencyEstimator
+    0.0099 (  0.0%)    EarthToCKKSConversion
+    0.0035 (  0.0%)    UpscaleToMulcpConversion
+    0.0014 (  0.0%)    RemoveLevel
+    0.0037 (  0.0%)    ReuseBuffer
+    0.0062 (  0.0%)    Canonicalizer
+    0.0027 (  0.0%)    EmitHEVM
+    0.0110 (  0.0%)  Output
+    0.0024 (  0.0%)  Rest
+  421.9433 (100.0%)  Total
+time:  2.351767737 sec
+rms:  1.1997367042328326e-05
