@@ -61,9 +61,9 @@ void Graph::add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
             LOG_ERROR("Invalid label: %s\n", label.c_str());
             exit(1);
         }
-        const int shape0 = std::stoi(shape0_str);
+        // const int shape0 = std::stoi(shape0_str);
         const int shape1 = std::stoi(shape1_str);
-        edge->set_shape({shape0, shape1});
+        edge->set_limb(shape1);
     }
 }
 

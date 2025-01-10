@@ -51,13 +51,7 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
             }
             auto new_edge =
                 std::make_shared<hifive::core::Edge>(ntt_phase1, ntt_phase2);
-            // TODO: support if shape of inedge and outedge is different
-            for (size_t i = 0; i < inedge->get_shape().size(); i++) {
-                if (inedge->get_shape(i) != inedge->get_shape(i)) {
-                    LOG_ERROR("Shape of inedge and outedge is different\n");
-                }
-            }
-            new_edge->set_shape(inedge->get_shape());
+            new_edge->set_limb(inedge->get_limb());
             new_edge->update_name();
             new_edge->set_level(hifive::core::EdgeLevel::Global);
             ntt_phase1->add_outgoing(new_edge);
@@ -88,13 +82,7 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
             }
             auto new_edge =
                 std::make_shared<hifive::core::Edge>(intt_phase2, intt_phase1);
-            // TODO: support if shape of inedge and outedge is different
-            for (size_t i = 0; i < inedge->get_shape().size(); i++) {
-                if (inedge->get_shape(i) != inedge->get_shape(i)) {
-                    LOG_ERROR("Shape of inedge and outedge is different\n");
-                }
-            }
-            new_edge->set_shape(inedge->get_shape());
+            new_edge->set_limb(inedge->get_limb());
             new_edge->update_name();
             new_edge->set_level(hifive::core::EdgeLevel::Global);
             intt_phase2->add_outgoing(new_edge);

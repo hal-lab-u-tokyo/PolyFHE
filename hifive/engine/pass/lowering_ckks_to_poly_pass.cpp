@@ -13,7 +13,7 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
     std::vector<std::shared_ptr<core::Node>> bottoms;
 
     // TODO: parameters
-    const std::string edge_label = "32768_20";
+    const std::string edge_label = "20";
     const int d = 3;
 
     if (node->get_op_type() == core::OpType::Init) {

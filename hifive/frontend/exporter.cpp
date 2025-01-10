@@ -46,7 +46,7 @@ void export_graph_to_dot(std::shared_ptr<hifive::core::Graph>& graph,
         const int node_id = node->get_id();
         for (auto edge : node->get_out_edges()) {
             DotEdge de;
-            de.label = "";
+            de.label = std::to_string(edge->get_limb());
             de.color = EdgeLevelColor(edge->get_level());
             auto src = v_descs[node_id];
             auto dst = v_descs[edge->get_dst()->get_id()];
@@ -59,6 +59,7 @@ void export_graph_to_dot(std::shared_ptr<hifive::core::Graph>& graph,
     dp.property("node_id", get(&DotNode::name, g_dot));
     dp.property("label", get(&DotNode::name, g_dot));
     dp.property("color", get(&DotEdge::color, g_dot));
+    dp.property("label", get(&DotEdge::label, g_dot));
     dp.property("peripheries", get(&DotNode::peripheries, g_dot));
     std::ofstream file(filename);
     boost::write_graphviz_dp(file, g_dot, dp);

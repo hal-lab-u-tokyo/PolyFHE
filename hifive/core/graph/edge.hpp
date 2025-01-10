@@ -24,17 +24,9 @@ public:
     void set_src(std::shared_ptr<Node> src) { m_src = src; }
     void set_dst(std::shared_ptr<Node> dst) { m_dst = dst; }
 
-    // shape
-    void set_shape(std::vector<int> shape) { m_shape = shape; }
-    std::vector<int> get_shape() { return m_shape; }
-    int get_shape(size_t idx) {
-        if (idx >= m_shape.size()) {
-            LOG_ERROR("Index out of bound\n");
-            return 1;
-        }
-        return m_shape[idx];
-    }
-    int get_size_in_byte() { return get_size() * sizeof(uint64_t); }
+    // limb
+    void set_limb(int limb) { m_limb = limb; }
+    int get_limb() { return m_limb; }
 
     // name
     void update_name() {
@@ -84,19 +76,11 @@ public:
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;
-    std::vector<int> m_shape;
+    int m_limb;
     std::string m_name;
     EdgeLevel m_level = EdgeLevel::Global;
     int m_offset_smem = 0;
     bool m_can_overwrite = false;
-
-    int get_size() {
-        int size = 1;
-        for (auto s : m_shape) {
-            size *= s;
-        }
-        return size;
-    }
 };
 
 } // namespace core
