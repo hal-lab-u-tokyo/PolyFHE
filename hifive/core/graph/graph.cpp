@@ -203,8 +203,7 @@ int GetsPolySize(std::vector<std::shared_ptr<hifive::core::Node>> &subgraph,
         spoly_size = config->N / NTTSampleSize(config->logN);
         break;
     case SubgraphType::ElemSlot:
-        // TODO: consider limb
-        spoly_size = config->L;
+        spoly_size = max_limb;
         break;
     case SubgraphType::ElemLimb1Slot:
         spoly_size = NTTSampleSize(config->logN) * max_limb;
