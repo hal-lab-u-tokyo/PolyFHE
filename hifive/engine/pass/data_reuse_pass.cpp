@@ -1,6 +1,9 @@
 #include "hifive/engine/pass/data_reuse_pass.hpp"
 
+#include <shared_mutex>
+
 #include "hifive/core/config.hpp"
+#include "hifive/core/graph/graph.hpp"
 #include "hifive/core/logger.hpp"
 #include "hifive/frontend/exporter.hpp"
 
@@ -62,125 +65,13 @@ std::shared_ptr<hifive::core::Node> GenSeed(
 }
 
 // TODO: merge with GetSubgraphType in extract_subgraph_pass.cpp
-core::SubgraphType GetSubgraphType(
-    std::vector<std::shared_ptr<hifive::core::Node>>& s) {
-    if (s.size() == 0) {
-        LOG_ERROR("Subgraph is empty\n");
-        assert(false);
-    }
-
-    bool contains_elemwise = false;
-    bool contains_limbwise = false;
-    bool contains_ntt1 = false;
-    bool contains_ntt2 = false;
-    bool contains_slotwise = false;
-    for (auto node : s) {
-        core::MemoryAccessPattern pattern = node->get_access_pattern();
-        if (pattern == core::MemoryAccessPattern::ElementWise) {
-            contains_elemwise = true;
-        } else if (pattern == core::MemoryAccessPattern::LimbWise) {
-            contains_limbwise = true;
-            core::OpType op_type = node->get_op_type();
-            if (op_type == core::OpType::NTTPhase1 ||
-                op_type == core::OpType::iNTTPhase1) {
-                contains_ntt1 = true;
-            } else if (op_type == core::OpType::NTTPhase2 ||
-                       op_type == core::OpType::iNTTPhase2) {
-                contains_ntt2 = true;
-            }
-        } else if (pattern == core::MemoryAccessPattern::SlotWise) {
-            contains_slotwise = true;
-        }
-    }
-
-    // Check if Phase1 or Phase2 in advance
-    bool if_phase1 = false;
-    if (contains_limbwise) {
-        if (contains_ntt1) {
-            if (contains_ntt2) {
-                LOG_ERROR(
-                    "Unknown SubgraphType: Both NTTPhase1 and 2 is "
-                    "contained to one subgraph.\n");
-                assert(false);
-            }
-            if_phase1 = true;
-        } else if (contains_ntt2) {
-            if_phase1 = false;
-        } else {
-            LOG_ERROR(
-                "Unknown SubgraphType: None of NTTPhase1 and 2 is "
-                "contained to one subgraph.\n");
-        }
-    }
-
-    //
-    if (contains_slotwise) {
-        if (contains_limbwise) {
-            return if_phase1 ? core::SubgraphType::ElemLimb1Slot
-                             : core::SubgraphType::ElemLimb2Slot;
-        } else {
-            return core::SubgraphType::ElemSlot;
-        }
-    } else if (contains_limbwise) {
-        return if_phase1 ? core::SubgraphType::ElemLimb1
-                         : core::SubgraphType::ElemLimb2;
-    } else if (contains_elemwise) {
-        return core::SubgraphType::Elem;
-    } else {
-        LOG_ERROR("Unknown SubgraphType\n");
-        assert(false);
-    }
-}
-
-int GetSubgraphSmemFoorprint(
-    std::vector<std::shared_ptr<hifive::core::Node>>& subgraph,
-    core::SubgraphType s_type, std::shared_ptr<Config> config) {
-    int spoly_size = core::GetsPolySize(s_type, config);
-    int n_spoly = 1;
-
-    const int n = subgraph.size();
-    std::vector<bool> visited(n, false);
-    std::vector<int> stack;
-    stack.push_back(0);
-    while (!stack.empty()) {
-        int idx = stack.back();
-        stack.pop_back();
-        if (visited[idx]) {
-            continue;
-        }
-        visited[idx] = true;
-
-        auto node = subgraph[idx];
-
-        // TODO
-        // If output edge is more than 1, it cannot be overwrited
-        if (node->get_out_edges().size() > 1) {
-            n_spoly += node->get_out_edges().size() - 1;
-        }
-
-        for (auto edge : subgraph[idx]->get_out_edges()) {
-            auto dst = edge->get_dst();
-            int dst_idx = -1;
-            for (int i = 0; i < n; i++) {
-                if (subgraph[i] == dst) {
-                    dst_idx = i;
-                    break;
-                }
-            }
-            if (dst_idx != -1) {
-                stack.push_back(dst_idx);
-            }
-        }
-    }
-
-    return spoly_size * n_spoly;
-}
 
 void ReuseWithSuccessor(
     std::shared_ptr<hifive::core::Graph> graph,
     std::shared_ptr<hifive::core::Node> seed,
     std::shared_ptr<hifive::core::Node> successor,
-    std::vector<std::shared_ptr<hifive::core::Node>> subgraph) {
+    std::vector<std::shared_ptr<hifive::core::Node>>& subgraph,
+    std::set<std::shared_ptr<hifive::core::Node>>& unreused) {
     // Set Global level in default
     auto edge = core::get_edge(seed, successor);
     edge->set_level(hifive::core::EdgeLevel::Global);
@@ -209,9 +100,62 @@ void ReuseWithSuccessor(
 
     // Reuse!
     edge->set_level(hifive::core::EdgeLevel::Shared);
+    unreused.erase(successor);
 
     for (auto edge : successor->get_out_edges()) {
-        ReuseWithSuccessor(graph, successor, edge->get_dst(), subgraph);
+        /*
+        if (unreused.find(edge->get_dst()) == unreused.end()) {
+            continue;
+        }
+        */
+        ReuseWithSuccessor(graph, successor, edge->get_dst(), subgraph,
+                           unreused);
+    }
+}
+
+void ReuseWithPredecessor(
+    std::shared_ptr<hifive::core::Graph> graph,
+    std::shared_ptr<hifive::core::Node> seed,
+    std::shared_ptr<hifive::core::Node> pred,
+    std::vector<std::shared_ptr<hifive::core::Node>>& subgraph,
+    std::set<std::shared_ptr<hifive::core::Node>>& unreused) {
+    // Set Global level in default
+    auto edge = core::get_edge(pred, seed);
+    edge->set_level(hifive::core::EdgeLevel::Global);
+
+    // Check if seed and successor can be reused
+    if (!CanReuse(pred, seed)) {
+        return;
+    }
+
+    // Add successor to subgraph temporarily
+    subgraph.push_back(pred);
+
+    // Get subgraph type
+    core::SubgraphType s_type = GetSubgraphType(subgraph);
+
+    // Get subgraph memory footprint
+    // TODO: consider limb
+    int footprint_kb =
+        GetSubgraphSmemFoorprint(subgraph, s_type, graph->m_config) / 1000;
+
+    // Check if footprint exceeds the limit
+    if (footprint_kb > graph->m_config->SharedMemKB / 3) {
+        subgraph.pop_back();
+        return;
+    }
+
+    // Reuse!
+    edge->set_level(hifive::core::EdgeLevel::Shared);
+    unreused.erase(pred);
+
+    for (auto edge : pred->get_in_edges()) {
+        /*
+        if (unreused.find(edge->get_src()) == unreused.end()) {
+            continue;
+        }
+        */
+        ReuseWithPredecessor(graph, pred, edge->get_src(), subgraph, unreused);
     }
 }
 
@@ -240,7 +184,25 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
 
         // Check if append successors to subgraph
         for (auto edge : seed->get_out_edges()) {
-            ReuseWithSuccessor(graph, seed, edge->get_dst(), subgraph);
+            /*
+            // if successor is not in unreused, skip
+            if (unreused.find(edge->get_dst()) == unreused.end()) {
+                continue;
+            }
+            */
+            ReuseWithSuccessor(graph, seed, edge->get_dst(), subgraph,
+                               unreused);
+        }
+
+        for (auto edge : seed->get_in_edges()) {
+            /*
+            // if predecessor is not in unreused, skip
+            if (unreused.find(edge->get_src()) == unreused.end()) {
+                continue;
+            }
+            */
+            ReuseWithPredecessor(graph, seed, edge->get_src(), subgraph,
+                                 unreused);
         }
 
         // Remove subgraph from unreused

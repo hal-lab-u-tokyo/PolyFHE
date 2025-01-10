@@ -6,6 +6,7 @@
 #include "hifive/engine/codegen/cuda_codegen.hpp"
 #include "hifive/engine/pass/analyze_intra_node_pass.hpp"
 #include "hifive/engine/pass/calculate_memory_traffic_pass.hpp"
+#include "hifive/engine/pass/calculate_smem_size_pass.hpp"
 #include "hifive/engine/pass/data_reuse_pass.hpp"
 #include "hifive/engine/pass/extract_subgraph_pass.hpp"
 #include "hifive/engine/pass/lowering_ckks_to_poly_pass.hpp"
@@ -109,6 +110,8 @@ int main(int argc, char** argv) {
             std::make_shared<hifive::engine::CalculateMemoryTrafficPass>());
         pass_manager.push_back(
             std::make_shared<hifive::engine::ExtractSubgraphPass>());
+        pass_manager.push_back(
+            std::make_shared<hifive::engine::CalculateSmemSizePass>());
     }
 
     // Run PassManager

@@ -70,6 +70,10 @@ public:
     }
     SubgraphType get_subgraph_type() { return m_subgraph_type; }
 
+    // Shared memory size
+    void set_smem_size(int smem_size) { m_smem_size = smem_size; }
+    int get_smem_size() { return m_smem_size; }
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;
@@ -82,6 +86,7 @@ private:
     int m_ny_batch;
     int m_gridX;
     int m_blockX;
+    int m_smem_size;
 };
 
 class Graph {
@@ -143,6 +148,13 @@ private:
 
 std::shared_ptr<Edge> get_edge(std::shared_ptr<Node> src,
                                std::shared_ptr<Node> dst);
+
+core::SubgraphType GetSubgraphType(
+    std::vector<std::shared_ptr<hifive::core::Node>> &s);
+
+int GetSubgraphSmemFoorprint(
+    std::vector<std::shared_ptr<hifive::core::Node>> &subgraph,
+    core::SubgraphType s_type, std::shared_ptr<Config> config);
 
 } // namespace core
 } // namespace hifive

@@ -2,6 +2,7 @@
 
 #include <optional>
 
+#include "hifive/core/graph/graph.hpp"
 #include "hifive/core/logger.hpp"
 #include "hifive/engine/pass/data_reuse_pass.hpp"
 #include "hifive/frontend/exporter.hpp"
@@ -96,8 +97,8 @@ void ExtractSubgraph(
 }
 
 std::optional<std::vector<std::shared_ptr<hifive::core::Node>>>
-CheckIfSubgraphNodesVisited(std::shared_ptr<hifive::core::Node> node,
-                            std::vector<bool>& visited) {
+GetSortedSubgraph(std::shared_ptr<hifive::core::Node> node,
+                  std::vector<bool>& visited) {
     std::vector<std::shared_ptr<hifive::core::Node>> subgraph;
     ExtractSubgraph(node, subgraph);
     if (subgraph.size() == 0) {
@@ -112,72 +113,56 @@ CheckIfSubgraphNodesVisited(std::shared_ptr<hifive::core::Node> node,
     return std::make_optional(subgraph);
 }
 
-core::SubgraphType GetSubgraphType(core::SubGraph& s) {
-    if (s.get_nodes().size() == 0) {
-        LOG_ERROR("Subgraph is empty\n");
-        assert(false);
-    }
-
-    bool contains_elemwise = false;
-    bool contains_limbwise = false;
-    bool contains_ntt1 = false;
-    bool contains_ntt2 = false;
-    bool contains_slotwise = false;
-    for (auto node : s.get_nodes()) {
-        core::MemoryAccessPattern pattern = node->get_access_pattern();
-        if (pattern == core::MemoryAccessPattern::ElementWise) {
-            contains_elemwise = true;
-        } else if (pattern == core::MemoryAccessPattern::LimbWise) {
-            contains_limbwise = true;
-            core::OpType op_type = node->get_op_type();
-            if (op_type == core::OpType::NTTPhase1 ||
-                op_type == core::OpType::iNTTPhase1) {
-                contains_ntt1 = true;
-            } else if (op_type == core::OpType::NTTPhase2 ||
-                       op_type == core::OpType::iNTTPhase2) {
-                contains_ntt2 = true;
+void SetSharedMemOffset(hifive::core::SubGraph& subgraph,
+                        std::shared_ptr<hifive::Config>& config) {
+    int sPoly_size = core::GetsPolySize(subgraph.get_subgraph_type(), config);
+    int n_spoly = 0;
+    for (auto node : subgraph.get_nodes()) {
+        bool can_overwrite = false;
+        bool all_global = true;
+        for (auto inedge : node->get_in_edges()) {
+            if (inedge->get_level() == hifive::core::EdgeLevel::Shared) {
+                if (inedge->can_overwrite()) {
+                    can_overwrite = true;
+                    for (auto outedge : node->get_out_edges()) {
+                        // Set offset_smem if dst node is in subgraph
+                        auto found = std::find(subgraph.get_nodes().begin(),
+                                               subgraph.get_nodes().end(),
+                                               outedge->get_dst());
+                        if (found != subgraph.get_nodes().end()) {
+                            outedge->set_offset_smem(inedge->get_offset_smem());
+                        }
+                    }
+                }
             }
-        } else if (pattern == core::MemoryAccessPattern::SlotWise) {
-            contains_slotwise = true;
         }
-    }
 
-    // Check if Phase1 or Phase2 in advance
-    bool if_phase1 = false;
-    if (contains_limbwise) {
-        if (contains_ntt1) {
-            if (contains_ntt2) {
-                LOG_ERROR(
-                    "Unknown SubgraphType: Both NTTPhase1 and 2 is "
-                    "contained to one subgraph.\n");
-                assert(false);
+        for (auto outedge : node->get_out_edges()) {
+            if (outedge->get_level() != hifive::core::EdgeLevel::Global) {
+                all_global = false;
             }
-            if_phase1 = true;
-        } else if (contains_ntt2) {
-            if_phase1 = false;
-        } else {
-            LOG_ERROR(
-                "Unknown SubgraphType: None of NTTPhase1 and 2 is "
-                "contained to one subgraph.\n");
         }
-    }
 
-    //
-    if (contains_slotwise) {
-        if (contains_limbwise) {
-            return if_phase1 ? core::SubgraphType::ElemLimb1Slot
-                             : core::SubgraphType::ElemLimb2Slot;
+        if (can_overwrite | all_global) {
+            continue;
         } else {
-            return core::SubgraphType::ElemSlot;
+            for (auto outedge : node->get_out_edges()) {
+                // Set offset_smem if dst node is in subgraph
+                auto found =
+                    std::find(subgraph.get_nodes().begin(),
+                              subgraph.get_nodes().end(), outedge->get_dst());
+                if (found != subgraph.get_nodes().end()) {
+                    outedge->set_offset_smem(sPoly_size * n_spoly /
+                                             sizeof(uint64_t));
+                }
+            }
+            n_spoly++;
         }
-    } else if (contains_limbwise) {
-        return if_phase1 ? core::SubgraphType::ElemLimb1
-                         : core::SubgraphType::ElemLimb2;
-    } else if (contains_elemwise) {
-        return core::SubgraphType::Elem;
-    } else {
-        LOG_ERROR("Unknown SubgraphType\n");
-        assert(false);
+        for (auto outedge : node->get_out_edges()) {
+            LOG_INFO("Offset of %s <-> %s: %d\n", node->get_op_name().c_str(),
+                     outedge->get_dst()->get_op_name().c_str(),
+                     outedge->get_offset_smem());
+        }
     }
 }
 
@@ -227,7 +212,7 @@ bool ExtractSubgraphPass::run_on_graph(
 
         // Check if all of subgraph nodes are visited
         std::optional<std::vector<std::shared_ptr<hifive::core::Node>>>
-            has_visited_subnodes = CheckIfSubgraphNodesVisited(node, visited);
+            has_visited_subnodes = GetSortedSubgraph(node, visited);
         if (has_visited_subnodes) {
             hifive::core::SubGraph subgraph;
             for (auto subnode : *has_visited_subnodes) {
@@ -238,7 +223,13 @@ bool ExtractSubgraphPass::run_on_graph(
             subgraph.set_block_phase(node->get_block_phase());
 
             // Set Subgraph Type
-            subgraph.set_subgraph_type(GetSubgraphType(subgraph));
+            subgraph.set_subgraph_type(GetSubgraphType(subgraph.get_nodes()));
+            subgraph.set_smem_size(GetSubgraphSmemFoorprint(
+                subgraph.get_nodes(), subgraph.get_subgraph_type(),
+                graph->m_config));
+
+            // Set SharedMemOffset
+            SetSharedMemOffset(subgraph, graph->m_config);
 
             // TODO: search for optimal ny_batch
             subgraph.set_nx_batch(1);
