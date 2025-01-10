@@ -75,6 +75,12 @@ public:
     void set_offset_smem(int offset) { m_offset_smem = offset; }
     int get_offset_smem() { return m_offset_smem; }
 
+    // overwrite
+    void set_can_overwrite(bool can_overwrite) {
+        m_can_overwrite = can_overwrite;
+    }
+    bool get_can_overwrite() { return m_can_overwrite; }
+
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;
@@ -82,6 +88,7 @@ private:
     std::string m_name;
     EdgeLevel m_level = EdgeLevel::Global;
     int m_offset_smem = 0;
+    bool m_can_overwrite = false;
 
     int get_size() {
         int size = 1;
