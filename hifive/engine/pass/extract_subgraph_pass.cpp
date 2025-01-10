@@ -115,7 +115,7 @@ GetSortedSubgraph(std::shared_ptr<hifive::core::Node> node,
 
 void SetSharedMemOffset(hifive::core::SubGraph& subgraph,
                         std::shared_ptr<hifive::Config>& config) {
-    int sPoly_size = core::GetsPolySize(subgraph.get_subgraph_type(), config);
+    int sPoly_size = core::GetsPolySize(subgraph.get_nodes(), config);
     int n_spoly = 0;
     for (auto node : subgraph.get_nodes()) {
         bool can_overwrite = false;
@@ -225,8 +225,7 @@ bool ExtractSubgraphPass::run_on_graph(
             // Set Subgraph Type
             subgraph.set_subgraph_type(GetSubgraphType(subgraph.get_nodes()));
             subgraph.set_smem_size(GetSubgraphSmemFoorprint(
-                subgraph.get_nodes(), subgraph.get_subgraph_type(),
-                graph->m_config));
+                subgraph.get_nodes(), graph->m_config));
 
             // Set SharedMemOffset
             SetSharedMemOffset(subgraph, graph->m_config);

@@ -84,13 +84,10 @@ void ReuseWithSuccessor(
     // Add successor to subgraph temporarily
     subgraph.push_back(successor);
 
-    // Get subgraph type
-    core::SubgraphType s_type = GetSubgraphType(subgraph);
-
     // Get subgraph memory footprint
     // TODO: consider limb
     int footprint_kb =
-        GetSubgraphSmemFoorprint(subgraph, s_type, graph->m_config) / 1000;
+        GetSubgraphSmemFoorprint(subgraph, graph->m_config) / 1000;
 
     // Check if footprint exceeds the limit
     if (footprint_kb > graph->m_config->SharedMemKB / 3) {
@@ -131,13 +128,10 @@ void ReuseWithPredecessor(
     // Add successor to subgraph temporarily
     subgraph.push_back(pred);
 
-    // Get subgraph type
-    core::SubgraphType s_type = GetSubgraphType(subgraph);
-
     // Get subgraph memory footprint
     // TODO: consider limb
     int footprint_kb =
-        GetSubgraphSmemFoorprint(subgraph, s_type, graph->m_config) / 1000;
+        GetSubgraphSmemFoorprint(subgraph, graph->m_config) / 1000;
 
     // Check if footprint exceeds the limit
     if (footprint_kb > graph->m_config->SharedMemKB / 3) {

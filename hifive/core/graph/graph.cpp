@@ -95,94 +95,6 @@ std::shared_ptr<Edge> get_edge(std::shared_ptr<Node> src,
     return nullptr;
 }
 
-int GetsPolySize(SubgraphType subgraph_type, std::shared_ptr<Config> config) {
-    int spoly_size = 0;
-    switch (subgraph_type) {
-    case SubgraphType::Elem:
-        spoly_size = 128;
-        break;
-    case SubgraphType::ElemLimb1:
-        spoly_size = NTTSampleSize(config->logN);
-        break;
-    case SubgraphType::ElemLimb2:
-        spoly_size = config->N / NTTSampleSize(config->logN);
-        break;
-    case SubgraphType::ElemSlot:
-        // TODO: consider limb
-        spoly_size = config->L;
-        break;
-    case SubgraphType::ElemLimb1Slot:
-        spoly_size = NTTSampleSize(config->logN) * config->L;
-        break;
-    case SubgraphType::ElemLimb2Slot:
-        spoly_size = config->N / NTTSampleSize(config->logN) * config->L;
-        break;
-    default:
-        LOG_ERROR("Invalid SubgraphType\n");
-        assert(false);
-    }
-    return spoly_size * sizeof(uint64_t);
-}
-
-int GetSubgraphSmemFoorprint(
-    std::vector<std::shared_ptr<hifive::core::Node>> &subgraph,
-    core::SubgraphType s_type, std::shared_ptr<Config> config) {
-    LOG_INFO("Calculate Footprint for: ");
-    for (auto node : subgraph) {
-        std::cout << node->get_op_name() << ", ";
-    }
-    std::cout << std::endl;
-
-    // Get sPoly Size
-    int spoly_size = core::GetsPolySize(s_type, config);
-
-    // Analyze each outedge can be overwritten or not
-    // Only if outedge is one, it can be overwritten
-    for (auto node : subgraph) {
-        const int n_outedges = node->get_out_edges().size();
-        if (n_outedges == 1) {
-            auto edge = node->get_out_edges()[0];
-            edge->set_can_overwrite(true);
-        } else {
-            for (int i = 0; i < n_outedges; i++) {
-                auto edge = node->get_out_edges()[i];
-                edge->set_can_overwrite(false);
-            }
-        }
-    }
-
-    // Get number of sPoly
-    int n_spoly = 1;
-    for (auto node : subgraph) {
-        bool can_overwrite = false;
-        bool all_global = true;
-        for (auto inedge : node->get_in_edges()) {
-            if (inedge->get_level() == hifive::core::EdgeLevel::Shared) {
-                if (inedge->can_overwrite()) {
-                    can_overwrite = true;
-                }
-            }
-        }
-
-        for (auto outedge : node->get_out_edges()) {
-            if (outedge->get_level() != hifive::core::EdgeLevel::Global) {
-                all_global = false;
-            }
-        }
-
-        if (can_overwrite | all_global) {
-            continue;
-        } else {
-            n_spoly++;
-        }
-    }
-
-    const int smem_footprint = spoly_size * n_spoly;
-    LOG_INFO("-> sPoly %.2f KB * %d = %.2f KB\n", spoly_size / 1000.0, n_spoly,
-             smem_footprint / 1000.0);
-    return smem_footprint;
-}
-
 core::SubgraphType GetSubgraphType(
     std::vector<std::shared_ptr<hifive::core::Node>> &s) {
     if (s.size() == 0) {
@@ -251,6 +163,119 @@ core::SubgraphType GetSubgraphType(
         LOG_ERROR("Unknown SubgraphType\n");
         assert(false);
     }
+}
+
+int GetsPolySize(std::vector<std::shared_ptr<hifive::core::Node>> &subgraph,
+                 std::shared_ptr<Config> config) {
+    int spoly_size = 0;
+
+    // Get sPoly Type
+    SubgraphType subgraph_type = GetSubgraphType(subgraph);
+
+    // Get max limb
+    int max_limb = 0;
+    for (auto node : subgraph) {
+        for (auto edge : node->get_in_edges()) {
+            if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
+                if (edge->get_limb() > max_limb) {
+                    max_limb = edge->get_limb();
+                }
+            }
+        }
+        for (auto edge : node->get_out_edges()) {
+            if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
+                if (edge->get_limb() > max_limb) {
+                    max_limb = edge->get_limb();
+                }
+            }
+        }
+    }
+
+    // Calculate sPoly Size
+    switch (subgraph_type) {
+    case SubgraphType::Elem:
+        spoly_size = 128;
+        break;
+    case SubgraphType::ElemLimb1:
+        spoly_size = NTTSampleSize(config->logN);
+        break;
+    case SubgraphType::ElemLimb2:
+        spoly_size = config->N / NTTSampleSize(config->logN);
+        break;
+    case SubgraphType::ElemSlot:
+        // TODO: consider limb
+        spoly_size = config->L;
+        break;
+    case SubgraphType::ElemLimb1Slot:
+        spoly_size = NTTSampleSize(config->logN) * max_limb;
+        break;
+    case SubgraphType::ElemLimb2Slot:
+        spoly_size = config->N / NTTSampleSize(config->logN) * max_limb;
+        break;
+    default:
+        LOG_ERROR("Invalid SubgraphType\n");
+        assert(false);
+    }
+    return spoly_size * sizeof(uint64_t);
+}
+
+int GetSubgraphSmemFoorprint(
+    std::vector<std::shared_ptr<hifive::core::Node>> &subgraph,
+    std::shared_ptr<Config> config) {
+    LOG_INFO("Calculate Footprint for: ");
+    for (auto node : subgraph) {
+        std::cout << node->get_op_name() << ", ";
+    }
+    std::cout << std::endl;
+
+    // Get sPoly Size
+    int spoly_size = core::GetsPolySize(subgraph, config);
+
+    // Analyze each outedge can be overwritten or not
+    // Only if outedge is one, it can be overwritten
+    for (auto node : subgraph) {
+        const int n_outedges = node->get_out_edges().size();
+        if (n_outedges == 1) {
+            auto edge = node->get_out_edges()[0];
+            edge->set_can_overwrite(true);
+        } else {
+            for (int i = 0; i < n_outedges; i++) {
+                auto edge = node->get_out_edges()[i];
+                edge->set_can_overwrite(false);
+            }
+        }
+    }
+
+    // Get number of sPoly
+    int n_spoly = 1;
+    for (auto node : subgraph) {
+        bool can_overwrite = false;
+        bool all_global = true;
+        for (auto inedge : node->get_in_edges()) {
+            if (inedge->get_level() == hifive::core::EdgeLevel::Shared) {
+                if (inedge->can_overwrite()) {
+                    can_overwrite = true;
+                }
+            }
+        }
+
+        for (auto outedge : node->get_out_edges()) {
+            if (outedge->get_level() != hifive::core::EdgeLevel::Global) {
+                all_global = false;
+            }
+        }
+
+        if (can_overwrite | all_global) {
+            continue;
+        } else {
+            n_spoly++;
+        }
+    }
+
+    const int smem_footprint = spoly_size * n_spoly;
+    LOG_INFO("-> sPoly %.2f KB * %d = %.2f KB\n", spoly_size / 1000.0, n_spoly,
+             smem_footprint / 1000.0);
+    return smem_footprint;
 }
 
 } // namespace core
