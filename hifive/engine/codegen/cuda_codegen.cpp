@@ -488,12 +488,18 @@ void CudaCodegen::generate_call_kernels(
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                    /*
                     auto same_result_edge = edge->get_same_result_edge();
                     if (same_result_edge == nullptr) {
                         LOG_ERROR("No same result global edge\n");
                         assert(false);
                     }
+                    LOG_INFO("Same result edge of %s is %s\n",
+                             edge->get_name().c_str(),
+                             same_result_edge->get_name().c_str());
                     w << ", " << same_result_edge->get_name() << "_d";
+                    */
+                    w << ", " << edge->get_name() << "_d";
                 }
             }
             for (auto edge : node->get_out_edges()) {
