@@ -1,16 +1,25 @@
 digraph G {
 Init[label="Init"];
 End[label="End"];
+Add0[label="Add"];
 NTT[label="NTT"];
 Mult0[label="Mult"];
 Mult1[label="Mult"];
-Add[label="Add"];
-Init -> NTT[label="4_0_4"];
+Mult2[label="Mult"];
+Mult3[label="Mult"];
+Mult4[label="Mult"];
+Init -> Add0[label="4_0_4"];
+Init -> Add0[label="4_0_4"];
 Init -> Mult0[label="4_0_4"];
 Init -> Mult1[label="4_0_4"];
+Add0 -> NTT[label="4_0_4"];
 NTT -> Mult0[label="4_0_4"];
 NTT -> Mult1[label="4_0_4"];
-Mult0 -> Add[label="4_0_4"];
-Mult1 -> Add[label="4_0_4"];
-Add -> End[label="4_0_4"];
+Mult0 -> Mult2[label="4_0_4"];
+Mult1 -> Mult2[label="4_0_4"];
+Mult2 -> Mult3[label="4_0_4"];
+Mult3 -> Mult4[label="4_0_4"];
+Init -> Mult3[label="4_0_4"];
+Init -> Mult4[label="4_0_4"];
+Mult4 -> End[label="4_0_4"];
 }
