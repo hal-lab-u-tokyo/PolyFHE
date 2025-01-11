@@ -52,17 +52,21 @@ void Graph::add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
     edge->update_name();
 
     if (!label.empty()) {
-        // label is {start_limb}_{end_limb}
+        // label is {current_limb}_{start_limb}_{end_limb}
         const std::string delimiter = "_";
-        std::string start_str = label.substr(0, label.find(delimiter));
+        std::string limb_str = label.substr(0, label.find(delimiter));
+        std::string start_str =
+            label.substr(label.find(delimiter) + 1, label.rfind(delimiter) - 2);
         std::string end_str =
-            label.substr(label.find(delimiter) + 1, label.length());
-        if (start_str.empty() || end_str.empty()) {
+            label.substr(label.rfind(delimiter) + 1, label.length());
+        if (start_str.empty() || end_str.empty() || limb_str.empty()) {
             LOG_ERROR("Invalid label: %s\n", label.c_str());
             exit(1);
         }
+        const int limb = std::stoi(limb_str);
         const int start = std::stoi(start_str);
         const int end = std::stoi(end_str);
+        edge->set_limb(limb);
         edge->set_start_limb(start);
         edge->set_end_limb(end);
     }

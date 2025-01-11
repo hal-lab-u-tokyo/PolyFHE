@@ -644,7 +644,9 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                 for (auto outedge : phase2_node->get_out_edges()) {
                     w << "NTT_h(params_h,";
                     w << outedge->get_name() << "_h, ";
-                    w << node->get_in_edges()[0]->get_name() << "_h);\n";
+                    w << node->get_in_edges()[0]->get_name() << "_h, ";
+                    w << node->get_in_edges()[0]->get_start_limb() << ", ";
+                    w << node->get_in_edges()[0]->get_end_limb() << ");\n";
                 }
                 continue;
             } else if (op_type == core::OpType::NTTPhase2) {
@@ -655,7 +657,9 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                 for (auto outedge : phase1_node->get_out_edges()) {
                     w << "iNTT_h(params_h,";
                     w << outedge->get_name() << "_h, ";
-                    w << node->get_in_edges()[0]->get_name() << "_h);\n";
+                    w << node->get_in_edges()[0]->get_name() << "_h";
+                    w << node->get_in_edges()[0]->get_start_limb() << ", ";
+                    w << node->get_in_edges()[0]->get_end_limb() << ");\n";
                 }
                 continue;
             } else if (op_type == core::OpType::iNTTPhase1) {
@@ -664,14 +668,15 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                 continue;
             }
             w << node->get_op_type_str() << "_h";
-            w << "(params_h";
+            w << "(params_h, ";
             for (auto edge : node->get_out_edges()) {
-                w << ", " << edge->get_name() << "_h";
+                w << edge->get_name() << "_h, ";
             }
             for (auto edge : node->get_in_edges()) {
-                w << ", " << edge->get_name() << "_h";
+                w << edge->get_name() << "_h, ";
             }
-            w << ");\n";
+            w << node->get_in_edges()[0]->get_start_limb() << ", ";
+            w << node->get_in_edges()[0]->get_end_limb() << ");\n";
         }
     }
 

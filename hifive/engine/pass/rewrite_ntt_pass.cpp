@@ -53,6 +53,7 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
                 std::make_shared<hifive::core::Edge>(ntt_phase1, ntt_phase2);
             new_edge->set_start_limb(inedge->get_start_limb());
             new_edge->set_end_limb(inedge->get_end_limb());
+            new_edge->set_limb(inedge->get_limb());
             new_edge->update_name();
             new_edge->set_level(hifive::core::EdgeLevel::Global);
             ntt_phase1->add_outgoing(new_edge);
@@ -85,6 +86,7 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
                 std::make_shared<hifive::core::Edge>(intt_phase2, intt_phase1);
             new_edge->set_start_limb(inedge->get_start_limb());
             new_edge->set_end_limb(inedge->get_end_limb());
+            new_edge->set_limb(inedge->get_limb());
             new_edge->update_name();
             new_edge->set_level(hifive::core::EdgeLevel::Global);
             intt_phase2->add_outgoing(new_edge);
