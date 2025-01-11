@@ -56,9 +56,14 @@ __forceinline__ __device__ void ElemWiseOp_Elem(
     dst[dst_idx] = calc_elemwise(op, a[a_idx], b[b_idx], qi);
 }
 
-void Add_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);
-void Sub_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);
-void Mult_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b);
-void NTT_h(Params *params, uint64_t *dst, uint64_t *src);
-void iNTT_h(Params *params, uint64_t *dst, uint64_t *src);
+void Add_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b,
+           const int start_limb, const int end_limb);
+void Sub_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b,
+           const int start_limb, const int end_limb);
+void Mult_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b,
+            const int start_limb, const int end_limb);
+void NTT_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,
+           const int end_limb);
+void iNTT_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,
+            const int end_limb);
 }

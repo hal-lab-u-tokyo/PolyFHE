@@ -27,7 +27,6 @@ bool CalculateMemoryTrafficPass::run_on_graph(
 
         // Calculate memory traffic cost
         for (auto in_edge : node->get_in_edges()) {
-            total_traffic += in_edge->get_size_in_byte();
         }
 
         for (auto edge : node->get_out_edges()) {
