@@ -73,7 +73,8 @@ std::string GenerateN(const hifive::core::BlockPhase phase) {
 }
 
 void CudaCodegen::generate_modup(std::shared_ptr<hifive::core::Node>& node,
-                                 CodeWriter& w, std::string n_gidx) {
+                                 CodeWriter& w, std::string sPoly_x,
+                                 std::string n_gidx, std::string n_sidx) {
     assert(node->get_out_edges().size() == 1);
     assert(node->get_in_edges().size() == 1);
     auto outedge = node->get_out_edges()[0];
@@ -97,9 +98,9 @@ void CudaCodegen::generate_modup(std::shared_ptr<hifive::core::Node>& node,
         args_if_gmem.push_back("0");
     }
     args.insert(args.end(), args_if_gmem.begin(), args_if_gmem.end());
-    args.push_back("blockDim.x");
+    args.push_back(sPoly_x);
     args.push_back(n_gidx);
-    args.push_back("threadIdx.x");
+    args.push_back(n_sidx);
     args.push_back(std::to_string(inedge->get_start_limb()));
     args.push_back(std::to_string(inedge->get_end_limb()));
     w << "ModUpOp(" << GenerateArgs(args) << ");\n";
@@ -524,7 +525,7 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("threadIdx.x");
                     w << "ElemWiseOp_ElemSlot(" << GenerateArgs(args) << ");\n";
                 } else if (op_type == core::OpType::ModUp) {
-                    generate_modup(node, w, "idx");
+                    generate_modup(node, w, "blockDim.x", "idx", "threadIdx.x");
                 } else {
                     LOG_ERROR(
                         "Only Add, Sub, Mult and ModUp/Down are supported for "
@@ -547,6 +548,7 @@ void CudaCodegen::generate_kernel_defs(
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
+                    w.block_begin();
                     w << "const int start_limb = "
                       << node->get_in_edges()[0]->get_start_limb() << ";\n";
                     w << "const int end_limb = "
@@ -609,6 +611,7 @@ void CudaCodegen::generate_kernel_defs(
                     w << "const int n_sidx = idx % sPoly_x;\n";
                     w << "ElemWiseOp_Elem_v2(" << GenerateArgs(args) << ");\n";
                     w.block_end();
+                    w.block_end();
                 } else if (op_type == core::OpType::NTTPhase2) {
                     w << "for (int idx = blockIdx.x;";
                     w << "idx < params->n1;";
@@ -665,7 +668,8 @@ void CudaCodegen::generate_kernel_defs(
                     w << "idx < params->n2; ";
                     w << "idx += blockDim.x)";
                     w.block_begin();
-                    generate_modup(node, w, "blockIdx.x * params->n2 + idx");
+                    generate_modup(node, w, "params->n2",
+                                   "blockIdx.x * params->n2 + idx", "idx");
                     w.block_end();
                 } else {
                     LOG_ERROR(
@@ -673,6 +677,7 @@ void CudaCodegen::generate_kernel_defs(
                     std::cerr << "op_type: " << core::toStringOpType(op_type)
                               << std::endl;
                 }
+                w << "__syncthreads();\n";
             }
         } else {
             LOG_ERROR("Not implemented\n");
@@ -782,7 +787,7 @@ void define_edge(CodeWriter& w, std::shared_ptr<hifive::core::Edge>& edge,
     w << "N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
     if (initialize) {
         w << "for (int i = 0; i < N * " << edge->get_limb() << "; i++) {";
-        w << edge->get_name() << "_h[i] =  1;}\n";
+        w << edge->get_name() << "_h[i] = i % 10;}\n";
         w << "cudaMemcpy(" << edge->get_name() << "_d, ";
         w << edge->get_name() << "_h,";
         w << "N * " << edge->get_limb() << " * sizeof(uint64_t),";
@@ -962,18 +967,22 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << "cudaMemcpy(" << edge->get_name() << "_h_from_d, "
           << edge->get_name() << "_d, N * " << edge->get_limb()
           << "* sizeof(uint64_t), cudaMemcpyDeviceToHost);\n";
-        w << "for (int i = 0; i < N * " << edge->get_limb() << "; i++)";
+        w << "for (int i = 0; i < " << edge->get_limb() << "; i++)";
+        w.block_begin();
+        w << "for (int j = 0; j < N; j++)";
         w.block_begin();
         w << "if (";
-        w << edge->get_name() << "_h[i] != ";
-        w << edge->get_name() << "_h_from_d[i])";
+        w << edge->get_name() << "_h[i * N + j] != ";
+        w << edge->get_name() << "_h_from_d[i * N + j])";
         w.block_begin();
-        w << "std::cout << \"Error[\" << i << \"] ";
-        w << "result: \" << " << edge->get_name() << "_h_from_d[i] << \" vs ";
-        w << "expected: \" << " << edge->get_name() << "_h[i] << std::endl;\n";
+        w << "std::cout << \"Error[\" << i << \"][\" << j << \"] : \" << "
+          << edge->get_name() << "_h_from_d[i * N + j] << \" vs ";
+        w << "expected: \" << " << edge->get_name()
+          << "_h[i * N + j] << std::endl;\n";
         w << "std::cout << \"Check failed\" << std::endl;\n";
         w << "if_fail = true;\n";
         w << "break;\n";
+        w.block_end();
         w.block_end();
         w.block_end();
         w << "if (!if_fail) {std::cout << \"Check passed\" << "

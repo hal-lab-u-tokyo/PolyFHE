@@ -22,7 +22,8 @@ public:
                                CodeWriter& w);
 
     void generate_modup(std::shared_ptr<hifive::core::Node>& node,
-                        CodeWriter& w, std::string n_gidx);
+                        CodeWriter& w, std::string sPoly_x, std::string n_gidx,
+                        std::string n_sidx);
 };
 } // namespace engine
 } // namespace hifive
