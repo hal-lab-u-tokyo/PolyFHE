@@ -72,15 +72,17 @@ uint64_t compute_shoup(const uint64_t operand, const uint64_t modulus) {
     return temp / modulus;
 }
 
-Params::Params(int logN, int L) : logN(logN), L(L) {
+Params::Params(const int logN, const int L, const int dnum)
+    : logN(logN), L(L), dnum(dnum) {
     limb = L;
-    K = L + 1;
     N = 1 << logN;
+    alpha = std::ceil((L + 1) / dnum);
+    K = alpha;
     n1 = hifive::NTTSampleSize(logN);
     n2 = N / n1;
     sigma = 3.2;
-    qVec = new uint64_t[L];
-    pVec = new uint64_t[K];
+    qVec = new uint64_t[L + K];
+    pVec = qVec + L;
     for (int i = 0; i < L; i++) {
         qVec[i] = 998244353; // 51-bit
     }
@@ -95,6 +97,7 @@ Params::Params(int logN, int L) : logN(logN), L(L) {
     ntt_params->logN = logN;
     ntt_params->batch = L;
     ntt_params->q = qVec;
+    ntt_params->p = pVec;
     ntt_params->root = new uint64_t[L];
     ntt_params->root_inv = new uint64_t[L];
     ntt_params->N_inv = new uint64_t[L];
@@ -137,21 +140,18 @@ void FHEContext::CopyParamsToDevice() {
     memcpy(&params_tmp, h_params.get(), sizeof(Params));
 
     uint64_t *d_qVec;
-    uint64_t *d_pVec;
-    checkCudaErrors(cudaMalloc(&d_qVec, h_params->L * sizeof(uint64_t)));
-    checkCudaErrors(cudaMalloc(&d_pVec, h_params->K * sizeof(uint64_t)));
+    checkCudaErrors(
+        cudaMalloc(&d_qVec, (h_params->L + h_params->K) * sizeof(uint64_t)));
     checkCudaErrors(cudaMemcpy(d_qVec, h_params->qVec,
-                               params_tmp.L * sizeof(uint64_t),
-                               cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_pVec, h_params->pVec,
-                               params_tmp.K * sizeof(uint64_t),
+                               (h_params->L + h_params->K) * sizeof(uint64_t),
                                cudaMemcpyHostToDevice));
     params_tmp.qVec = d_qVec;
-    params_tmp.pVec = d_pVec;
+    params_tmp.pVec = d_qVec + h_params->L;
 
     NTTParams ntt_params_tmp;
     memcpy(&ntt_params_tmp, h_params->ntt_params, sizeof(NTTParams));
     ntt_params_tmp.q = d_qVec;
+    ntt_params_tmp.p = d_qVec + h_params->L;
     uint64_t *d_root;
     uint64_t *d_root_inv;
     uint64_t *d_N_inv;
@@ -227,8 +227,8 @@ void FHEContext::CopyParamsToDevice() {
     d_ntt_params = params_tmp.ntt_params;
 }
 
-FHEContext::FHEContext(const int logN, const int L) {
+FHEContext::FHEContext(const int logN, const int L, const int dnum) {
     LOG_INFO("Initializing Params\n");
-    h_params = std::make_shared<Params>(logN, L);
+    h_params = std::make_shared<Params>(logN, L, dnum);
     CopyParamsToDevice();
 }

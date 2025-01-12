@@ -32,6 +32,7 @@ struct NTTParams {
     int n2;
     int batch;
     uint64_t* q;
+    uint64_t* p;
     uint64_t* root;
     uint64_t* root_inv;
     uint64_t* N_inv;
@@ -43,19 +44,21 @@ struct NTTParams {
 
 class Params {
 public:
-    Params(int logN, int L);
+    Params(const int logN, const int L, const int dnum);
     Params() = default;
     ~Params() = default;
 
     // Encryption parameters
-    int logN; ///< Logarithm of Ring Dimension
-    int N;
+    int logN;
+    int N; // Number of coefficients in a polynomial
     int n1;
     int n2;
 
-    int L;    ///< Maximum Level that we want to support
-    int limb; // Current limb Level
-    int K;    ///< The number of special modulus (usually L + 1)
+    int L;     // Maximum limb
+    int limb;  // Current limb
+    int K;     // The number of special modulus
+    int alpha; // Number of limbs in a digit, ceil((L + 1) / dnum)
+    int dnum;  // Number of digits
 
     double sigma = 3.2;
 
@@ -67,7 +70,7 @@ public:
 
 class FHEContext {
 public:
-    FHEContext(const int logN, const int L);
+    FHEContext(const int logN, const int L, const int dnum);
     ~FHEContext() = default;
 
     Params* get_d_params() { return d_params; }

@@ -38,6 +38,20 @@ void Mult_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b,
     }
 }
 
+void ModUp_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,
+             const int end_limb) {
+    for (int k = 0; k < params->K; k++) {
+        uint64_t *dst_k = dst + (params->limb + k) * params->N;
+        for (int n = 0; n < params->N; n++) {
+            uint64_t sum = 0;
+            for (int l = start_limb; l < end_limb; l++) {
+                sum += src[l * params->N + n];
+            }
+            dst_k[n] = sum;
+        }
+    }
+}
+
 void NTT_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,
            const int end_limb) {
     for (int l = start_limb; l < end_limb; l++) {

@@ -1,0 +1,772 @@
+Starting Benchmarking...
+==PROF== Connected to process 808584 (/opt/mount/HiFive/build-opt/bench)
+[36m[INFO][hifive/kernel/device_context.cu][231][FHEContext][39m Initializing Params
+### Warm up and Test
+N : 65536
+n1: 256
+n2: 256
+L : 4
+q[0] : 998244353
+root[0] : 3
+------------------------------
+==PROF== Profiling "Add_NTTPhase1" - 0: 0%....50%....100% - 9 passes
+==PROF== Profiling "NTTPhase2_Mult_Mult_Mult_Mult" - 1: 0%....50%....100% - 9 passes
+Check passed
+### Benchmark
+==PROF== Profiling "Add_NTTPhase1" - 2: 0%....50%....100% - 9 passes
+==PROF== Profiling "NTTPhase2_Mult_Mult_Mult_Mult" - 3: 0%....50%....100% - 9 passes
+Elapsed time: 121204us
+==PROF== Profiling "Add_NTTPhase1" - 4: 0%....50%....100% - 9 passes
+==PROF== Profiling "NTTPhase2_Mult_Mult_Mult_Mult" - 5: 0%....50%....100% - 9 passes
+Elapsed time: 118394us
+==PROF== Profiling "Add_NTTPhase1" - 6: 0%....50%....100% - 9 passes
+==PROF== Profiling "NTTPhase2_Mult_Mult_Mult_Mult" - 7: 0%....50%....100% - 9 passes
+Elapsed time: 118678us
+==PROF== Profiling "Add_NTTPhase1" - 8: 0%....50%....100% - 9 passes
+==PROF== Profiling "NTTPhase2_Mult_Mult_Mult_Mult" - 9: 0%....50%....100% - 9 passes
+Elapsed time: 114562us
+==PROF== Profiling "Add_NTTPhase1" - 10: 0%....50%....100% - 9 passes
+==PROF== Profiling "NTTPhase2_Mult_Mult_Mult_Mult" - 11: 0%....50%....100% - 9 passes
+Elapsed time: 114505us
+Average time: 116535us
+Finished Benchmarking...
+==PROF== Disconnected from process 808584
+[808584] bench@127.0.0.1
+  Add_NTTPhase1(Params *, int, int, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.25
+    SM Frequency            cycle/usecond       708.21
+    Elapsed Cycles                  cycle        54574
+    Memory Throughput                   %        56.16
+    DRAM Throughput                     %        16.72
+    Duration                      usecond        77.06
+    L1/TEX Cache Throughput             %        66.06
+    L2 Cache Throughput                 %        56.16
+    SM Active Cycles                cycle     50031.88
+    Compute (SM) Throughput             %        15.85
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              70
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            4.10
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.33
+    -------------------------------- --------------- ---------------
+
+    OPT   Est. Speedup: 50%                                                                                             
+          A wave of thread blocks is defined as the maximum number of blocks that can be executed in parallel on the    
+          target GPU. The number of blocks in a wave depends on the number of multiprocessors and the theoretical       
+          occupancy of the kernel. This kernel launch results in 1 full waves and a partial wave of 255 thread blocks.  
+          Under the assumption of a uniform execution duration of all thread blocks, the partial wave may account for   
+          up to 50.0% of the total kernel runtime with a lower occupancy of 21.2%. Try launching a grid with no         
+          partial wave. The overall impact of this tail effect also lessens with the number of full waves executed for  
+          a grid. See the Hardware Model                                                                                
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-hw-model) description for more      
+          details on launch configurations.                                                                             
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           28
+    Block Limit Shared Mem                block           20
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           16
+    Theoretical Occupancy                     %        33.33
+    Achieved Occupancy                        %        26.28
+    Achieved Active Warps Per SM           warp        12.61
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 66.67%                                                                                    
+          The 4.00 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (33.3%) is limited by the number of blocks that   
+          can fit on the SM.                                                                                            
+
+  NTTPhase2_Mult_Mult_Mult_Mult(Params *, int, int, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.44
+    SM Frequency            cycle/usecond       728.63
+    Elapsed Cycles                  cycle        92639
+    Memory Throughput                   %        30.02
+    DRAM Throughput                     %        30.02
+    Duration                      usecond       127.14
+    L1/TEX Cache Throughput             %        21.99
+    L2 Cache Throughput                 %        16.33
+    SM Active Cycles                cycle     88113.06
+    Compute (SM) Throughput             %        32.40
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              80
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            8.19
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.94
+    -------------------------------- --------------- ---------------
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           24
+    Block Limit Shared Mem                block           11
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           11
+    Theoretical Occupancy                     %        22.92
+    Achieved Occupancy                        %        21.31
+    Achieved Active Warps Per SM           warp        10.23
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 77.08%                                                                                    
+          The 2.75 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (22.9%) is limited by the required amount of      
+          shared memory.                                                                                                
+
+  Add_NTTPhase1(Params *, int, int, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.43
+    SM Frequency            cycle/usecond       727.94
+    Elapsed Cycles                  cycle        55094
+    Memory Throughput                   %        55.91
+    DRAM Throughput                     %        16.82
+    Duration                      usecond        75.68
+    L1/TEX Cache Throughput             %        65.12
+    L2 Cache Throughput                 %        55.91
+    SM Active Cycles                cycle     49679.06
+    Compute (SM) Throughput             %        15.70
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              70
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            4.10
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.33
+    -------------------------------- --------------- ---------------
+
+    OPT   Est. Speedup: 50%                                                                                             
+          A wave of thread blocks is defined as the maximum number of blocks that can be executed in parallel on the    
+          target GPU. The number of blocks in a wave depends on the number of multiprocessors and the theoretical       
+          occupancy of the kernel. This kernel launch results in 1 full waves and a partial wave of 255 thread blocks.  
+          Under the assumption of a uniform execution duration of all thread blocks, the partial wave may account for   
+          up to 50.0% of the total kernel runtime with a lower occupancy of 20.6%. Try launching a grid with no         
+          partial wave. The overall impact of this tail effect also lessens with the number of full waves executed for  
+          a grid. See the Hardware Model                                                                                
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-hw-model) description for more      
+          details on launch configurations.                                                                             
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           28
+    Block Limit Shared Mem                block           20
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           16
+    Theoretical Occupancy                     %        33.33
+    Achieved Occupancy                        %        26.46
+    Achieved Active Warps Per SM           warp        12.70
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 66.67%                                                                                    
+          The 4.00 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (33.3%) is limited by the number of blocks that   
+          can fit on the SM.                                                                                            
+
+  NTTPhase2_Mult_Mult_Mult_Mult(Params *, int, int, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.31
+    SM Frequency            cycle/usecond       713.87
+    Elapsed Cycles                  cycle        90762
+    Memory Throughput                   %        30.62
+    DRAM Throughput                     %        30.62
+    Duration                      usecond       127.14
+    L1/TEX Cache Throughput             %        22.04
+    L2 Cache Throughput                 %        16.67
+    SM Active Cycles                cycle     87957.44
+    Compute (SM) Throughput             %        33.07
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              80
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            8.19
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.94
+    -------------------------------- --------------- ---------------
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           24
+    Block Limit Shared Mem                block           11
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           11
+    Theoretical Occupancy                     %        22.92
+    Achieved Occupancy                        %        21.26
+    Achieved Active Warps Per SM           warp        10.20
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 77.08%                                                                                    
+          The 2.75 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (22.9%) is limited by the required amount of      
+          shared memory.                                                                                                
+
+  Add_NTTPhase1(Params *, int, int, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.34
+    SM Frequency            cycle/usecond       717.75
+    Elapsed Cycles                  cycle        55039
+    Memory Throughput                   %        56.47
+    DRAM Throughput                     %        16.56
+    Duration                      usecond        76.67
+    L1/TEX Cache Throughput             %        64.99
+    L2 Cache Throughput                 %        56.47
+    SM Active Cycles                cycle     50265.58
+    Compute (SM) Throughput             %        15.72
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              70
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            4.10
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.33
+    -------------------------------- --------------- ---------------
+
+    OPT   Est. Speedup: 50%                                                                                             
+          A wave of thread blocks is defined as the maximum number of blocks that can be executed in parallel on the    
+          target GPU. The number of blocks in a wave depends on the number of multiprocessors and the theoretical       
+          occupancy of the kernel. This kernel launch results in 1 full waves and a partial wave of 255 thread blocks.  
+          Under the assumption of a uniform execution duration of all thread blocks, the partial wave may account for   
+          up to 50.0% of the total kernel runtime with a lower occupancy of 21.7%. Try launching a grid with no         
+          partial wave. The overall impact of this tail effect also lessens with the number of full waves executed for  
+          a grid. See the Hardware Model                                                                                
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-hw-model) description for more      
+          details on launch configurations.                                                                             
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           28
+    Block Limit Shared Mem                block           20
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           16
+    Theoretical Occupancy                     %        33.33
+    Achieved Occupancy                        %        26.09
+    Achieved Active Warps Per SM           warp        12.52
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 66.67%                                                                                    
+          The 4.00 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (33.3%) is limited by the number of blocks that   
+          can fit on the SM.                                                                                            
+
+  NTTPhase2_Mult_Mult_Mult_Mult(Params *, int, int, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.34
+    SM Frequency            cycle/usecond       717.50
+    Elapsed Cycles                  cycle        91528
+    Memory Throughput                   %        30.37
+    DRAM Throughput                     %        30.37
+    Duration                      usecond       127.55
+    L1/TEX Cache Throughput             %        21.98
+    L2 Cache Throughput                 %        16.53
+    SM Active Cycles                cycle     88162.35
+    Compute (SM) Throughput             %        32.80
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              80
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            8.19
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.94
+    -------------------------------- --------------- ---------------
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           24
+    Block Limit Shared Mem                block           11
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           11
+    Theoretical Occupancy                     %        22.92
+    Achieved Occupancy                        %        21.25
+    Achieved Active Warps Per SM           warp        10.20
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 77.08%                                                                                    
+          The 2.75 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (22.9%) is limited by the required amount of      
+          shared memory.                                                                                                
+
+  Add_NTTPhase1(Params *, int, int, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.38
+    SM Frequency            cycle/usecond       722.46
+    Elapsed Cycles                  cycle        54656
+    Memory Throughput                   %        56.82
+    DRAM Throughput                     %        16.67
+    Duration                      usecond        75.65
+    L1/TEX Cache Throughput             %        65.58
+    L2 Cache Throughput                 %        56.82
+    SM Active Cycles                cycle     50125.96
+    Compute (SM) Throughput             %        15.83
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              70
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            4.10
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.33
+    -------------------------------- --------------- ---------------
+
+    OPT   Est. Speedup: 50%                                                                                             
+          A wave of thread blocks is defined as the maximum number of blocks that can be executed in parallel on the    
+          target GPU. The number of blocks in a wave depends on the number of multiprocessors and the theoretical       
+          occupancy of the kernel. This kernel launch results in 1 full waves and a partial wave of 255 thread blocks.  
+          Under the assumption of a uniform execution duration of all thread blocks, the partial wave may account for   
+          up to 50.0% of the total kernel runtime with a lower occupancy of 21.6%. Try launching a grid with no         
+          partial wave. The overall impact of this tail effect also lessens with the number of full waves executed for  
+          a grid. See the Hardware Model                                                                                
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-hw-model) description for more      
+          details on launch configurations.                                                                             
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           28
+    Block Limit Shared Mem                block           20
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           16
+    Theoretical Occupancy                     %        33.33
+    Achieved Occupancy                        %        26.15
+    Achieved Active Warps Per SM           warp        12.55
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 66.67%                                                                                    
+          The 4.00 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (33.3%) is limited by the number of blocks that   
+          can fit on the SM.                                                                                            
+
+  NTTPhase2_Mult_Mult_Mult_Mult(Params *, int, int, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.36
+    SM Frequency            cycle/usecond       720.18
+    Elapsed Cycles                  cycle        91335
+    Memory Throughput                   %        30.44
+    DRAM Throughput                     %        30.44
+    Duration                      usecond       126.82
+    L1/TEX Cache Throughput             %        22.01
+    L2 Cache Throughput                 %        16.56
+    SM Active Cycles                cycle     88037.65
+    Compute (SM) Throughput             %        32.87
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              80
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            8.19
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.94
+    -------------------------------- --------------- ---------------
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           24
+    Block Limit Shared Mem                block           11
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           11
+    Theoretical Occupancy                     %        22.92
+    Achieved Occupancy                        %        21.25
+    Achieved Active Warps Per SM           warp        10.20
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 77.08%                                                                                    
+          The 2.75 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (22.9%) is limited by the required amount of      
+          shared memory.                                                                                                
+
+  Add_NTTPhase1(Params *, int, int, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.32
+    SM Frequency            cycle/usecond       715.78
+    Elapsed Cycles                  cycle        54633
+    Memory Throughput                   %        56.41
+    DRAM Throughput                     %        16.68
+    Duration                      usecond        76.32
+    L1/TEX Cache Throughput             %        66.48
+    L2 Cache Throughput                 %        56.41
+    SM Active Cycles                cycle     50098.48
+    Compute (SM) Throughput             %        15.84
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              70
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            4.10
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.33
+    -------------------------------- --------------- ---------------
+
+    OPT   Est. Speedup: 50%                                                                                             
+          A wave of thread blocks is defined as the maximum number of blocks that can be executed in parallel on the    
+          target GPU. The number of blocks in a wave depends on the number of multiprocessors and the theoretical       
+          occupancy of the kernel. This kernel launch results in 1 full waves and a partial wave of 255 thread blocks.  
+          Under the assumption of a uniform execution duration of all thread blocks, the partial wave may account for   
+          up to 50.0% of the total kernel runtime with a lower occupancy of 20.9%. Try launching a grid with no         
+          partial wave. The overall impact of this tail effect also lessens with the number of full waves executed for  
+          a grid. See the Hardware Model                                                                                
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-hw-model) description for more      
+          details on launch configurations.                                                                             
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           28
+    Block Limit Shared Mem                block           20
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           16
+    Theoretical Occupancy                     %        33.33
+    Achieved Occupancy                        %        26.37
+    Achieved Active Warps Per SM           warp        12.66
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 66.67%                                                                                    
+          The 4.00 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (33.3%) is limited by the number of blocks that   
+          can fit on the SM.                                                                                            
+
+  NTTPhase2_Mult_Mult_Mult_Mult(Params *, int, int, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.31
+    SM Frequency            cycle/usecond       714.40
+    Elapsed Cycles                  cycle        90898
+    Memory Throughput                   %        30.58
+    DRAM Throughput                     %        30.58
+    Duration                      usecond       127.23
+    L1/TEX Cache Throughput             %        21.96
+    L2 Cache Throughput                 %        16.64
+    SM Active Cycles                cycle     88206.02
+    Compute (SM) Throughput             %        33.02
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              80
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            8.19
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.94
+    -------------------------------- --------------- ---------------
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           24
+    Block Limit Shared Mem                block           11
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           11
+    Theoretical Occupancy                     %        22.92
+    Achieved Occupancy                        %        21.23
+    Achieved Active Warps Per SM           warp        10.19
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 77.08%                                                                                    
+          The 2.75 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (22.9%) is limited by the required amount of      
+          shared memory.                                                                                                
+
+  Add_NTTPhase1(Params *, int, int, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.44
+    SM Frequency            cycle/usecond       729.31
+    Elapsed Cycles                  cycle        54590
+    Memory Throughput                   %        56.27
+    DRAM Throughput                     %        17.02
+    Duration                      usecond        74.85
+    L1/TEX Cache Throughput             %        65.75
+    L2 Cache Throughput                 %        56.27
+    SM Active Cycles                cycle        50350
+    Compute (SM) Throughput             %        15.85
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              70
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            4.10
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.33
+    -------------------------------- --------------- ---------------
+
+    OPT   Est. Speedup: 50%                                                                                             
+          A wave of thread blocks is defined as the maximum number of blocks that can be executed in parallel on the    
+          target GPU. The number of blocks in a wave depends on the number of multiprocessors and the theoretical       
+          occupancy of the kernel. This kernel launch results in 1 full waves and a partial wave of 255 thread blocks.  
+          Under the assumption of a uniform execution duration of all thread blocks, the partial wave may account for   
+          up to 50.0% of the total kernel runtime with a lower occupancy of 21.7%. Try launching a grid with no         
+          partial wave. The overall impact of this tail effect also lessens with the number of full waves executed for  
+          a grid. See the Hardware Model                                                                                
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-hw-model) description for more      
+          details on launch configurations.                                                                             
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           28
+    Block Limit Shared Mem                block           20
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           16
+    Theoretical Occupancy                     %        33.33
+    Achieved Occupancy                        %        26.11
+    Achieved Active Warps Per SM           warp        12.53
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 66.67%                                                                                    
+          The 4.00 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (33.3%) is limited by the number of blocks that   
+          can fit on the SM.                                                                                            
+
+  NTTPhase2_Mult_Mult_Mult_Mult(Params *, int, int, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *) (1024, 1, 1)x(32, 1, 1), Context 1, Stream 7, Device 0, CC 8.6
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ------------- ------------
+    Metric Name               Metric Unit Metric Value
+    ----------------------- ------------- ------------
+    DRAM Frequency          cycle/nsecond         6.28
+    SM Frequency            cycle/usecond       710.66
+    Elapsed Cycles                  cycle        91175
+    Memory Throughput                   %        30.51
+    DRAM Throughput                     %        30.51
+    Duration                      usecond       128.29
+    L1/TEX Cache Throughput             %        22.02
+    L2 Cache Throughput                 %        16.60
+    SM Active Cycles                cycle     88005.62
+    Compute (SM) Throughput             %        32.93
+    ----------------------- ------------- ------------
+
+    OPT   This kernel exhibits low compute throughput and memory bandwidth utilization relative to the peak performance 
+          of this device. Achieved compute throughput and/or memory bandwidth below 60.0% of peak typically indicate    
+          latency issues. Look at Scheduler Statistics and Warp State Statistics for potential reasons.                 
+
+    Section: Launch Statistics
+    -------------------------------- --------------- ---------------
+    Metric Name                          Metric Unit    Metric Value
+    -------------------------------- --------------- ---------------
+    Block Size                                                    32
+    Function Cache Configuration                     CachePreferNone
+    Grid Size                                                   1024
+    Registers Per Thread             register/thread              80
+    Shared Memory Configuration Size           Kbyte          102.40
+    Driver Shared Memory Per Block       Kbyte/block            1.02
+    Dynamic Shared Memory Per Block      Kbyte/block            8.19
+    Static Shared Memory Per Block        byte/block               0
+    Threads                                   thread           32768
+    Waves Per SM                                                1.94
+    -------------------------------- --------------- ---------------
+
+    Section: Occupancy
+    ------------------------------- ----------- ------------
+    Metric Name                     Metric Unit Metric Value
+    ------------------------------- ----------- ------------
+    Block Limit SM                        block           16
+    Block Limit Registers                 block           24
+    Block Limit Shared Mem                block           11
+    Block Limit Warps                     block           48
+    Theoretical Active Warps per SM        warp           11
+    Theoretical Occupancy                     %        22.92
+    Achieved Occupancy                        %        21.28
+    Achieved Active Warps Per SM           warp        10.21
+    ------------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 77.08%                                                                                    
+          The 2.75 theoretical warps per scheduler this kernel can issue according to its occupancy are below the       
+          hardware maximum of 12. This kernel's theoretical occupancy (22.9%) is limited by the required amount of      
+          shared memory.                                                                                                
+

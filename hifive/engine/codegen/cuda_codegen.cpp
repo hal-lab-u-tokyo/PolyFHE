@@ -78,12 +78,7 @@ void CudaCodegen::generate_kernel_defs(
     LOG_INFO("Start Generate kernel definitions\n");
 
     CodeWriter w;
-    std::map<std::string, bool> kernel_defined;
     for (auto subgraph : graph->get_subgraphs()) {
-        if (kernel_defined.contains(subgraph->get_name())) {
-            continue;
-        }
-        kernel_defined[subgraph->get_name()] = true;
         w << "// Define kernel for subgraph[" << subgraph->get_idx() << "]\n";
         w << "__global__ void " << subgraph->get_name() << "(Params *params";
 
@@ -119,70 +114,75 @@ void CudaCodegen::generate_kernel_defs(
             if (subgraph->get_nodes().size() > 1) {
                 w << "extern __shared__ uint64_t shared[];\n";
             }
-            w << "for (int idx = threadIdx.x + blockIdx.x * blockDim.x;";
-            w << "idx < params->N * params->limb;";
-            w << "idx += blockDim.x * gridDim.x)";
-            w.block_begin();
-            w << "const int l_idx = idx / params->N;\n";
-            w << "const int n_idx = idx % params->N;\n";
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
-                if (op_type == core::OpType::Add ||
-                    op_type == core::OpType::Sub ||
-                    op_type == core::OpType::Mult) {
-                    std::vector<std::string> args;
-                    std::vector<std::string> args_if_gmem;
-                    if (op_type == core::OpType::Add) {
-                        args.push_back("ElemWiseOp::Add");
-                    } else if (op_type == core::OpType::Sub) {
-                        args.push_back("ElemWiseOp::Sub");
-                    } else if (op_type == core::OpType::Mult) {
-                        args.push_back("ElemWiseOp::Mult");
-                    }
-                    args.push_back("params");
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 2);
-                    for (auto edge : node->get_out_edges()) {
-                        if (edge->get_level() ==
-                            hifive::core::EdgeLevel::Global) {
-                            args.push_back(edge->get_name());
-                            args_if_gmem.push_back("1");
-                        } else {
-                            args.push_back(
-                                "shared + " +
-                                std::to_string(edge->get_offset_smem()));
-                            args_if_gmem.push_back("0");
-                        }
-                    }
-                    for (auto edge : node->get_in_edges()) {
-                        if (edge->get_level() ==
-                            hifive::core::EdgeLevel::Global) {
-                            args.push_back(edge->get_name());
-                            args_if_gmem.push_back("1");
-                        } else {
-                            args.push_back(
-                                "shared + " +
-                                std::to_string(edge->get_offset_smem()));
-                            args_if_gmem.push_back("0");
-                        }
-                    }
-                    args.insert(args.end(), args_if_gmem.begin(),
-                                args_if_gmem.end());
-                    args.push_back("blockDim.x");
-                    args.push_back("l_idx");
-                    args.push_back("n_idx");
-                    args.push_back("threadIdx.x");
-                    w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
-                } else {
+                if (op_type != core::OpType::Add &&
+                    op_type != core::OpType::Sub &&
+                    op_type != core::OpType::Mult) {
                     LOG_ERROR(
                         "Only Add, Sub, Mult are supported for "
                         "SubgraphType::Elem\n");
                     std::cerr << "op_type: " << core::toStringOpType(op_type)
                               << std::endl;
                 }
+                w << "const int start_limb = "
+                  << node->get_in_edges()[0]->get_start_limb() << ";\n";
+                w << "const int end_limb = "
+                  << node->get_in_edges()[0]->get_end_limb() << ";\n";
+                w << "for (int idx = threadIdx.x + blockIdx.x * "
+                     "blockDim.x;";
+                w << "idx < params->N * (end_limb - start_limb);";
+                w << "idx += blockDim.x * gridDim.x)";
+                w.block_begin();
+                w << "const int l_idx = idx / params->N + start_limb;\n";
+                w << "const int n_idx = idx % params->N;\n";
+
+                std::vector<std::string> args;
+                std::vector<std::string> args_if_gmem;
+                if (op_type == core::OpType::Add) {
+                    args.push_back("ElemWiseOp::Add");
+                } else if (op_type == core::OpType::Sub) {
+                    args.push_back("ElemWiseOp::Sub");
+                } else if (op_type == core::OpType::Mult) {
+                    args.push_back("ElemWiseOp::Mult");
+                }
+                args.push_back("params");
+                assert(node->get_in_edges().size() == 2);
+                // Make sure all levels of outedges are the same
+                for (auto edge : node->get_out_edges()) {
+                    assert(edge->get_level() ==
+                           node->get_out_edges()[0]->get_level());
+                }
+                // Output to only first outedge
+                auto outedge = node->get_out_edges()[0];
+                if (outedge->get_level() == hifive::core::EdgeLevel::Global) {
+                    args.push_back(outedge->get_name());
+                    args_if_gmem.push_back("1");
+                } else {
+                    args.push_back("shared + " +
+                                   std::to_string(outedge->get_offset_smem()));
+                    args_if_gmem.push_back("0");
+                }
+                for (auto edge : node->get_in_edges()) {
+                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
+                        args.push_back(edge->get_name());
+                        args_if_gmem.push_back("1");
+                    } else {
+                        args.push_back("shared + " +
+                                       std::to_string(edge->get_offset_smem()));
+                        args_if_gmem.push_back("0");
+                    }
+                }
+                args.insert(args.end(), args_if_gmem.begin(),
+                            args_if_gmem.end());
+                args.push_back("blockDim.x");
+                args.push_back("l_idx");
+                args.push_back("n_idx");
+                args.push_back("threadIdx.x");
+                w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
+                w.block_end();
             }
-            w.block_end();
         } else if (s_type == core::SubgraphType::ElemLimb1) {
             // ==============================
             // ElemLimb1
@@ -425,16 +425,122 @@ void CudaCodegen::generate_kernel_defs(
                 }
             }
             w.block_end();
+        } else if (s_type == hifive::core::SubgraphType::ElemSlot) {
+            // ==============================
+            // ElemSlot
+            // ==============================
+            w << "extern __shared__ uint64_t shared[];\n";
+            w << "for (int idx = threadIdx.x + blockIdx.x * blockDim.x; ";
+            w << "idx < params->N; ";
+            w << "idx += blockDim.x * gridDim.x)";
+            w.block_begin();
+            for (auto node : subgraph->get_nodes()) {
+                w << "// " << node->get_op_name() << "\n";
+                core::OpType op_type = node->get_op_type();
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub ||
+                    op_type == core::OpType::Mult) {
+                    std::vector<std::string> args;
+                    std::vector<std::string> args_if_gmem;
+                    if (op_type == core::OpType::Add) {
+                        args.push_back("ElemWiseOp::Add");
+                    } else if (op_type == core::OpType::Sub) {
+                        args.push_back("ElemWiseOp::Sub");
+                    } else if (op_type == core::OpType::Mult) {
+                        args.push_back("ElemWiseOp::Mult");
+                    }
+                    args.push_back("params");
+                    assert(node->get_in_edges().size() == 2);
+                    // Make sure all levels of outedges are the same
+                    for (auto edge : node->get_out_edges()) {
+                        assert(edge->get_level() ==
+                               node->get_out_edges()[0]->get_level());
+                    }
+                    // Output to only first outedge
+                    auto outedge = node->get_out_edges()[0];
+                    if (outedge->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        args.push_back(outedge->get_name());
+                        args_if_gmem.push_back("1");
+                    } else {
+                        args.push_back(
+                            "shared + " +
+                            std::to_string(outedge->get_offset_smem()));
+                        args_if_gmem.push_back("0");
+                    }
+                    for (auto edge : node->get_in_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back(
+                                "shared + " +
+                                std::to_string(edge->get_offset_smem()));
+                            args_if_gmem.push_back("0");
+                        }
+                    }
+                    args.insert(args.end(), args_if_gmem.begin(),
+                                args_if_gmem.end());
+                    args.push_back("blockDim.x");
+                    int start_limb = node->get_in_edges()[0]->get_start_limb();
+                    int end_limb = node->get_in_edges()[0]->get_end_limb();
+                    args.push_back(std::to_string(start_limb));
+                    args.push_back(std::to_string(end_limb));
+                    args.push_back("idx");
+                    args.push_back("threadIdx.x");
+                    w << "ElemWiseOp_ElemSlot(" << GenerateArgs(args) << ");\n";
+                } else if (op_type == core::OpType::ModUp) {
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_in_edges().size() == 1);
+                    auto outedge = node->get_out_edges()[0];
+                    auto inedge = node->get_in_edges()[0];
+                    std::vector<std::string> args;
+                    std::vector<std::string> args_if_gmem;
+                    args.push_back("params");
+                    if (outedge->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        args.push_back(outedge->get_name());
+                        args_if_gmem.push_back("1");
+                    } else {
+                        args.push_back(
+                            "shared + " +
+                            std::to_string(outedge->get_offset_smem()));
+                        args_if_gmem.push_back("0");
+                    }
+                    if (inedge->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        args.push_back(inedge->get_name());
+                        args_if_gmem.push_back("1");
+                    } else {
+                        args.push_back(
+                            "shared + " +
+                            std::to_string(inedge->get_offset_smem()));
+                        args_if_gmem.push_back("0");
+                    }
+                    args.insert(args.end(), args_if_gmem.begin(),
+                                args_if_gmem.end());
+                    args.push_back("blockDim.x");
+                    args.push_back("idx");
+                    args.push_back("threadIdx.x");
+                    args.push_back(std::to_string(inedge->get_start_limb()));
+                    args.push_back(std::to_string(inedge->get_end_limb()));
+                    w << "ModUpOp(" << GenerateArgs(args) << ");\n";
+                } else {
+                    LOG_ERROR(
+                        "Only Add, Sub, Mult and ModUp/Down are supported for "
+                        "SubgraphType::ElemSlot\n");
+                }
+            }
+            w.block_end();
         } else if (s_type == hifive::core::SubgraphType::ElemLimb1Slot) {
             // ==============================
             // ElemLimb1Slot
             // ==============================
-
         } else if (s_type == hifive::core::SubgraphType::ElemLimb2Slot) {
             // ==============================
             // ElemLimb2Slot
             // ==============================
-
         } else {
             LOG_ERROR("Not implemented\n");
         }
@@ -463,15 +569,20 @@ void CudaCodegen::generate_call_kernels(
                   << subgraph->get_smem_size() << ">>>";
             }
         } else if (s_type == core::SubgraphType::ElemLimb1) {
-            // NTTPhase1 uses shared memory even if it contains only one node
+            // NTTPhase1 uses shared memory even if it contains only one
+            // node
             w << subgraph->get_name()
               << "<<<params_h->n2 * params_h->limb, params_h->n1/8, "
               << subgraph->get_smem_size() << ">>>";
 
         } else if (s_type == core::SubgraphType::ElemLimb2) {
-            // NTTPhase2 uses shared memory even if it contains only one node
+            // NTTPhase2 uses shared memory even if it contains only one
+            // node
             w << subgraph->get_name()
               << "<<<params_h->n1 * params_h->limb, params_h->n2/8, "
+              << subgraph->get_smem_size() << ">>>";
+        } else if (s_type == core::SubgraphType::ElemSlot) {
+            w << subgraph->get_name() << "<<< params_h->N / 128, 128, "
               << subgraph->get_smem_size() << ">>>";
         } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
         } else if (s_type == core::SubgraphType::ElemLimb2Slot) {
@@ -488,18 +599,21 @@ void CudaCodegen::generate_call_kernels(
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                    /*
-                    auto same_result_edge = edge->get_same_result_edge();
-                    if (same_result_edge == nullptr) {
-                        LOG_ERROR("No same result global edge\n");
-                        assert(false);
+                    // Check if the src node has branch
+                    auto node_src = edge->get_src();
+                    if (node_src->get_out_edges().size() > 1) {
+                        // Branch
+                        if (node_src->get_op_type() == core::OpType::Init) {
+                            w << ", " << edge->get_name() << "_d";
+                        } else {
+                            w << ", "
+                              << node_src->get_out_edges()[0]->get_name()
+                              << "_d";
+                        }
+                    } else {
+                        // No branch
+                        w << ", " << edge->get_name() << "_d";
                     }
-                    LOG_INFO("Same result edge of %s is %s\n",
-                             edge->get_name().c_str(),
-                             same_result_edge->get_name().c_str());
-                    w << ", " << same_result_edge->get_name() << "_d";
-                    */
-                    w << ", " << edge->get_name() << "_d";
                 }
             }
             for (auto edge : node->get_out_edges()) {
@@ -519,7 +633,8 @@ void CudaCodegen::generate_call_kernels(
     w << "\n";
 }
 
-void define_edge(CodeWriter& w, std::shared_ptr<hifive::core::Edge>& edge) {
+void define_edge(CodeWriter& w, std::shared_ptr<hifive::core::Edge>& edge,
+                 const bool initialize) {
     w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
       << edge->get_dst()->get_op_name() << "\n";
     w << "uint64_t *" << edge->get_name() << "_h;\n";
@@ -531,12 +646,14 @@ void define_edge(CodeWriter& w, std::shared_ptr<hifive::core::Edge>& edge) {
     w << "cudaMalloc((void **)&";
     w << edge->get_name() << "_d,";
     w << "N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
-    w << "for (int i = 0; i < N * " << edge->get_limb() << "; i++) {";
-    w << edge->get_name() << "_h[i] = i % 10;}\n";
-    w << "cudaMemcpy(" << edge->get_name() << "_d, ";
-    w << edge->get_name() << "_h,";
-    w << "N * " << edge->get_limb() << " * sizeof(uint64_t),";
-    w << "cudaMemcpyHostToDevice);\n";
+    if (initialize) {
+        w << "for (int i = 0; i < N * " << edge->get_limb() << "; i++) {";
+        w << edge->get_name() << "_h[i] =  1;}\n";
+        w << "cudaMemcpy(" << edge->get_name() << "_d, ";
+        w << edge->get_name() << "_h,";
+        w << "N * " << edge->get_limb() << " * sizeof(uint64_t),";
+        w << "cudaMemcpyHostToDevice);\n";
+    }
 }
 
 void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
@@ -563,7 +680,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     }
     int i = 0;
     for (auto edge : init_node->get_out_edges()) {
-        define_edge(w, edge);
+        define_edge(w, edge, true);
         i++;
     }
 
@@ -577,7 +694,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         assert(false);
     }
     for (auto edge : output_node->get_in_edges()) {
-        define_edge(w, edge);
+        define_edge(w, edge, false);
         w << "uint64_t *" << edge->get_name() << "_h_from_d;\n";
         w << "cudaMallocHost((void **)&" << edge->get_name()
           << "_h_from_d, N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
@@ -607,7 +724,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                         continue;
                     }
                     */
-                    define_edge(w, edge);
+                    define_edge(w, edge, false);
                 } else if (edge->get_level() ==
                            hifive::core::EdgeLevel::Shared) {
                     w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
@@ -631,20 +748,38 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "std::cout << \"n1: \" << params_h->n1 << std::endl;\n";
     w << "std::cout << \"n2: \" << params_h->n2 << std::endl;\n";
     w << "std::cout << \"L : \" << params_h->L << std::endl;\n";
+    w << "std::cout << \"dnum : \" << params_h->dnum << std::endl;\n";
+    w << "std::cout << \"K : \" << params_h->K << std::endl;\n";
+    w << "std::cout << \"alpha : \" << params_h->alpha << std::endl;\n";
     w << "std::cout << \"q[0] : \" << params_h->ntt_params->q[0] << "
          "std::endl;\n";
     w << "std::cout << \"root[0] : \" << params_h->ntt_params->root[0] << "
          "std::endl;\n";
     w << "std::cout << \"------------------------------\" << std::endl;\n";
     w.block_begin();
+
+    w << "std::cout << \"### GPU\" << std::endl;\n";
     generate_call_kernels(graph, w);
 
     w << "\n";
     w << "// Call CPU\n";
+    w << "std::cout << \"### CPU\" << std::endl;\n";
     for (auto subgraph : graph->get_subgraphs()) {
         for (auto node : subgraph->get_nodes()) {
             core::OpType op_type = node->get_op_type();
-            if (op_type == core::OpType::NTTPhase1) {
+            if (op_type == core::OpType::Add || op_type == core::OpType::Mult ||
+                op_type == core::OpType::Sub) {
+                assert(node->get_in_edges().size() == 2);
+                for (auto outedge : node->get_out_edges()) {
+                    w << node->get_op_type_str() << "_h";
+                    w << "(params_h, ";
+                    w << outedge->get_name() << "_h, ";
+                    w << node->get_in_edges()[0]->get_name() << "_h, ";
+                    w << node->get_in_edges()[1]->get_name() << "_h, ";
+                    w << node->get_in_edges()[0]->get_start_limb() << ", ";
+                    w << node->get_in_edges()[0]->get_end_limb() << ");\n";
+                }
+            } else if (op_type == core::OpType::NTTPhase1) {
                 assert(node->get_out_edges().size() == 1);
                 auto phase2_node = node->get_out_edges()[0]->get_dst();
                 for (auto outedge : phase2_node->get_out_edges()) {
@@ -654,9 +789,8 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                     w << node->get_in_edges()[0]->get_start_limb() << ", ";
                     w << node->get_in_edges()[0]->get_end_limb() << ");\n";
                 }
-                continue;
             } else if (op_type == core::OpType::NTTPhase2) {
-                continue;
+                // Nothing to do
             } else if (op_type == core::OpType::iNTTPhase2) {
                 assert(node->get_out_edges().size() == 1);
                 auto phase1_node = node->get_out_edges()[0]->get_dst();
@@ -667,27 +801,28 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                     w << node->get_in_edges()[0]->get_start_limb() << ", ";
                     w << node->get_in_edges()[0]->get_end_limb() << ");\n";
                 }
-                continue;
             } else if (op_type == core::OpType::iNTTPhase1) {
-                continue;
+                // Nothing to do
             } else if (op_type == core::OpType::ModUp) {
-                continue;
+                assert(node->get_out_edges().size() == 1);
+                assert(node->get_in_edges().size() == 1);
+                w << node->get_op_type_str() << "_h";
+                w << "(params_h, ";
+                for (auto edge : node->get_out_edges()) {
+                    w << edge->get_name() << "_h, ";
+                }
+                for (auto edge : node->get_in_edges()) {
+                    w << edge->get_name() << "_h, ";
+                }
+                w << node->get_in_edges()[0]->get_start_limb() << ", ";
+                w << node->get_in_edges()[0]->get_end_limb() << ");\n";
             }
-            w << node->get_op_type_str() << "_h";
-            w << "(params_h, ";
-            for (auto edge : node->get_out_edges()) {
-                w << edge->get_name() << "_h, ";
-            }
-            for (auto edge : node->get_in_edges()) {
-                w << edge->get_name() << "_h, ";
-            }
-            w << node->get_in_edges()[0]->get_start_limb() << ", ";
-            w << node->get_in_edges()[0]->get_end_limb() << ");\n";
         }
     }
 
     w << "\n";
     w << "// Copy back to host and check\n";
+    w << "std::cout << \"### Check\" << std::endl;\n";
     w << "bool if_fail = false;\n";
     for (auto edge : output_node->get_in_edges()) {
         w << "cudaMemcpy(" << edge->get_name() << "_h_from_d, "
@@ -707,7 +842,8 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << "break;\n";
         w.block_end();
         w.block_end();
-        w << "if (!if_fail) {std::cout << \"Check passed\" << std::endl;}\n";
+        w << "if (!if_fail) {std::cout << \"Check passed\" << "
+             "std::endl;}\n";
     }
     w.block_end(); // warm up
 
@@ -776,7 +912,8 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w << "std::cout << \"Starting Benchmarking...\" << std::endl;\n";
     w << "FHEContext context(";
     w << graph->m_config->logN << ", ";
-    w << graph->m_config->L << ");\n";
+    w << graph->m_config->L << ",";
+    w << graph->m_config->dnum << ");\n";
 
     w << "\n// Run the graph\n";
     w << "entry_kernel(context);\n";

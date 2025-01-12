@@ -43,7 +43,7 @@ public:
     std::string get_name() {
         if (m_name.empty()) {
             for (auto node : m_nodes) {
-                m_name += node->get_op_type_str() + "_";
+                m_name += node->get_op_name() + "_";
             }
             m_name.pop_back();
         }

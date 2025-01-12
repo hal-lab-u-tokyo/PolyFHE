@@ -48,17 +48,6 @@ public:
     void set_level(EdgeLevel level) { m_level = level; }
     EdgeLevel get_level() { return m_level; }
 
-    // Returns the edge that contains the same result as this edge
-    // i.e., the first global edge of the same src node
-    std::shared_ptr<Edge> get_same_result_edge() {
-        for (auto edge : m_src->get_out_edges()) {
-            if (edge->get_level() == EdgeLevel::Global) {
-                return edge;
-            }
-        }
-        return nullptr;
-    }
-
     // Check if memory of this edge can be overwritten
     bool can_overwrite() {
         if (m_src->get_out_edges().size() > 1) {
