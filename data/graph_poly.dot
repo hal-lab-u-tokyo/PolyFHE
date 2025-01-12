@@ -3,5 +3,5 @@ Init[label="Init"];
 End[label="End"];
 ModUp[label="ModUp"];
 Init -> ModUp[label="4_0_4"];
-ModUp -> End[label="4_0_4"];
+ModUp -> End[label="6_0_6"];
 }
