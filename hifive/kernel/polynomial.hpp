@@ -57,6 +57,20 @@ __forceinline__ __device__ void ElemWiseOp_Elem(
     dst[dst_idx] = calc_elemwise(op, a[a_idx], b[b_idx], qi);
 }
 
+__forceinline__ __device__ void ElemWiseOp_Elem_v2(
+    ElemWiseOp op, Params *params, uint64_t *dst, const uint64_t *a,
+    const uint64_t *b, const int dst_global, const int a_global,
+    const int b_global, const int sPoly_x, const int l_idx, const int n_gidx,
+    const int n_sidx) {
+    const uint64_t qi = params->qVec[l_idx];
+    const int l_n_gidx = l_idx * params->N + n_gidx;
+    const int l_n_sidx = l_idx * sPoly_x + n_sidx;
+    const int dst_idx = dst_global * l_n_gidx + (1 - dst_global) * l_n_sidx;
+    const int a_idx = a_global * l_n_gidx + (1 - a_global) * l_n_sidx;
+    const int b_idx = b_global * l_n_gidx + (1 - b_global) * l_n_sidx;
+    dst[dst_idx] = calc_elemwise(op, a[a_idx], b[b_idx], qi);
+}
+
 __forceinline__ __device__ void ElemWiseOp_ElemSlot(
     ElemWiseOp op, Params *params, uint64_t *dst, const uint64_t *a,
     const uint64_t *b, const int dst_global, const int a_global,

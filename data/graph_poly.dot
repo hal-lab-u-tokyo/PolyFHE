@@ -1,10 +1,10 @@
 digraph G {
 Init[label="Init"];
 End[label="End"];
-NTT[label="NTT"];
+ModUp[label="ModUp"];
 Add[label="Add"];
-Init -> NTT[label="4_0_4"];
-Init -> Add[label="4_0_4"];
-NTT -> Add[label="4_0_4"];
-Add -> End[label="4_0_4"];
+Init -> ModUp[label="4_0_4"];
+ModUp -> Add[label="5_0_5"];
+Init -> Add[label="5_0_5"];
+Add -> End[label="5_0_5"];
 }

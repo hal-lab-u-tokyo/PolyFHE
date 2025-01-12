@@ -186,7 +186,7 @@ core::SubgraphType GetSubgraphType(
         }
     } else if (contains_limbwise) {
         return if_phase1 ? core::SubgraphType::ElemLimb1
-                         : core::SubgraphType::ElemLimb2Slot;
+                         : core::SubgraphType::ElemLimb2;
     } else if (contains_elemwise) {
         return core::SubgraphType::Elem;
     } else {

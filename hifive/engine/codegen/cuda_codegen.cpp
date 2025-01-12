@@ -607,7 +607,7 @@ void CudaCodegen::generate_kernel_defs(
                     w << "const int n_gidx = blockIdx.x * params->n2 + idx % "
                          "sPoly_x;\n";
                     w << "const int n_sidx = idx % sPoly_x;\n";
-                    w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
+                    w << "ElemWiseOp_Elem_v2(" << GenerateArgs(args) << ");\n";
                     w.block_end();
                 } else if (op_type == core::OpType::NTTPhase2) {
                     w << "for (int idx = blockIdx.x;";
