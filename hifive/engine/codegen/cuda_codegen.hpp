@@ -20,6 +20,10 @@ public:
                           const std::string& filename, const bool if_append);
     void generate_call_kernels(std::shared_ptr<hifive::core::Graph>& graph,
                                CodeWriter& w);
+
+    void generate_modup(std::shared_ptr<hifive::core::Node>& node,
+                        CodeWriter& w, std::string sPoly_x, std::string n_gidx,
+                        std::string n_sidx);
 };
 } // namespace engine
 } // namespace hifive

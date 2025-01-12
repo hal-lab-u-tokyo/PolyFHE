@@ -25,6 +25,7 @@ Config::Config(std::string filename) {
             std::cout << "Key: " << key << ", Value: " << value << std::endl;
             if (key == "logN") {
                 logN = value;
+                N = 1 << logN;
             } else if (key == "N") {
                 N = value;
             } else if (key == "L") {

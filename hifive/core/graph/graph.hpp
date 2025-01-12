@@ -72,6 +72,9 @@ public:
     void set_smem_size(int smem_size) { m_smem_size = smem_size; }
     int get_smem_size() { return m_smem_size; }
 
+    // max limb
+    int get_max_limb();
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;

@@ -1,15 +1,15 @@
 digraph G {
 Init[label="Init"];
 End[label="End"];
-Mult[label="Mult"];
-Add[label="Add"];
+NTT[label="NTT"];
 ModUp[label="ModUp"];
 ModUp2[label="ModUp"];
-Init -> Mult[label="4_0_4"];
-Init -> Mult[label="4_0_4"];
-Mult -> ModUp[label="4_0_2"];
-Mult -> ModUp2[label="4_2_4"];
-ModUp -> Add[label="6_0_6"];
-ModUp2 -> Add[label="6_0_6"];
-Add -> End[label="6_0_6"];
+ModUp3[label="ModUp"];
+Init -> NTT[label="6_0_6"];
+NTT -> ModUp[label="6_0_2"];
+NTT -> ModUp2[label="6_2_4"];
+NTT -> ModUp3[label="6_4_6"];
+ModUp -> End[label="8_0_8"];
+ModUp2 -> End[label="8_0_8"];
+ModUp3 -> End[label="8_0_8"];
 }
