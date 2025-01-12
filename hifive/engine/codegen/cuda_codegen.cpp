@@ -783,7 +783,8 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
     w << "std::cout << \"Starting Benchmarking...\" << std::endl;\n";
     w << "FHEContext context(";
     w << graph->m_config->logN << ", ";
-    w << graph->m_config->L << ");\n";
+    w << graph->m_config->L << ",";
+    w << graph->m_config->dnum << ");\n";
 
     w << "\n// Run the graph\n";
     w << "entry_kernel(context);\n";

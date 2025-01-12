@@ -72,7 +72,8 @@ uint64_t compute_shoup(const uint64_t operand, const uint64_t modulus) {
     return temp / modulus;
 }
 
-Params::Params(int logN, int L) : logN(logN), L(L) {
+Params::Params(const int logN, const int L, const int dnum)
+    : logN(logN), L(L), dnum(dnum) {
     limb = L;
     K = L + 1;
     N = 1 << logN;
@@ -229,8 +230,8 @@ void FHEContext::CopyParamsToDevice() {
     d_ntt_params = params_tmp.ntt_params;
 }
 
-FHEContext::FHEContext(const int logN, const int L) {
+FHEContext::FHEContext(const int logN, const int L, const int dnum) {
     LOG_INFO("Initializing Params\n");
-    h_params = std::make_shared<Params>(logN, L);
+    h_params = std::make_shared<Params>(logN, L, dnum);
     CopyParamsToDevice();
 }

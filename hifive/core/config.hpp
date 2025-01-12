@@ -6,10 +6,11 @@ namespace hifive {
 class Config {
 public:
     Config(std::string filename);
-    int logN = 16;
-    int N = 1 << logN;
-    int L = 4;
-    int SharedMemKB = 120;
+    int logN;
+    int N;
+    int L;
+    int dnum;
+    int SharedMemKB;
 };
 
 } // namespace hifive

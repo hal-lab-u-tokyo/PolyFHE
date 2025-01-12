@@ -29,6 +29,8 @@ Config::Config(std::string filename) {
                 N = value;
             } else if (key == "L") {
                 L = value;
+            } else if (key == "dnum") {
+                dnum = value;
             } else if (key == "SharedMemKB") {
                 SharedMemKB = value;
             }
