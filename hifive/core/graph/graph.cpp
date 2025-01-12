@@ -35,6 +35,31 @@ std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type) {
     return os;
 }
 
+int SubGraph::get_max_limb() {
+    int max = 0;
+    for (auto node : m_nodes) {
+        for (auto edge : node->get_in_edges()) {
+            auto found =
+                std::find(m_nodes.begin(), m_nodes.end(), edge->get_src());
+            if (found != m_nodes.end()) {
+                if (edge->get_limb() > max) {
+                    max = edge->get_limb();
+                }
+            }
+        }
+        for (auto edge : node->get_out_edges()) {
+            auto found =
+                std::find(m_nodes.begin(), m_nodes.end(), edge->get_dst());
+            if (found != m_nodes.end()) {
+                if (edge->get_limb() > max) {
+                    max = edge->get_limb();
+                }
+            }
+        }
+    }
+    return max;
+}
+
 void Graph::add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst) {
     add_edge(src, dst, "");
 }

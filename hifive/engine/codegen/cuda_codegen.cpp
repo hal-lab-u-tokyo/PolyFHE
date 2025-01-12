@@ -72,6 +72,39 @@ std::string GenerateN(const hifive::core::BlockPhase phase) {
     return n;
 }
 
+void CudaCodegen::generate_modup(std::shared_ptr<hifive::core::Node>& node,
+                                 CodeWriter& w, std::string n_gidx) {
+    assert(node->get_out_edges().size() == 1);
+    assert(node->get_in_edges().size() == 1);
+    auto outedge = node->get_out_edges()[0];
+    auto inedge = node->get_in_edges()[0];
+    std::vector<std::string> args;
+    std::vector<std::string> args_if_gmem;
+    args.push_back("params");
+    if (outedge->get_level() == hifive::core::EdgeLevel::Global) {
+        args.push_back(outedge->get_name());
+        args_if_gmem.push_back("1");
+    } else {
+        args.push_back("shared + " +
+                       std::to_string(outedge->get_offset_smem()));
+        args_if_gmem.push_back("0");
+    }
+    if (inedge->get_level() == hifive::core::EdgeLevel::Global) {
+        args.push_back(inedge->get_name());
+        args_if_gmem.push_back("1");
+    } else {
+        args.push_back("shared + " + std::to_string(inedge->get_offset_smem()));
+        args_if_gmem.push_back("0");
+    }
+    args.insert(args.end(), args_if_gmem.begin(), args_if_gmem.end());
+    args.push_back("blockDim.x");
+    args.push_back(n_gidx);
+    args.push_back("threadIdx.x");
+    args.push_back(std::to_string(inedge->get_start_limb()));
+    args.push_back(std::to_string(inedge->get_end_limb()));
+    w << "ModUpOp(" << GenerateArgs(args) << ");\n";
+}
+
 void CudaCodegen::generate_kernel_defs(
     std::shared_ptr<hifive::core::Graph>& graph, const std::string& filename,
     const bool if_append) {
@@ -491,41 +524,7 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("threadIdx.x");
                     w << "ElemWiseOp_ElemSlot(" << GenerateArgs(args) << ");\n";
                 } else if (op_type == core::OpType::ModUp) {
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 1);
-                    auto outedge = node->get_out_edges()[0];
-                    auto inedge = node->get_in_edges()[0];
-                    std::vector<std::string> args;
-                    std::vector<std::string> args_if_gmem;
-                    args.push_back("params");
-                    if (outedge->get_level() ==
-                        hifive::core::EdgeLevel::Global) {
-                        args.push_back(outedge->get_name());
-                        args_if_gmem.push_back("1");
-                    } else {
-                        args.push_back(
-                            "shared + " +
-                            std::to_string(outedge->get_offset_smem()));
-                        args_if_gmem.push_back("0");
-                    }
-                    if (inedge->get_level() ==
-                        hifive::core::EdgeLevel::Global) {
-                        args.push_back(inedge->get_name());
-                        args_if_gmem.push_back("1");
-                    } else {
-                        args.push_back(
-                            "shared + " +
-                            std::to_string(inedge->get_offset_smem()));
-                        args_if_gmem.push_back("0");
-                    }
-                    args.insert(args.end(), args_if_gmem.begin(),
-                                args_if_gmem.end());
-                    args.push_back("blockDim.x");
-                    args.push_back("idx");
-                    args.push_back("threadIdx.x");
-                    args.push_back(std::to_string(inedge->get_start_limb()));
-                    args.push_back(std::to_string(inedge->get_end_limb()));
-                    w << "ModUpOp(" << GenerateArgs(args) << ");\n";
+                    generate_modup(node, w, "idx");
                 } else {
                     LOG_ERROR(
                         "Only Add, Sub, Mult and ModUp/Down are supported for "
@@ -603,7 +602,6 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("threadIdx.x");
                     w << "ElemWiseOp_ElemSlot(" << GenerateArgs(args) << ");\n";
                 } else if (op_type == core::OpType::NTTPhase2) {
-                    /*
                     // Inedge must be Global
                     assert(node->get_in_edges().size() == 1);
                     assert(node->get_in_edges()[0]->get_level() ==
@@ -614,18 +612,22 @@ void CudaCodegen::generate_kernel_defs(
                     args_load.push_back("params->N");
                     args_load.push_back("params->n1");
                     args_load.push_back("params->n2");
-                    w << "load_g2s_phase2(" << GenerateArgs(args_load)
+                    w << "load_g2s_phase2_blocked(" << GenerateArgs(args_load)
                       << ");\n";
 
                     // Call NTTPhase2
+                    w << "size_t batch_idx = threadIdx.x / (params->n2 / 8);\n";
+                    w << "size_t thread_idx = threadIdx.x % (params->n2 / "
+                         "8);\n";
+                    w << "size_t n_idx = blockIdx.x * params->n2 / 8 + "
+                         "thread_idx;\n";
+
                     std::vector<std::string> args;
-                    args.push_back("shared");
+                    args.push_back("shared + batch_idx * params->n2");
                     args.push_back("params->ntt_params");
-                    args.push_back("idx/params->n1");
-                    args.push_back("threadIdx.x");
-                    args.push_back("tid % (params->N / 8)");
-                    w << "size_t tid = blockIdx.x * blockDim.x + "
-                         "threadIdx.x;\n";
+                    args.push_back("batch_idx");
+                    args.push_back("thread_idx");
+                    args.push_back("n_idx");
                     w << "NTTPhase2Op(" << GenerateArgs(args) << ");\n";
 
                     // Store to global if required
@@ -638,15 +640,19 @@ void CudaCodegen::generate_kernel_defs(
                             args_store.push_back("params->N");
                             args_store.push_back("params->n1");
                             args_store.push_back("params->n2");
-                            w << "store_s2g_phase2(" << GenerateArgs(args_store)
-                              << ");\n";
+                            w << "store_s2g_phase2_blocked("
+                              << GenerateArgs(args_store) << ");\n";
                         }
                     }
-                    */
                 } else if (op_type == core::OpType::iNTTPhase2) {
                     LOG_ERROR("Not implemented\n");
                 } else if (op_type == core::OpType::ModUp) {
-                    LOG_ERROR("Not implemented\n");
+                    w << "for (int idx = threadIdx.x; ";
+                    w << "idx < params->n2; ";
+                    w << "idx += blockDim.x)";
+                    w.block_begin();
+                    generate_modup(node, w, "blockIdx.x * params->n2 + idx");
+                    w.block_end();
                 } else {
                     LOG_ERROR(
                         "Unsupported op for SubgraphType::ElemLimb2Slot\n");
@@ -683,15 +689,13 @@ void CudaCodegen::generate_call_kernels(
                   << subgraph->get_smem_size() << ">>>";
             }
         } else if (s_type == core::SubgraphType::ElemLimb1) {
-            // NTTPhase1 uses shared memory even if it contains only one
-            // node
+            // NTTPhase1 uses shared memory even if it has only one node
             w << subgraph->get_name()
               << "<<<params_h->n2 * params_h->limb, params_h->n1/8, "
               << subgraph->get_smem_size() << ">>>";
 
         } else if (s_type == core::SubgraphType::ElemLimb2) {
-            // NTTPhase2 uses shared memory even if it contains only one
-            // node
+            // NTTPhase2 uses shared memory even if it has only one node
             w << subgraph->get_name()
               << "<<<params_h->n1 * params_h->limb, params_h->n2/8, "
               << subgraph->get_smem_size() << ">>>";
@@ -700,8 +704,10 @@ void CudaCodegen::generate_call_kernels(
               << subgraph->get_smem_size() << ">>>";
         } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
         } else if (s_type == core::SubgraphType::ElemLimb2Slot) {
-            w << subgraph->get_name() << "<<<params_h->n1, params_h->n2/8, "
-              << subgraph->get_smem_size() << ">>>";
+            w << subgraph->get_name() << "<<<params_h->n1, ";
+            w << std::to_string(subgraph->get_max_limb());
+            w << " * params_h->n2/8, ";
+            w << subgraph->get_smem_size() << ">>>";
         } else {
             LOG_ERROR("Not implemented\n");
         }
