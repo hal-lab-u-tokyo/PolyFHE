@@ -62,6 +62,8 @@ void Sub_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b,
            const int start_limb, const int end_limb);
 void Mult_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b,
             const int start_limb, const int end_limb);
+void ModUp_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,
+             const int end_limb);
 void NTT_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,
            const int end_limb);
 void iNTT_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,

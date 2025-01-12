@@ -32,6 +32,7 @@ struct NTTParams {
     int n2;
     int batch;
     uint64_t* q;
+    uint64_t* p;
     uint64_t* root;
     uint64_t* root_inv;
     uint64_t* N_inv;
@@ -55,7 +56,8 @@ public:
 
     int L;    ///< Maximum Level that we want to support
     int limb; // Current limb Level
-    int K;    ///< The number of special modulus (usually L + 1)
+    int K;    ///< The number of special modulus
+    int alpha;
 
     double sigma = 3.2;
 

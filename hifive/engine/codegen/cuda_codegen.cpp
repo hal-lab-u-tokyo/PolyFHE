@@ -425,6 +425,10 @@ void CudaCodegen::generate_kernel_defs(
                 }
             }
             w.block_end();
+        } else if (s_type == hifive::core::SubgraphType::ElemSlot) {
+            // ==============================
+            // ElemLimb1Slot
+            // ==============================
         } else if (s_type == hifive::core::SubgraphType::ElemLimb1Slot) {
             // ==============================
             // ElemLimb1Slot
@@ -473,6 +477,8 @@ void CudaCodegen::generate_call_kernels(
             w << subgraph->get_name()
               << "<<<params_h->n1 * params_h->limb, params_h->n2/8, "
               << subgraph->get_smem_size() << ">>>";
+        } else if (s_type == core::SubgraphType::ElemSlot) {
+            w << "// ";
         } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
         } else if (s_type == core::SubgraphType::ElemLimb2Slot) {
             w << "// ";
@@ -671,7 +677,8 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
             } else if (op_type == core::OpType::iNTTPhase1) {
                 continue;
             } else if (op_type == core::OpType::ModUp) {
-                continue;
+                assert(node->get_out_edges().size() == 1);
+                assert(node->get_in_edges().size() == 1);
             }
             w << node->get_op_type_str() << "_h";
             w << "(params_h, ";

@@ -95,6 +95,7 @@ Params::Params(int logN, int L) : logN(logN), L(L) {
     ntt_params->logN = logN;
     ntt_params->batch = L;
     ntt_params->q = qVec;
+    ntt_params->p = pVec;
     ntt_params->root = new uint64_t[L];
     ntt_params->root_inv = new uint64_t[L];
     ntt_params->N_inv = new uint64_t[L];
@@ -152,6 +153,7 @@ void FHEContext::CopyParamsToDevice() {
     NTTParams ntt_params_tmp;
     memcpy(&ntt_params_tmp, h_params->ntt_params, sizeof(NTTParams));
     ntt_params_tmp.q = d_qVec;
+    ntt_params_tmp.p = d_pVec;
     uint64_t *d_root;
     uint64_t *d_root_inv;
     uint64_t *d_N_inv;
