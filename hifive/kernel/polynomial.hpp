@@ -55,10 +55,6 @@ __forceinline__ __device__ void ElemWiseOp_Elem(
     const int b_idx =
         b_global * (l_idx * params->N + n_gidx) + (1 - b_global) * n_sidx;
     dst[dst_idx] = calc_elemwise(op, a[a_idx], b[b_idx], qi);
-    if (n_gidx == 0 && n_sidx == 0) {
-        printf("%lu = %lu + %lu mod %lu\n", dst[dst_idx], a[a_idx], b[b_idx],
-               qi);
-    }
 }
 
 __forceinline__ __device__ void ElemWiseOp_ElemSlot(
@@ -97,13 +93,6 @@ __forceinline__ __device__ void ModUpOp(
         const int dst_idx = dst_global * (l * params->N + n_gidx) +
                             (1 - dst_global) * (l * sPoly_x + n_sidx);
         dst[dst_idx] = 0;
-    }
-    if (n_gidx == 0 && n_sidx == 0) {
-        for (int l = 0; l < params->limb + params->K; l++) {
-            const int dst_idx = dst_global * (l * params->N + n_gidx) +
-                                (1 - dst_global) * (l * sPoly_x + n_sidx);
-            printf("dst[%d]: %lu\n", dst_idx, dst[dst_idx]);
-        }
     }
 }
 

@@ -119,18 +119,24 @@ void CudaCodegen::generate_kernel_defs(
             if (subgraph->get_nodes().size() > 1) {
                 w << "extern __shared__ uint64_t shared[];\n";
             }
-            w << "for (int idx = threadIdx.x + blockIdx.x * blockDim.x;";
-            w << "idx < params->N * params->limb;";
-            w << "idx += blockDim.x * gridDim.x)";
-            w.block_begin();
-            w << "const int l_idx = idx / params->N;\n";
-            w << "const int n_idx = idx % params->N;\n";
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
+                    w << "const int start_limb = "
+                      << node->get_in_edges()[0]->get_start_limb() << ";\n";
+                    w << "const int end_limb = "
+                      << node->get_in_edges()[0]->get_end_limb() << ";\n";
+                    w << "for (int idx = threadIdx.x + blockIdx.x * "
+                         "blockDim.x;";
+                    w << "idx < params->N * (end_limb - start_limb);";
+                    w << "idx += blockDim.x * gridDim.x)";
+                    w.block_begin();
+                    w << "const int l_idx = idx / params->N + start_limb;\n";
+                    w << "const int n_idx = idx % params->N;\n";
+
                     std::vector<std::string> args;
                     std::vector<std::string> args_if_gmem;
                     if (op_type == core::OpType::Add) {
@@ -174,6 +180,7 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("n_idx");
                     args.push_back("threadIdx.x");
                     w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
+                    w.block_end();
                 } else {
                     LOG_ERROR(
                         "Only Add, Sub, Mult are supported for "
@@ -182,7 +189,6 @@ void CudaCodegen::generate_kernel_defs(
                               << std::endl;
                 }
             }
-            w.block_end();
         } else if (s_type == core::SubgraphType::ElemLimb1) {
             // ==============================
             // ElemLimb1
