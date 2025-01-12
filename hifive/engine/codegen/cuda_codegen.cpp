@@ -440,7 +440,52 @@ void CudaCodegen::generate_kernel_defs(
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
-                    LOG_ERROR("Not implemented\n");
+                    std::vector<std::string> args;
+                    std::vector<std::string> args_if_gmem;
+                    if (op_type == core::OpType::Add) {
+                        args.push_back("ElemWiseOp::Add");
+                    } else if (op_type == core::OpType::Sub) {
+                        args.push_back("ElemWiseOp::Sub");
+                    } else if (op_type == core::OpType::Mult) {
+                        args.push_back("ElemWiseOp::Mult");
+                    }
+                    args.push_back("params");
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_in_edges().size() == 2);
+                    for (auto edge : node->get_out_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back(
+                                "shared + " +
+                                std::to_string(edge->get_offset_smem()));
+                            args_if_gmem.push_back("0");
+                        }
+                    }
+                    for (auto edge : node->get_in_edges()) {
+                        if (edge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            args.push_back(edge->get_name());
+                            args_if_gmem.push_back("1");
+                        } else {
+                            args.push_back(
+                                "shared + " +
+                                std::to_string(edge->get_offset_smem()));
+                            args_if_gmem.push_back("0");
+                        }
+                    }
+                    args.insert(args.end(), args_if_gmem.begin(),
+                                args_if_gmem.end());
+                    args.push_back("blockDim.x");
+                    int start_limb = node->get_in_edges()[0]->get_start_limb();
+                    int end_limb = node->get_in_edges()[0]->get_end_limb();
+                    args.push_back(std::to_string(start_limb));
+                    args.push_back(std::to_string(end_limb));
+                    args.push_back("idx");
+                    args.push_back("threadIdx.x");
+                    w << "ElemWiseOp_ElemSlot(" << GenerateArgs(args) << ");\n";
                 } else if (op_type == core::OpType::ModUp) {
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 1);
@@ -594,7 +639,7 @@ void define_edge(CodeWriter& w, std::shared_ptr<hifive::core::Edge>& edge) {
     w << edge->get_name() << "_d,";
     w << "N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
     w << "for (int i = 0; i < N * " << edge->get_limb() << "; i++) {";
-    w << edge->get_name() << "_h[i] =  i % 10;}\n";
+    w << edge->get_name() << "_h[i] =  1;}\n";
     w << "cudaMemcpy(" << edge->get_name() << "_d, ";
     w << edge->get_name() << "_h,";
     w << "N * " << edge->get_limb() << " * sizeof(uint64_t),";
@@ -702,10 +747,13 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
          "std::endl;\n";
     w << "std::cout << \"------------------------------\" << std::endl;\n";
     w.block_begin();
+
+    w << "std::cout << \"### GPU\" << std::endl;\n";
     generate_call_kernels(graph, w);
 
     w << "\n";
     w << "// Call CPU\n";
+    w << "std::cout << \"### CPU\" << std::endl;\n";
     for (auto subgraph : graph->get_subgraphs()) {
         for (auto node : subgraph->get_nodes()) {
             core::OpType op_type = node->get_op_type();
@@ -754,6 +802,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
 
     w << "\n";
     w << "// Copy back to host and check\n";
+    w << "std::cout << \"### Check\" << std::endl;\n";
     w << "bool if_fail = false;\n";
     for (auto edge : output_node->get_in_edges()) {
         w << "cudaMemcpy(" << edge->get_name() << "_h_from_d, "

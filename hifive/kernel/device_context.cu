@@ -81,8 +81,8 @@ Params::Params(const int logN, const int L, const int dnum)
     n1 = hifive::NTTSampleSize(logN);
     n2 = N / n1;
     sigma = 3.2;
-    qVec = new uint64_t[L];
-    pVec = new uint64_t[K];
+    qVec = new uint64_t[L + K];
+    pVec = qVec + L;
     for (int i = 0; i < L; i++) {
         qVec[i] = 998244353; // 51-bit
     }
@@ -140,22 +140,18 @@ void FHEContext::CopyParamsToDevice() {
     memcpy(&params_tmp, h_params.get(), sizeof(Params));
 
     uint64_t *d_qVec;
-    uint64_t *d_pVec;
-    checkCudaErrors(cudaMalloc(&d_qVec, h_params->L * sizeof(uint64_t)));
-    checkCudaErrors(cudaMalloc(&d_pVec, h_params->K * sizeof(uint64_t)));
+    checkCudaErrors(
+        cudaMalloc(&d_qVec, (h_params->L + h_params->K) * sizeof(uint64_t)));
     checkCudaErrors(cudaMemcpy(d_qVec, h_params->qVec,
-                               params_tmp.L * sizeof(uint64_t),
-                               cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_pVec, h_params->pVec,
-                               params_tmp.K * sizeof(uint64_t),
+                               (h_params->L + h_params->K) * sizeof(uint64_t),
                                cudaMemcpyHostToDevice));
     params_tmp.qVec = d_qVec;
-    params_tmp.pVec = d_pVec;
+    params_tmp.pVec = d_qVec + h_params->L;
 
     NTTParams ntt_params_tmp;
     memcpy(&ntt_params_tmp, h_params->ntt_params, sizeof(NTTParams));
     ntt_params_tmp.q = d_qVec;
-    ntt_params_tmp.p = d_pVec;
+    ntt_params_tmp.p = d_qVec + h_params->L;
     uint64_t *d_root;
     uint64_t *d_root_inv;
     uint64_t *d_N_inv;
