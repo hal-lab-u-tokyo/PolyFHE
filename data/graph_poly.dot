@@ -1,9 +1,12 @@
 digraph G {
 Init[label="Init"];
+Add0[label="Add"];
 End[label="End"];
 Add[label="Add"];
 ModUp[label="ModUp"];
-Init -> ModUp[label="4_0_4"];
+Init -> Add0[label="4_0_4"];
+Init -> Add0[label="4_0_4"];
+Add0 -> ModUp[label="4_0_4"];
 Init -> Add[label="6_0_6"];
 ModUp -> Add[label="6_0_6"];
 Add -> End[label="6_0_6"];
