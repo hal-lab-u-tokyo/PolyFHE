@@ -45,7 +45,7 @@ void ModUp_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,
         for (int n = 0; n < params->N; n++) {
             uint64_t sum = 0;
             for (int l = start_limb; l < end_limb; l++) {
-                sum += src[start_limb * params->N + n];
+                sum += src[l * params->N + n];
             }
             dst_k[n] = sum;
         }

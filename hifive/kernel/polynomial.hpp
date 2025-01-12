@@ -57,12 +57,10 @@ __forceinline__ __device__ void ElemWiseOp_Elem(
     dst[dst_idx] = calc_elemwise(op, a[a_idx], b[b_idx], qi);
 }
 
-__forceinline__ __device__ void ModUp(Params *params, uint64_t *dst,
-                                      const uint64_t *src, const int dst_global,
-                                      const int src_global, const int sPoly_x,
-                                      const int n_gidx, const int n_sidx,
-                                      const int start_limb,
-                                      const int end_limb) {
+__forceinline__ __device__ void ModUpOp(
+    Params *params, uint64_t *dst, const uint64_t *src, const int dst_global,
+    const int src_global, const int sPoly_x, const int n_gidx, const int n_sidx,
+    const int start_limb, const int end_limb) {
     for (int k = 0; k < params->K; k++) {
         const int dst_idx =
             dst_global * ((params->limb + k) * params->N + n_gidx) +

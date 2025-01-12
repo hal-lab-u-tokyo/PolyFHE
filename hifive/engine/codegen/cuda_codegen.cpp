@@ -430,8 +430,8 @@ void CudaCodegen::generate_kernel_defs(
             // ElemSlot
             // ==============================
             w << "extern __shared__ uint64_t shared[];\n";
-            w << "for (int idx = threadIdx.x + blockIdx.x * blockDim.x;";
-            w << "idx < params->N;";
+            w << "for (int idx = threadIdx.x + blockIdx.x * blockDim.x; ";
+            w << "idx < params->N; ";
             w << "idx += blockDim.x * gridDim.x)";
             w.block_begin();
             for (auto node : subgraph->get_nodes()) {
@@ -476,7 +476,7 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("threadIdx.x");
                     args.push_back(std::to_string(inedge->get_start_limb()));
                     args.push_back(std::to_string(inedge->get_end_limb()));
-                    w << "ModUp(" << GenerateArgs(args) << ");\n";
+                    w << "ModUpOp(" << GenerateArgs(args) << ");\n";
                 } else {
                     LOG_ERROR(
                         "Only Add, Sub, Mult and ModUp/Down are supported for "
@@ -533,7 +533,8 @@ void CudaCodegen::generate_call_kernels(
               << "<<<params_h->n1 * params_h->limb, params_h->n2/8, "
               << subgraph->get_smem_size() << ">>>";
         } else if (s_type == core::SubgraphType::ElemSlot) {
-            w << "// ";
+            w << subgraph->get_name() << "<<< params_h->N / 128, 128, "
+              << subgraph->get_smem_size() << ">>>";
         } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
         } else if (s_type == core::SubgraphType::ElemLimb2Slot) {
             w << "// ";
@@ -593,7 +594,7 @@ void define_edge(CodeWriter& w, std::shared_ptr<hifive::core::Edge>& edge) {
     w << edge->get_name() << "_d,";
     w << "N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
     w << "for (int i = 0; i < N * " << edge->get_limb() << "; i++) {";
-    w << edge->get_name() << "_h[i] = i % 10;}\n";
+    w << edge->get_name() << "_h[i] =  i % 10;}\n";
     w << "cudaMemcpy(" << edge->get_name() << "_d, ";
     w << edge->get_name() << "_h,";
     w << "N * " << edge->get_limb() << " * sizeof(uint64_t),";
