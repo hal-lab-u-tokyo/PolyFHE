@@ -427,18 +427,71 @@ void CudaCodegen::generate_kernel_defs(
             w.block_end();
         } else if (s_type == hifive::core::SubgraphType::ElemSlot) {
             // ==============================
-            // ElemLimb1Slot
+            // ElemSlot
             // ==============================
+            w << "extern __shared__ uint64_t shared[];\n";
+            w << "for (int idx = threadIdx.x + blockIdx.x * blockDim.x;";
+            w << "idx < params->N;";
+            w << "idx += blockDim.x * gridDim.x)";
+            w.block_begin();
+            for (auto node : subgraph->get_nodes()) {
+                w << "// " << node->get_op_name() << "\n";
+                core::OpType op_type = node->get_op_type();
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub ||
+                    op_type == core::OpType::Mult) {
+                    LOG_ERROR("Not implemented\n");
+                } else if (op_type == core::OpType::ModUp) {
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_in_edges().size() == 1);
+                    auto outedge = node->get_out_edges()[0];
+                    auto inedge = node->get_in_edges()[0];
+                    std::vector<std::string> args;
+                    std::vector<std::string> args_if_gmem;
+                    args.push_back("params");
+                    if (outedge->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        args.push_back(outedge->get_name());
+                        args_if_gmem.push_back("1");
+                    } else {
+                        args.push_back(
+                            "shared + " +
+                            std::to_string(outedge->get_offset_smem()));
+                        args_if_gmem.push_back("0");
+                    }
+                    if (inedge->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        args.push_back(inedge->get_name());
+                        args_if_gmem.push_back("1");
+                    } else {
+                        args.push_back(
+                            "shared + " +
+                            std::to_string(inedge->get_offset_smem()));
+                        args_if_gmem.push_back("0");
+                    }
+                    args.insert(args.end(), args_if_gmem.begin(),
+                                args_if_gmem.end());
+                    args.push_back("blockDim.x");
+                    args.push_back("idx");
+                    args.push_back("threadIdx.x");
+                    args.push_back(std::to_string(inedge->get_start_limb()));
+                    args.push_back(std::to_string(inedge->get_end_limb()));
+                    w << "ModUp(" << GenerateArgs(args) << ");\n";
+                } else {
+                    LOG_ERROR(
+                        "Only Add, Sub, Mult and ModUp/Down are supported for "
+                        "SubgraphType::ElemSlot\n");
+                }
+            }
+            w.block_end();
         } else if (s_type == hifive::core::SubgraphType::ElemLimb1Slot) {
             // ==============================
             // ElemLimb1Slot
             // ==============================
-
         } else if (s_type == hifive::core::SubgraphType::ElemLimb2Slot) {
             // ==============================
             // ElemLimb2Slot
             // ==============================
-
         } else {
             LOG_ERROR("Not implemented\n");
         }
@@ -467,13 +520,15 @@ void CudaCodegen::generate_call_kernels(
                   << subgraph->get_smem_size() << ">>>";
             }
         } else if (s_type == core::SubgraphType::ElemLimb1) {
-            // NTTPhase1 uses shared memory even if it contains only one node
+            // NTTPhase1 uses shared memory even if it contains only one
+            // node
             w << subgraph->get_name()
               << "<<<params_h->n2 * params_h->limb, params_h->n1/8, "
               << subgraph->get_smem_size() << ">>>";
 
         } else if (s_type == core::SubgraphType::ElemLimb2) {
-            // NTTPhase2 uses shared memory even if it contains only one node
+            // NTTPhase2 uses shared memory even if it contains only one
+            // node
             w << subgraph->get_name()
               << "<<<params_h->n1 * params_h->limb, params_h->n2/8, "
               << subgraph->get_smem_size() << ">>>";
@@ -717,7 +772,8 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << "break;\n";
         w.block_end();
         w.block_end();
-        w << "if (!if_fail) {std::cout << \"Check passed\" << std::endl;}\n";
+        w << "if (!if_fail) {std::cout << \"Check passed\" << "
+             "std::endl;}\n";
     }
     w.block_end(); // warm up
 
