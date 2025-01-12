@@ -2,8 +2,9 @@ digraph G {
 Init[label="Init"];
 End[label="End"];
 NTT[label="NTT"];
-ModUp[label="ModUp"];
+Add[label="Add"];
 Init -> NTT[label="4_0_4"];
-NTT -> ModUp[label="4_0_4"];
-ModUp -> End[label="6_0_6"];
+Init -> Add[label="4_0_4"];
+NTT -> Add[label="4_0_4"];
+Add -> End[label="4_0_4"];
 }

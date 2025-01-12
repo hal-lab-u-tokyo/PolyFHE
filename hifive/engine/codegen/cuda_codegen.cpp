@@ -541,16 +541,21 @@ void CudaCodegen::generate_kernel_defs(
             // ElemLimb2Slot
             // ==============================
             w << "extern __shared__ uint64_t shared[];\n";
-            w << "for (int idx = blockIdx.x;";
-            w << "idx < params->n1;";
-            w << "idx += gridDim.x)";
-            w.block_begin();
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
+                    w << "const int start_limb = "
+                      << node->get_in_edges()[0]->get_start_limb() << ";\n";
+                    w << "const int end_limb = "
+                      << node->get_in_edges()[0]->get_end_limb() << ";\n";
+                    w << "for (int idx = threadIdx.x;";
+                    w << "idx < params->n2 * (end_limb - start_limb);";
+                    w << "idx += blockDim.x)";
+                    w.block_begin();
+
                     std::vector<std::string> args;
                     std::vector<std::string> args_if_gmem;
                     if (op_type == core::OpType::Add) {
@@ -593,15 +598,23 @@ void CudaCodegen::generate_kernel_defs(
                     }
                     args.insert(args.end(), args_if_gmem.begin(),
                                 args_if_gmem.end());
-                    args.push_back("blockDim.x");
-                    int start_limb = node->get_in_edges()[0]->get_start_limb();
-                    int end_limb = node->get_in_edges()[0]->get_end_limb();
-                    args.push_back(std::to_string(start_limb));
-                    args.push_back(std::to_string(end_limb));
-                    args.push_back("idx");
-                    args.push_back("threadIdx.x");
-                    w << "ElemWiseOp_ElemSlot(" << GenerateArgs(args) << ");\n";
+                    args.push_back("sPoly_x");
+                    args.push_back("l_idx");
+                    args.push_back("n_gidx");
+                    args.push_back("n_sidx");
+                    w << "const int sPoly_x = params->n2;\n";
+                    w << "const int l_idx = idx / sPoly_x;\n";
+                    w << "const int n_gidx = blockIdx.x * params->n2 + idx % "
+                         "sPoly_x;\n";
+                    w << "const int n_sidx = idx % sPoly_x;\n";
+                    w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
+                    w.block_end();
                 } else if (op_type == core::OpType::NTTPhase2) {
+                    w << "for (int idx = blockIdx.x;";
+                    w << "idx < params->n1;";
+                    w << "idx += gridDim.x)";
+                    w.block_begin();
+
                     // Inedge must be Global
                     assert(node->get_in_edges().size() == 1);
                     assert(node->get_in_edges()[0]->get_level() ==
@@ -644,6 +657,7 @@ void CudaCodegen::generate_kernel_defs(
                               << GenerateArgs(args_store) << ");\n";
                         }
                     }
+                    w.block_end();
                 } else if (op_type == core::OpType::iNTTPhase2) {
                     LOG_ERROR("Not implemented\n");
                 } else if (op_type == core::OpType::ModUp) {
@@ -660,7 +674,6 @@ void CudaCodegen::generate_kernel_defs(
                               << std::endl;
                 }
             }
-            w.block_end();
         } else {
             LOG_ERROR("Not implemented\n");
         }
