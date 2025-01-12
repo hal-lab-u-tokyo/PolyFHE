@@ -237,6 +237,7 @@ int GetSubgraphSmemFoorprint(
 
     // Analyze each outedge can be overwritten or not
     // Only if outedge is one, it can be overwritten
+
     for (auto node : subgraph) {
         const int n_outedges = node->get_out_edges().size();
         if (n_outedges == 1) {

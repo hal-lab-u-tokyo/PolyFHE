@@ -148,17 +148,21 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("ElemWiseOp::Mult");
                 }
                 args.push_back("params");
-                assert(node->get_out_edges().size() == 1);
                 assert(node->get_in_edges().size() == 2);
+                // Make sure all levels of outedges are the same
                 for (auto edge : node->get_out_edges()) {
-                    if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                        args.push_back(edge->get_name());
-                        args_if_gmem.push_back("1");
-                    } else {
-                        args.push_back("shared + " +
-                                       std::to_string(edge->get_offset_smem()));
-                        args_if_gmem.push_back("0");
-                    }
+                    assert(edge->get_level() ==
+                           node->get_out_edges()[0]->get_level());
+                }
+                // Output to only first outedge
+                auto outedge = node->get_out_edges()[0];
+                if (outedge->get_level() == hifive::core::EdgeLevel::Global) {
+                    args.push_back(outedge->get_name());
+                    args_if_gmem.push_back("1");
+                } else {
+                    args.push_back("shared + " +
+                                   std::to_string(outedge->get_offset_smem()));
+                    args_if_gmem.push_back("0");
                 }
                 for (auto edge : node->get_in_edges()) {
                     if (edge->get_level() == hifive::core::EdgeLevel::Global) {
@@ -446,19 +450,23 @@ void CudaCodegen::generate_kernel_defs(
                         args.push_back("ElemWiseOp::Mult");
                     }
                     args.push_back("params");
-                    assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 2);
+                    // Make sure all levels of outedges are the same
                     for (auto edge : node->get_out_edges()) {
-                        if (edge->get_level() ==
-                            hifive::core::EdgeLevel::Global) {
-                            args.push_back(edge->get_name());
-                            args_if_gmem.push_back("1");
-                        } else {
-                            args.push_back(
-                                "shared + " +
-                                std::to_string(edge->get_offset_smem()));
-                            args_if_gmem.push_back("0");
-                        }
+                        assert(edge->get_level() ==
+                               node->get_out_edges()[0]->get_level());
+                    }
+                    // Output to only first outedge
+                    auto outedge = node->get_out_edges()[0];
+                    if (outedge->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        args.push_back(outedge->get_name());
+                        args_if_gmem.push_back("1");
+                    } else {
+                        args.push_back(
+                            "shared + " +
+                            std::to_string(outedge->get_offset_smem()));
+                        args_if_gmem.push_back("0");
                     }
                     for (auto edge : node->get_in_edges()) {
                         if (edge->get_level() ==
@@ -591,18 +599,21 @@ void CudaCodegen::generate_call_kernels(
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == hifive::core::EdgeLevel::Global) {
-                    /*
-                    auto same_result_edge = edge->get_same_result_edge();
-                    if (same_result_edge == nullptr) {
-                        LOG_ERROR("No same result global edge\n");
-                        assert(false);
+                    // Check if the src node has branch
+                    auto node_src = edge->get_src();
+                    if (node_src->get_out_edges().size() > 1) {
+                        // Branch
+                        if (node_src->get_op_type() == core::OpType::Init) {
+                            w << ", " << edge->get_name() << "_d";
+                        } else {
+                            w << ", "
+                              << node_src->get_out_edges()[0]->get_name()
+                              << "_d";
+                        }
+                    } else {
+                        // No branch
+                        w << ", " << edge->get_name() << "_d";
                     }
-                    LOG_INFO("Same result edge of %s is %s\n",
-                             edge->get_name().c_str(),
-                             same_result_edge->get_name().c_str());
-                    w << ", " << same_result_edge->get_name() << "_d";
-                    */
-                    w << ", " << edge->get_name() << "_d";
                 }
             }
             for (auto edge : node->get_out_edges()) {
@@ -756,7 +767,19 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     for (auto subgraph : graph->get_subgraphs()) {
         for (auto node : subgraph->get_nodes()) {
             core::OpType op_type = node->get_op_type();
-            if (op_type == core::OpType::NTTPhase1) {
+            if (op_type == core::OpType::Add || op_type == core::OpType::Mult ||
+                op_type == core::OpType::Sub) {
+                assert(node->get_in_edges().size() == 2);
+                for (auto outedge : node->get_out_edges()) {
+                    w << node->get_op_type_str() << "_h";
+                    w << "(params_h, ";
+                    w << outedge->get_name() << "_h, ";
+                    w << node->get_in_edges()[0]->get_name() << "_h, ";
+                    w << node->get_in_edges()[1]->get_name() << "_h, ";
+                    w << node->get_in_edges()[0]->get_start_limb() << ", ";
+                    w << node->get_in_edges()[0]->get_end_limb() << ");\n";
+                }
+            } else if (op_type == core::OpType::NTTPhase1) {
                 assert(node->get_out_edges().size() == 1);
                 auto phase2_node = node->get_out_edges()[0]->get_dst();
                 for (auto outedge : phase2_node->get_out_edges()) {
@@ -766,9 +789,8 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                     w << node->get_in_edges()[0]->get_start_limb() << ", ";
                     w << node->get_in_edges()[0]->get_end_limb() << ");\n";
                 }
-                continue;
             } else if (op_type == core::OpType::NTTPhase2) {
-                continue;
+                // Nothing to do
             } else if (op_type == core::OpType::iNTTPhase2) {
                 assert(node->get_out_edges().size() == 1);
                 auto phase1_node = node->get_out_edges()[0]->get_dst();
@@ -779,23 +801,22 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                     w << node->get_in_edges()[0]->get_start_limb() << ", ";
                     w << node->get_in_edges()[0]->get_end_limb() << ");\n";
                 }
-                continue;
             } else if (op_type == core::OpType::iNTTPhase1) {
-                continue;
+                // Nothing to do
             } else if (op_type == core::OpType::ModUp) {
                 assert(node->get_out_edges().size() == 1);
                 assert(node->get_in_edges().size() == 1);
+                w << node->get_op_type_str() << "_h";
+                w << "(params_h, ";
+                for (auto edge : node->get_out_edges()) {
+                    w << edge->get_name() << "_h, ";
+                }
+                for (auto edge : node->get_in_edges()) {
+                    w << edge->get_name() << "_h, ";
+                }
+                w << node->get_in_edges()[0]->get_start_limb() << ", ";
+                w << node->get_in_edges()[0]->get_end_limb() << ");\n";
             }
-            w << node->get_op_type_str() << "_h";
-            w << "(params_h, ";
-            for (auto edge : node->get_out_edges()) {
-                w << edge->get_name() << "_h, ";
-            }
-            for (auto edge : node->get_in_edges()) {
-                w << edge->get_name() << "_h, ";
-            }
-            w << node->get_in_edges()[0]->get_start_limb() << ", ";
-            w << node->get_in_edges()[0]->get_end_limb() << ");\n";
         }
     }
 

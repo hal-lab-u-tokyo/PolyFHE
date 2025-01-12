@@ -134,7 +134,7 @@ void ReuseWithPredecessor(
         GetSubgraphSmemFoorprint(subgraph, graph->m_config) / 1000;
 
     // Check if footprint exceeds the limit
-    if (footprint_kb > graph->m_config->SharedMemKB / 3) {
+    if (footprint_kb > graph->m_config->SharedMemKB) {
         subgraph.pop_back();
         return;
     }
