@@ -3,7 +3,13 @@ Init[label="Init"];
 End[label="End"];
 NTT[label="NTT"];
 ModUp[label="ModUp"];
+ModUp2[label="ModUp"];
+ModUp3[label="ModUp"];
 Init -> NTT[label="6_0_6"];
-NTT -> ModUp[label="6_0_6"];
+NTT -> ModUp[label="6_0_2"];
+NTT -> ModUp2[label="6_2_4"];
+NTT -> ModUp3[label="6_4_6"];
 ModUp -> End[label="8_0_8"];
+ModUp2 -> End[label="8_0_8"];
+ModUp3 -> End[label="8_0_8"];
 }
