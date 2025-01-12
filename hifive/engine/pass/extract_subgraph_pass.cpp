@@ -248,7 +248,8 @@ bool ExtractSubgraphPass::run_on_graph(
     }
 
     for (auto subgraph : graph->get_subgraphs()) {
-        LOG_INFO("Subgraph[%d]:\n", subgraph->get_idx());
+        LOG_INFO("Subgraph[%d] (%.2f KB):\n", subgraph->get_idx(),
+                 subgraph->get_smem_size() / 1000.0);
         for (auto node : subgraph->get_nodes()) {
             LOG_INFO("  %s\n", node->get_op_name().c_str());
         }
