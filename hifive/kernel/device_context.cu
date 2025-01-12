@@ -75,8 +75,9 @@ uint64_t compute_shoup(const uint64_t operand, const uint64_t modulus) {
 Params::Params(const int logN, const int L, const int dnum)
     : logN(logN), L(L), dnum(dnum) {
     limb = L;
-    K = L + 1;
     N = 1 << logN;
+    alpha = std::ceil((L + 1) / dnum);
+    K = alpha;
     n1 = hifive::NTTSampleSize(logN);
     n2 = N / n1;
     sigma = 3.2;
