@@ -626,7 +626,8 @@ void CudaCodegen::generate_call_kernels(
     w << "\n";
 }
 
-void define_edge(CodeWriter& w, std::shared_ptr<hifive::core::Edge>& edge) {
+void define_edge(CodeWriter& w, std::shared_ptr<hifive::core::Edge>& edge,
+                 const bool initialize) {
     w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
       << edge->get_dst()->get_op_name() << "\n";
     w << "uint64_t *" << edge->get_name() << "_h;\n";
@@ -638,12 +639,14 @@ void define_edge(CodeWriter& w, std::shared_ptr<hifive::core::Edge>& edge) {
     w << "cudaMalloc((void **)&";
     w << edge->get_name() << "_d,";
     w << "N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
-    w << "for (int i = 0; i < N * " << edge->get_limb() << "; i++) {";
-    w << edge->get_name() << "_h[i] =  1;}\n";
-    w << "cudaMemcpy(" << edge->get_name() << "_d, ";
-    w << edge->get_name() << "_h,";
-    w << "N * " << edge->get_limb() << " * sizeof(uint64_t),";
-    w << "cudaMemcpyHostToDevice);\n";
+    if (initialize) {
+        w << "for (int i = 0; i < N * " << edge->get_limb() << "; i++) {";
+        w << edge->get_name() << "_h[i] =  1;}\n";
+        w << "cudaMemcpy(" << edge->get_name() << "_d, ";
+        w << edge->get_name() << "_h,";
+        w << "N * " << edge->get_limb() << " * sizeof(uint64_t),";
+        w << "cudaMemcpyHostToDevice);\n";
+    }
 }
 
 void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
@@ -670,7 +673,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     }
     int i = 0;
     for (auto edge : init_node->get_out_edges()) {
-        define_edge(w, edge);
+        define_edge(w, edge, true);
         i++;
     }
 
@@ -684,7 +687,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         assert(false);
     }
     for (auto edge : output_node->get_in_edges()) {
-        define_edge(w, edge);
+        define_edge(w, edge, false);
         w << "uint64_t *" << edge->get_name() << "_h_from_d;\n";
         w << "cudaMallocHost((void **)&" << edge->get_name()
           << "_h_from_d, N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
@@ -714,7 +717,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
                         continue;
                     }
                     */
-                    define_edge(w, edge);
+                    define_edge(w, edge, false);
                 } else if (edge->get_level() ==
                            hifive::core::EdgeLevel::Shared) {
                     w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
