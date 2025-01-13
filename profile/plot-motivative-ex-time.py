@@ -57,7 +57,7 @@ print(datas)
 
 # Plot pie chart with font size 18
 fig, ax = plt.subplots(figsize=(18, 10))
-ax.pie(datas.values(), labels=datas.keys(), autopct='%1.1f%%', startangle=90, textprops={'fontsize': 18}, colors=cm.tab20.colors)
+ax.pie(datas.values(), labels=datas.keys(), autopct='%1.1f%%', startangle=90, textprops={'fontsize': 20}, colors=cm.tab20.colors)
 ax.axis('equal')
 plt.savefig(f"{directory_path}/profile/figure/motivative-ex-time.png", dpi=500)
 print(f"Figure saved at {directory_path}/profile/figure/motivative-ex-time.png")
