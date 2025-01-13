@@ -83,6 +83,91 @@ void NTT_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,
     }
 }
 
+// N2 * N1-point NTT
+void NTTPhase1_h(Params *params, uint64_t *dst, uint64_t *src,
+                 const int start_limb, const int end_limb) {
+    uint64_t *buff = new uint64_t[params->n1];
+
+    for (int l = start_limb; l < end_limb; l++) {
+        uint64_t *dst_l = dst + l * params->N;
+        uint64_t *src_l = src + (l - start_limb) * params->N;
+        const uint64_t q = params->ntt_params->q[l];
+        for (int iter = 0; iter < params->n2; iter++) {
+            // copy to buff
+            for (int i = 0; i < params->n1; i++) {
+                buff[i] = src_l[i * params->n2 + iter];
+            }
+
+            uint64_t t = params->n1;
+            uint64_t j1, j2;
+            for (int m = 1; m < params->n1; m *= 2) {
+                t = t / 2;
+                for (int i = 0; i < m; i++) {
+                    j1 = 2 * i * t;
+                    j2 = j1 + t - 1;
+                    for (int j = j1; j <= j2; j++) {
+                        uint64_t u = buff[j];
+                        uint64_t v = (buff[j + t] *
+                                      params->ntt_params->roots_pow[l][m + i]) %
+                                     q;
+                        buff[j] = (u + v) % q;
+                        buff[j + t] = (u - v + q) % q;
+                    }
+                }
+            }
+
+            // copy back
+            for (int i = 0; i < params->n1; i++) {
+                dst_l[i * params->n2 + iter] = buff[i];
+            }
+        }
+    }
+}
+
+// N1 * N2-point NTT
+void NTTPhase2_h(Params *params, uint64_t *dst, uint64_t *src,
+                 const int start_limb, const int end_limb) {
+    uint64_t *buff = new uint64_t[params->n2];
+
+    for (int l = start_limb; l < end_limb; l++) {
+        uint64_t *src_l = src + l * params->N;
+        uint64_t *dst_l = dst + l * params->N;
+        const uint64_t q = params->ntt_params->q[l];
+
+        for (int iter = 0; iter < params->n1; iter++) {
+            // copy to buff
+            for (int i = 0; i < params->n2; i++) {
+                buff[i] = src_l[iter * params->n2 + i];
+            }
+
+            uint64_t t = params->n2;
+            uint64_t j1, j2;
+            for (int m = 1; m < params->n2; m *= 2) {
+                t = t / 2;
+                for (int i = 0; i < m; i++) {
+                    j1 = 2 * i * t;
+                    j2 = j1 + t - 1;
+                    for (int j = j1; j <= j2; j++) {
+                        uint64_t u = buff[j];
+                        int root_idx = params->n1 * m + i + iter * m;
+                        uint64_t v =
+                            (buff[j + t] *
+                             params->ntt_params->roots_pow[l][root_idx]) %
+                            q;
+                        buff[j] = (u + v) % q;
+                        buff[j + t] = (u - v + q) % q;
+                    }
+                }
+            }
+
+            // copy back
+            for (int i = 0; i < params->n2; i++) {
+                dst_l[iter * params->n2 + i] = buff[i];
+            }
+        }
+    }
+}
+
 void iNTT_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,
             const int end_limb) {
     for (int l = start_limb; l < end_limb; l++) {
