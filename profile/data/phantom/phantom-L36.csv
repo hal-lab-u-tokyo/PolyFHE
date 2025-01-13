@@ -1,5 +1,3 @@
-Generating SQLite file ./report20.sqlite from ./report20.nsys-rep
-Processing [./report20.sqlite] with [/opt/nvidia/nsight-systems-cli/2024.7.1/target-linux-x64/reports/cuda_gpu_kern_sum.py]... 
 Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
 28.4,1791874,5,358374.8,358209.0,358144,359040,374.6,"phantom::key_switch_inner_prod_c2_and_evk(unsigned long *, const unsigned long *, const unsigned long *const *, const DModulus *, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long)"
 12.1,763200,25,30528.0,30848.0,27104,32448,1271.7,"bconv_matmul_padded_unroll2_kernel(unsigned long *, const unsigned long *, const unsigned long *, const DModulus *, unsigned long, const DModulus *, unsigned long, unsigned long, unsigned long, unsigned long)"
@@ -16,4 +14,3 @@ Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (n
 1.1,67521,10,6752.1,6720.0,6592,7041,154.8,"inplace_inwt_radix8_phase2_include_special_mod(unsigned long *, const unsigned long *, const unsigned long *, const unsigned long *, const unsigned long *, const DModulus *, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long, unsigned long)"
 0.8,49408,5,9881.6,9696.0,9664,10688,451.1,"modup_copy_partQl_kernel(unsigned long *, const unsigned long *, unsigned long, unsigned long, unsigned long)"
 0.5,30176,10,3017.6,3008.0,2912,3136,74.0,"bconv_mult_unroll2_kernel(unsigned long *, const unsigned long *, const unsigned long *, const unsigned long *, const DModulus *, unsigned long, unsigned long)"
-
