@@ -757,6 +757,8 @@ void CudaCodegen::generate_call_kernels(
                     // Check if the src node has branch
                     auto node_src = edge->get_src();
                     if (node_src->get_out_edges().size() > 1) {
+                        w << ", " << edge->get_name() << "_d";
+                        /*
                         // Branch
                         if (node_src->get_op_type() == core::OpType::Init) {
                             w << ", " << edge->get_name() << "_d";
@@ -765,6 +767,7 @@ void CudaCodegen::generate_call_kernels(
                               << node_src->get_out_edges()[0]->get_name()
                               << "_d";
                         }
+                        */
                     } else {
                         // No branch
                         w << ", " << edge->get_name() << "_d";
@@ -1011,7 +1014,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
           << edge->get_name() << "_h_from_d[i * N + j] << \" vs ";
         w << "expected: \" << " << edge->get_name()
           << "_h[i * N + j] << std::endl;\n";
-        w << "std::cout << \"Check failed\" << std::endl;\n";
+        w << "// std::cout << \"Check failed\" << std::endl;\n";
         w << "if_fail = true;\n";
         w << "break;\n";
         w.block_end();
