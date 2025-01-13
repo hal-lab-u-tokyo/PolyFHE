@@ -1,5 +1,6 @@
 #include "hifive/core/config.hpp"
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -22,7 +23,6 @@ Config::Config(std::string filename) {
         int value;
 
         if (std::getline(ss, key, ',') && ss >> value) {
-            std::cout << "Key: " << key << ", Value: " << value << std::endl;
             if (key == "logN") {
                 logN = value;
                 N = 1 << logN;
@@ -38,6 +38,19 @@ Config::Config(std::string filename) {
         }
     }
     file.close();
+
+    alpha = std::ceil((L + 1) / dnum);
+    k = alpha;
+
+    std::cout << "===============================" << std::endl;
+    std::cout << "logN: " << logN << std::endl;
+    std::cout << "N: " << N << std::endl;
+    std::cout << "L: " << L << std::endl;
+    std::cout << "k: " << k << std::endl;
+    std::cout << "alpha: " << alpha << std::endl;
+    std::cout << "dnum: " << dnum << std::endl;
+    std::cout << "SharedMemKB: " << SharedMemKB << std::endl;
+    std::cout << "===============================" << std::endl;
 }
 
 } // namespace hifive

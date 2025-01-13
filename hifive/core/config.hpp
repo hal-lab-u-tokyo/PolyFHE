@@ -9,6 +9,8 @@ public:
     int logN;
     int N;
     int L;
+    int k;
+    int alpha;
     int dnum;
     int SharedMemKB;
 };

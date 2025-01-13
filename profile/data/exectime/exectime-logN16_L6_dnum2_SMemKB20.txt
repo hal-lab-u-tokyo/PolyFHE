@@ -1,0 +1,26 @@
+Starting Benchmarking...
+[36m[INFO][hifive/kernel/device_context.cu][232][FHEContext][39m Initializing Params
+### Warm up and Test
+N : 65536
+n1: 256
+n2: 256
+L : 6
+dnum : 2
+K : 3
+alpha : 3
+q[0] : 998244353
+root[0] : 3
+------------------------------
+### GPU
+### CPU
+### Check
+Check passed
+Check passed
+### Benchmark
+Elapsed time: 362us
+Elapsed time: 330us
+Elapsed time: 328us
+Elapsed time: 329us
+Elapsed time: 329us
+Average time[us]: 329
+Finished Benchmarking...

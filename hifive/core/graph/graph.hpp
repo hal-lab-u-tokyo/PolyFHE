@@ -137,6 +137,7 @@ public:
     }
 
     // HiFive Config
+    std::shared_ptr<Config> get_m_config() { return m_config; }
     std::shared_ptr<Config> m_config;
 
 private:

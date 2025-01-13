@@ -71,7 +71,11 @@ MemoryAccessPattern OpType_access_pattern(OpType op_type) {
     }
 }
 
+Node::Node(OpType op_type)
+    : m_op_type(op_type), m_access_pattern(OpType_access_pattern(op_type)) {}
+
 Node::Node(std::string op_name) : m_id(-1) {
+    // We have to convert string op's name to OpType
     std::map<std::string, OpType> op_map = {
         {"Add", OpType::Add},
         {"Sub", OpType::Sub},
