@@ -308,5 +308,35 @@ int GetSubgraphSmemFoorprint(
     return smem_footprint;
 }
 
+void ExtractSubgraph(
+    std::shared_ptr<hifive::core::Node> node,
+    std::vector<std::shared_ptr<hifive::core::Node>> &subgraph) {
+    if (node->get_op_type() == core::OpType::Init ||
+        node->get_op_type() == core::OpType::End) {
+        return;
+    }
+    subgraph.push_back(node);
+    for (auto edge : node->get_out_edges()) {
+        auto found =
+            std::find(subgraph.begin(), subgraph.end(), edge->get_dst());
+        if (found != subgraph.end()) {
+            continue;
+        }
+        if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
+            ExtractSubgraph(edge->get_dst(), subgraph);
+        }
+    }
+    for (auto edge : node->get_in_edges()) {
+        auto found =
+            std::find(subgraph.begin(), subgraph.end(), edge->get_src());
+        if (found != subgraph.end()) {
+            continue;
+        }
+        if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
+            ExtractSubgraph(edge->get_src(), subgraph);
+        }
+    }
+}
+
 } // namespace core
 } // namespace hifive

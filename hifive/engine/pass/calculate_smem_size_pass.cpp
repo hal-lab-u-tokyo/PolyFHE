@@ -13,9 +13,6 @@ bool CalculateSmemSizePass::run_on_graph(
     std::shared_ptr<hifive::core::Graph>& graph) {
     LOG_INFO("Running CalculateSmemSizePass\n");
 
-    for (auto subgraph : graph->get_subgraphs()) {
-        LOG_INFO("Subgraph[%d]:\n", subgraph->get_idx());
-    }
     return true;
 }
 } // namespace engine

@@ -1,7 +1,15 @@
 digraph G {
 Init[label="Init"];
 End[label="End"];
+Multd1[label="Mult"];
+ModUp1[label="ModUp"];
+ModUp2[label="ModUp"];
 NTT[label="NTT"];
-Init -> NTT[label="6_0_6"];
-NTT -> End[label="6_0_6"];
+Init -> Multd1[label="29_0_29"];
+Init -> Multd1[label="29_0_29"];
+Multd1 -> NTT[label="29_0_29"];
+NTT -> ModUp1[label="29_0_6"];
+NTT -> ModUp2[label="29_6_12"];
+ModUp1 -> End[label="35_0_35"];
+ModUp2 -> End[label="35_0_35"];
 }

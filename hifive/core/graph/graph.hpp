@@ -160,5 +160,9 @@ int GetSubgraphSmemFoorprint(
     std::vector<std::shared_ptr<hifive::core::Node>> &subgraph,
     std::shared_ptr<Config> config);
 
+void ExtractSubgraph(
+    std::shared_ptr<hifive::core::Node> node,
+    std::vector<std::shared_ptr<hifive::core::Node>> &subgraph);
+
 } // namespace core
 } // namespace hifive
