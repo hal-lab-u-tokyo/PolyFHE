@@ -43,11 +43,11 @@ for idx in range(len(files)):
             metric_unit = entry[metric_unit_idx]
 
             if metric_unit == "Mbyte":
-                metric_value *= 1000
-            elif metric_unit == "Kbyte":
                 metric_value *= 1
+            elif metric_unit == "Kbyte":
+                metric_value *= 0.001
             elif metric_unit == "byte":
-                metric_value /= 1000
+                metric_value /= 1000000
             else:
                 print(f"Unknown unit {metric_unit}")
                 exit(1)
@@ -69,7 +69,7 @@ print(datas[2])
 fig, ax = plt.subplots(figsize=(18, 10))
 metric = "dram__bytes_read.sum"
 candidates = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
-num_iters = [6, 6, 1]
+num_iters = [6, 6, 5]
 result = [datas[i][metric] / num_iters[i] for i in range(len(datas))]
 
 print(metric)

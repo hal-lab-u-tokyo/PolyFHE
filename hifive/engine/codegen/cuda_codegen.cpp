@@ -1010,7 +1010,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << edge->get_name() << "_h[i * N + j] != ";
         w << edge->get_name() << "_h_from_d[i * N + j])";
         w.block_begin();
-        w << "std::cout << \"Error[\" << i << \"][\" << j << \"] : \" << "
+        w << "// std::cout << \"Error[\" << i << \"][\" << j << \"] : \" << "
           << edge->get_name() << "_h_from_d[i * N + j] << \" vs ";
         w << "expected: \" << " << edge->get_name()
           << "_h[i * N + j] << std::endl;\n";
