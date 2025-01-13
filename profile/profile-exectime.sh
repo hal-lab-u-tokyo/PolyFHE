@@ -17,7 +17,11 @@ CXXFLAGS_RUNTIME="-g -std=c++17 -I./  --relocatable-device-code true"
 mkdir -p build
 for logN in {15,16}; do
     for L in {6,12,18,24,30,36}; do
-        for dnum in {2,3,6}; do
+        for dnum in {2,3,6,18}; do
+            # if dnum > L, skip
+            if [ $dnum -gt $L ]; then
+                continue
+            fi
             for SharedMemKB in {20,40,60,80}; do
                 NAME="logN${logN}_L${L}_dnum${dnum}_SMemKB${SharedMemKB}"
                 CONFIG_FILE="./config/config-${NAME}.csv"

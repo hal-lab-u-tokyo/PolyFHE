@@ -74,7 +74,7 @@ test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
 	./build/test
 
 TARGET=data/graph_poly.dot
-CONFIG=config/config-50KB.csv
+CONFIG=config/config-logN16_L18_dnum6_SMemKB60.csv
 
 run: $(BIN)
 	rm -f ./build/*.dot
