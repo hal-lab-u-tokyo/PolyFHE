@@ -1048,9 +1048,9 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "if (i != 0) {elapsed_times.push_back(elapsed_usec.count());}\n";
     w.block_end(); // for end
 
-    w << "std::cout << \"Average time: \" << "
+    w << "std::cout << \"Average time[us]: \" << "
          "std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0) "
-         "/ elapsed_times.size() << \"us\" << std::endl;\n";
+         "/ elapsed_times.size() << std::endl;\n";
 
     w.block_end(); // funcion end
     w.write_to_file(filename, if_append);
