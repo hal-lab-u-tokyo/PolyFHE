@@ -42,6 +42,19 @@ std::string toStringOpType(OpType op_type) {
     }
 }
 
+std::string toString(BlockPhase block_phase) {
+    switch (block_phase) {
+    case BlockPhase::NTTPhase0:
+        return "NTTPhase0";
+    case BlockPhase::NTTPhase1:
+        return "NTTPhase1";
+    case BlockPhase::NTTPhase2:
+        return "NTTPhase2";
+    default:
+        return "Unknown";
+    }
+}
+
 MemoryAccessPattern OpType_access_pattern(OpType op_type) {
     if (op_type == OpType::NTT || op_type == OpType::iNTT) {
         return MemoryAccessPattern::LimbWise;

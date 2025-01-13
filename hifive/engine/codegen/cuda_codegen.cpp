@@ -312,19 +312,26 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("idx/params->n2");
                     args.push_back("threadIdx.x");
                     w << "NTTPhase1Op(" << GenerateArgs(args) << ");\n";
-                    // Outedge must be Global
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_out_edges()[0]->get_level() ==
-                           hifive::core::EdgeLevel::Global);
-                    // Store to global
-                    std::vector<std::string> args_store;
-                    args_store.push_back(node->get_out_edges()[0]->get_name());
-                    args_store.push_back("shared");
-                    args_store.push_back("params->N");
-                    args_store.push_back("params->n1");
-                    args_store.push_back("params->n2");
-                    w << "store_s2g_phase1(" << GenerateArgs(args_store)
-                      << ");\n";
+                    if (op_type == core::OpType::NTTPhase1) {
+                        // Outedge must be Global
+                        assert(node->get_out_edges().size() == 1);
+                        assert(node->get_out_edges()[0]->get_level() ==
+                               hifive::core::EdgeLevel::Global);
+                    }
+                    for (auto outedge : node->get_out_edges()) {
+                        if (outedge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            // Store to global
+                            std::vector<std::string> args_store;
+                            args_store.push_back(outedge->get_name());
+                            args_store.push_back("shared");
+                            args_store.push_back("params->N");
+                            args_store.push_back("params->n1");
+                            args_store.push_back("params->n2");
+                            w << "store_s2g_phase1(" << GenerateArgs(args_store)
+                              << ");\n";
+                        }
+                    }
                 } else {
                     LOG_ERROR(
                         "Only ElementWiseOp, NTTPhase1 and iNTTPhase1 are "
@@ -409,18 +416,28 @@ void CudaCodegen::generate_kernel_defs(
                     w.block_end();
                 } else if (op_type == core::OpType::NTTPhase2 ||
                            op_type == core::OpType::iNTTPhase2) {
-                    // Inedge must be Global
+                    w.block_begin();
+                    if (op_type == core::OpType::NTTPhase2) {
+                        // Inedge must be Global
+                        assert(node->get_in_edges()[0]->get_level() ==
+                               hifive::core::EdgeLevel::Global);
+                    }
                     assert(node->get_in_edges().size() == 1);
-                    assert(node->get_in_edges()[0]->get_level() ==
-                           hifive::core::EdgeLevel::Global);
-                    std::vector<std::string> args_load;
-                    args_load.push_back(node->get_in_edges()[0]->get_name());
-                    args_load.push_back("shared");
-                    args_load.push_back("params->N");
-                    args_load.push_back("params->n1");
-                    args_load.push_back("params->n2");
-                    w << "load_g2s_phase2(" << GenerateArgs(args_load)
-                      << ");\n";
+
+                    for (auto inedge : node->get_in_edges()) {
+                        if (inedge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            // Load from global
+                            std::vector<std::string> args_load;
+                            args_load.push_back(inedge->get_name());
+                            args_load.push_back("shared");
+                            args_load.push_back("params->N");
+                            args_load.push_back("params->n1");
+                            args_load.push_back("params->n2");
+                            w << "load_g2s_phase2(" << GenerateArgs(args_load)
+                              << ");\n";
+                        }
+                    }
 
                     // Call NTTPhase2
                     std::vector<std::string> args;
@@ -447,6 +464,7 @@ void CudaCodegen::generate_kernel_defs(
                               << ");\n";
                         }
                     }
+                    w.block_end();
                 } else {
                     LOG_ERROR(
                         "Only ElementWiseOp, NTTPhase2 and iNTTPhase2 are "
@@ -717,14 +735,15 @@ void CudaCodegen::generate_call_kernels(
         } else if (s_type == core::SubgraphType::ElemSlot) {
             w << subgraph->get_name() << "<<< params_h->N / 128, 128, "
               << subgraph->get_smem_size() << ">>>";
-        } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
-        } else if (s_type == core::SubgraphType::ElemLimb2Slot) {
+        } else if (s_type == core::SubgraphType::ElemLimb1Slot ||
+                   s_type == core::SubgraphType::ElemLimb2Slot) {
             w << subgraph->get_name() << "<<<params_h->n1, ";
             w << std::to_string(subgraph->get_max_limb());
             w << " * params_h->n2/8, ";
             w << subgraph->get_smem_size() << ">>>";
         } else {
-            LOG_ERROR("Not implemented\n");
+            LOG_ERROR("Not implemented subgraph %s\n",
+                      core::to_string(s_type).c_str());
         }
         w << "(params_d";
         if (subgraph->get_block_phase() !=
@@ -738,6 +757,8 @@ void CudaCodegen::generate_call_kernels(
                     // Check if the src node has branch
                     auto node_src = edge->get_src();
                     if (node_src->get_out_edges().size() > 1) {
+                        w << ", " << edge->get_name() << "_d";
+                        /*
                         // Branch
                         if (node_src->get_op_type() == core::OpType::Init) {
                             w << ", " << edge->get_name() << "_d";
@@ -746,6 +767,7 @@ void CudaCodegen::generate_call_kernels(
                               << node_src->get_out_edges()[0]->get_name()
                               << "_d";
                         }
+                        */
                     } else {
                         // No branch
                         w << ", " << edge->get_name() << "_d";
@@ -988,11 +1010,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
         w << edge->get_name() << "_h[i * N + j] != ";
         w << edge->get_name() << "_h_from_d[i * N + j])";
         w.block_begin();
-        w << "std::cout << \"Error[\" << i << \"][\" << j << \"] : \" << "
+        w << "// std::cout << \"Error[\" << i << \"][\" << j << \"] : \" << "
           << edge->get_name() << "_h_from_d[i * N + j] << \" vs ";
         w << "expected: \" << " << edge->get_name()
           << "_h[i * N + j] << std::endl;\n";
-        w << "std::cout << \"Check failed\" << std::endl;\n";
+        w << "// std::cout << \"Check failed\" << std::endl;\n";
         w << "if_fail = true;\n";
         w << "break;\n";
         w.block_end();
@@ -1026,9 +1048,9 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
     w << "if (i != 0) {elapsed_times.push_back(elapsed_usec.count());}\n";
     w.block_end(); // for end
 
-    w << "std::cout << \"Average time: \" << "
+    w << "std::cout << \"Average time[us]: \" << "
          "std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0) "
-         "/ elapsed_times.size() << \"us\" << std::endl;\n";
+         "/ elapsed_times.size() << std::endl;\n";
 
     w.block_end(); // funcion end
     w.write_to_file(filename, if_append);

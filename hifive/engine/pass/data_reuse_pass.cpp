@@ -12,29 +12,18 @@ namespace engine {
 
 bool CanReuse(std::shared_ptr<hifive::core::Node> src,
               std::shared_ptr<hifive::core::Node> dst) {
-    if (src->get_op_type() == core::OpType::Init) {
+    if (src->get_op_type() == core::OpType::Init ||
+        src->get_op_type() == core::OpType::End) {
         return false;
     }
-    if (dst->get_op_type() == core::OpType::Init) {
+    if (dst->get_op_type() == core::OpType::Init ||
+        dst->get_op_type() == core::OpType::End) {
         return false;
     }
-    switch (dst->get_access_pattern()) {
-    case hifive::core::MemoryAccessPattern::ElementWise:
-        return true;
-    case hifive::core::MemoryAccessPattern::SlotWise:
-        return true;
-    case hifive::core::MemoryAccessPattern::LimbWise:
-        return src->get_access_pattern() !=
-               hifive::core::MemoryAccessPattern::LimbWise;
-    case hifive::core::MemoryAccessPattern::NotDefined:
-        return false;
-    case hifive::core::MemoryAccessPattern::YetSet:
-        LOG_ERROR("Yetset access pattern\n");
-        return false;
-    default:
-        LOG_ERROR("Unknown access pattern\n");
+    if (dst->get_block_phase() != src->get_block_phase()) {
         return false;
     }
+    return true;
 }
 
 std::shared_ptr<hifive::core::Node> GenSeed(
@@ -65,92 +54,86 @@ std::shared_ptr<hifive::core::Node> GenSeed(
 }
 
 // TODO: merge with GetSubgraphType in extract_subgraph_pass.cpp
+void WithdrawReuse(std::shared_ptr<hifive::core::Node> seed) {
+    for (auto edge : seed->get_out_edges()) {
+        edge->set_level(hifive::core::EdgeLevel::Global);
+    }
+    for (auto edge : seed->get_in_edges()) {
+        edge->set_level(hifive::core::EdgeLevel::Global);
+    }
+}
 
 void ReuseWithSuccessor(
     std::shared_ptr<hifive::core::Graph> graph,
     std::shared_ptr<hifive::core::Node> seed,
-    std::shared_ptr<hifive::core::Node> successor,
-    std::vector<std::shared_ptr<hifive::core::Node>>& subgraph,
-    std::set<std::shared_ptr<hifive::core::Node>>& unreused) {
-    // Set Global level in default
-    auto edge = core::get_edge(seed, successor);
-    edge->set_level(hifive::core::EdgeLevel::Global);
-
+    std::vector<std::shared_ptr<hifive::core::Node>>& subgraph) {
     // Check if seed and successor can be reused
-    if (!CanReuse(seed, successor)) {
-        return;
+    for (auto edge : seed->get_out_edges()) {
+        if (!CanReuse(seed, edge->get_dst())) {
+            LOG_INFO("Cannot reuse %s -> %s\n", seed->get_op_name().c_str(),
+                     edge->get_dst()->get_op_name().c_str());
+            edge->set_level(hifive::core::EdgeLevel::Global);
+        }
     }
 
-    // Add successor to subgraph temporarily
-    subgraph.push_back(successor);
+    // Extract subgraph
+    std::vector<std::shared_ptr<hifive::core::Node>> new_subgraph;
+    ExtractSubgraph(seed, new_subgraph);
 
     // Get subgraph memory footprint
     // TODO: consider limb
     int footprint_kb =
-        GetSubgraphSmemFoorprint(subgraph, graph->m_config) / 1000;
+        GetSubgraphSmemFoorprint(new_subgraph, graph->m_config) / 1000;
 
     // Check if footprint exceeds the limit
     if (footprint_kb > graph->m_config->SharedMemKB) {
-        subgraph.pop_back();
+        LOG_INFO("Footprint %d KB exceeds the limit %d KB\n", footprint_kb,
+                 graph->m_config->SharedMemKB);
+        for (auto edge : seed->get_out_edges()) {
+            edge->set_level(hifive::core::EdgeLevel::Global);
+        }
         return;
     }
 
     // Reuse!
-    edge->set_level(hifive::core::EdgeLevel::Shared);
-    unreused.erase(successor);
-
-    for (auto edge : successor->get_out_edges()) {
-        /*
-        if (unreused.find(edge->get_dst()) == unreused.end()) {
-            continue;
-        }
-        */
-        ReuseWithSuccessor(graph, successor, edge->get_dst(), subgraph,
-                           unreused);
-    }
+    subgraph = new_subgraph;
 }
 
 void ReuseWithPredecessor(
     std::shared_ptr<hifive::core::Graph> graph,
     std::shared_ptr<hifive::core::Node> seed,
-    std::shared_ptr<hifive::core::Node> pred,
-    std::vector<std::shared_ptr<hifive::core::Node>>& subgraph,
-    std::set<std::shared_ptr<hifive::core::Node>>& unreused) {
-    // Set Global level in default
-    auto edge = core::get_edge(pred, seed);
-    edge->set_level(hifive::core::EdgeLevel::Global);
-
+    std::vector<std::shared_ptr<hifive::core::Node>>& subgraph) {
     // Check if seed and successor can be reused
-    if (!CanReuse(pred, seed)) {
-        return;
+    for (auto edge : seed->get_in_edges()) {
+        if (!CanReuse(seed, edge->get_src())) {
+            LOG_INFO("Cannot reuse with predecessor %s <-> %s\n",
+                     seed->get_op_name().c_str(),
+                     edge->get_src()->get_op_name().c_str());
+            edge->set_level(hifive::core::EdgeLevel::Global);
+        }
     }
 
-    // Add successor to subgraph temporarily
-    subgraph.push_back(pred);
+    // Extract subgraph
+    std::vector<std::shared_ptr<hifive::core::Node>> new_subgraph;
+    ExtractSubgraph(seed, new_subgraph);
 
     // Get subgraph memory footprint
     // TODO: consider limb
     int footprint_kb =
-        GetSubgraphSmemFoorprint(subgraph, graph->m_config) / 1000;
+        GetSubgraphSmemFoorprint(new_subgraph, graph->m_config) / 1000;
 
     // Check if footprint exceeds the limit
     if (footprint_kb > graph->m_config->SharedMemKB) {
-        subgraph.pop_back();
+        LOG_INFO("Footprint %d KB exceeds the limit %d KB\n", footprint_kb,
+                 graph->m_config->SharedMemKB);
+        for (auto edge : seed->get_in_edges()) {
+            edge->set_level(hifive::core::EdgeLevel::Global);
+        }
         return;
     }
 
     // Reuse!
-    edge->set_level(hifive::core::EdgeLevel::Shared);
-    unreused.erase(pred);
-
-    for (auto edge : pred->get_in_edges()) {
-        /*
-        if (unreused.find(edge->get_src()) == unreused.end()) {
-            continue;
-        }
-        */
-        ReuseWithPredecessor(graph, pred, edge->get_src(), subgraph, unreused);
-    }
+    subgraph = new_subgraph;
 }
 
 bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
@@ -178,26 +161,14 @@ bool DataReusePass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
 
         // Check if append successors to subgraph
         for (auto edge : seed->get_out_edges()) {
-            /*
-            // if successor is not in unreused, skip
-            if (unreused.find(edge->get_dst()) == unreused.end()) {
-                continue;
-            }
-            */
-            ReuseWithSuccessor(graph, seed, edge->get_dst(), subgraph,
-                               unreused);
+            edge->set_level(hifive::core::EdgeLevel::Shared);
         }
+        ReuseWithSuccessor(graph, seed, subgraph);
 
         for (auto edge : seed->get_in_edges()) {
-            /*
-            // if predecessor is not in unreused, skip
-            if (unreused.find(edge->get_src()) == unreused.end()) {
-                continue;
-            }
-            */
-            ReuseWithPredecessor(graph, seed, edge->get_src(), subgraph,
-                                 unreused);
+            edge->set_level(hifive::core::EdgeLevel::Shared);
         }
+        ReuseWithPredecessor(graph, seed, subgraph);
 
         // Remove subgraph from unreused
         for (auto node : subgraph) {

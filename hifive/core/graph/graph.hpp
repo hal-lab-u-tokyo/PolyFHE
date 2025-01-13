@@ -29,6 +29,7 @@ enum class SubgraphType {
 };
 
 std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type);
+std::string to_string(SubgraphType subgraph_type);
 
 class SubGraph {
 public:
@@ -159,6 +160,10 @@ int GetsPolySize(std::vector<std::shared_ptr<hifive::core::Node>> &subgraph,
 int GetSubgraphSmemFoorprint(
     std::vector<std::shared_ptr<hifive::core::Node>> &subgraph,
     std::shared_ptr<Config> config);
+
+void ExtractSubgraph(
+    std::shared_ptr<hifive::core::Node> node,
+    std::vector<std::shared_ptr<hifive::core::Node>> &subgraph);
 
 } // namespace core
 } // namespace hifive

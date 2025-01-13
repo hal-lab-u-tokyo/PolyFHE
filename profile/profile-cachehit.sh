@@ -18,7 +18,7 @@ ncu --csv --import cachehit-opt.ncu-rep > profile/data/cachehit-opt.csv
 ncu -f -o cachehit-noopt --csv --metrics "${METRICS}" ./build-noopt/bench
 ncu --csv --import cachehit-noopt.ncu-rep > profile/data/cachehit-noopt.csv
 
-ncu -f -o cachehit-phantom --csv --metrics "${METRICS}" ./thirdparty/phantom-fhe/build-for-eval/ckks_hmult_logn15_k4
+ncu -f -o cachehit-phantom --profile-from-start off --csv --metrics "${METRICS}" ./thirdparty/phantom-fhe/build-for-eval/ckks_hmult_logn16_L6
 ncu --csv --import cachehit-phantom.ncu-rep > profile/data/cachehit-phantom.csv
 
 python3 ./profile/plot-cachehit.py

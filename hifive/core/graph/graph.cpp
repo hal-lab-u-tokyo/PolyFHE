@@ -8,6 +8,26 @@
 namespace hifive {
 namespace core {
 
+std::string to_string(SubgraphType subgraph_type) {
+    switch (subgraph_type) {
+    case SubgraphType::Elem:
+        return "Elem";
+    case SubgraphType::ElemLimb1:
+        return "ElemLimb1";
+    case SubgraphType::ElemLimb2:
+        return "ElemLimb2";
+    case SubgraphType::ElemSlot:
+        return "ElemSlot";
+    case SubgraphType::ElemLimb1Slot:
+        return "ElemLimb1Slot";
+    case SubgraphType::ElemLimb2Slot:
+        return "ElemLimb2Slot";
+    default:
+        LOG_ERROR("Invalid SubgraphType\n");
+        exit(1);
+    }
+}
+
 std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type) {
     switch (subgraph_type) {
     case SubgraphType::Elem:
@@ -306,6 +326,36 @@ int GetSubgraphSmemFoorprint(
     LOG_INFO("-> sPoly %.2f KB * %d = %.2f KB\n", spoly_size / 1000.0, n_spoly,
              smem_footprint / 1000.0);
     return smem_footprint;
+}
+
+void ExtractSubgraph(
+    std::shared_ptr<hifive::core::Node> node,
+    std::vector<std::shared_ptr<hifive::core::Node>> &subgraph) {
+    if (node->get_op_type() == core::OpType::Init ||
+        node->get_op_type() == core::OpType::End) {
+        return;
+    }
+    subgraph.push_back(node);
+    for (auto edge : node->get_out_edges()) {
+        auto found =
+            std::find(subgraph.begin(), subgraph.end(), edge->get_dst());
+        if (found != subgraph.end()) {
+            continue;
+        }
+        if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
+            ExtractSubgraph(edge->get_dst(), subgraph);
+        }
+    }
+    for (auto edge : node->get_in_edges()) {
+        auto found =
+            std::find(subgraph.begin(), subgraph.end(), edge->get_src());
+        if (found != subgraph.end()) {
+            continue;
+        }
+        if (edge->get_level() == hifive::core::EdgeLevel::Shared) {
+            ExtractSubgraph(edge->get_src(), subgraph);
+        }
+    }
 }
 
 } // namespace core

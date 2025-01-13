@@ -5,76 +5,115 @@ import csv
 import numpy as np
 
 directory_path = "/opt/mount/HiFive"
-filename = ["stallreason-noopt.csv", "stallreason-opt.csv", "stallreason-phantom.csv"]
+filename = [f"evalstall-stallreason-{w}.csv" for w in ["noopt", "opt", "phantom"]]
 title = ["ThisWork(Baseline)", "ThisWork", "Phantom"]
 metrics = ["barrier", 
-         "dispatch_stall",
-         "drain",
-         "imc_miss",
-         "lg_throttle",
-         "long_scoreboard",
-         "math_pipe_throttle",
-         "membar",
-         "mio_throttle",
-         "misc",
-         "no_instruction",
-         "not_selected",
-         "selected",
-         "short_scoreboard",
-         "sleeping",
-         "tex_throttle",
-         "wait"]
+        "dispatch_stall",
+        "drain",
+        "imc_miss",
+        "lg_throttle",
+        "long_scoreboard",
+        "math_pipe_throttle",
+        "membar",
+        "mio_throttle",
+        "misc",
+        "no_instruction",
+        "not_selected",
+        "selected",
+        "short_scoreboard",
+        "sleeping",
+        "tex_throttle",
+        "wait"]
 
 datas = [[] for i in range(len(filename))]
+weights = [{} for i in range(len(filename))]
 for i in range(len(filename)):
     for j in range(len(metrics)):
         datas[i].append(0)
-print(datas)
 
-# Read CSV
+def format_name(name):
+    # eliminate after "("
+    name = name.split("(")[0]
 
-for idx in range(len(filename)):
-    fname = f"{directory_path}/profile/data/{filename[idx]}"
 
-    if not os.path.exists(fname):
-        print(f"File {fname} does not exist")
-        exit(1)
+def read_exectime():
+    fnames = [f"evalstall-exectime-{i}.csv" for i in ["noopt", "opt", "phantom"]]
+    
+    for idx in range(len(fnames)):
+        exectime = {}
+        filepath = f"{directory_path}/profile/data/{fnames[idx]}"
+        if not os.path.exists(filepath):
+            print(f"File {filepath} does not exist")
+            exit(1)
 
-    with open(fname) as f:
-        inputs = csv.reader(f)
-        l = [i for i in inputs]
+        with open(filepath) as f:
+            inputs = csv.reader(f)
+            l = [i for i in inputs]
 
-        print(l[0])
-        kernel_name_idx = l[0].index("Kernel Name")
-        metric_name_idx = l[0].index("Metric Name")
-        metric_value_idx = l[0].index("Metric Value")
+            # CSV: Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+            time_idx = l[2].index("Time (%)")
+            name_idx = l[2].index("Name")
+            
+            for i in range(3, len(l)):
+                entry = l[i]
+                if len(entry) == 0:
+                    continue
+                time = float(entry[time_idx])
+                name = entry[name_idx]
+                
+                # format name
+                name = format_name(name)
 
-        for i in range(1, len(l)):
-            entry = l[i]
-            # Kernel name
-            # Remove "ckks::" prefix and after "(" 
-            # Use up to 10 characters
-            kernel_name = entry[kernel_name_idx]
-            kernel_name = kernel_name.replace("ckks::", "")
-            kernel_name = kernel_name.split("(")[0]
-            #kernel_name = kernel_name[:15]
+                if name not in exectime:
+                    exectime[name] = time
+                else:
+                    exectime[name] += time
+        
+        total = sum(exectime.values())
+        for key in exectime:
+            weights[idx][key] = exectime[key] / total
 
-            # Metric name
-            # Remove "smsp__warp_issue_stalled_" prefix and "_per_warp_active.pct" suffix
-            metric_name = entry[metric_name_idx]
-            metric_name = metric_name.replace("smsp__warp_issue_stalled_", "")
-            metric_name = metric_name.replace("_per_warp_active.pct", "")
+def read_stallreason():
+    print(datas)
+    # Read CSV
+    for idx in range(len(filename)):
+        fname = f"{directory_path}/profile/data/{filename[idx]}"
 
-            if metric_name not in metrics:
-                print(f"Unknown metric: {metric_name}")
-                exit(1)
-            metric_idx = metrics.index(metric_name)
+        if not os.path.exists(fname):
+            print(f"File {fname} does not exist")
+            exit(1)
 
-            # Metric value
-            metric_value = float(entry[metric_value_idx])
+        with open(fname) as f:
+            inputs = csv.reader(f)
+            l = [i for i in inputs]
 
-            # Sum up
-            datas[idx][metric_idx] += metric_value
+            print(l[0])
+            kernel_name_idx = l[0].index("Kernel Name")
+            metric_name_idx = l[0].index("Metric Name")
+            metric_value_idx = l[0].index("Metric Value")
+
+            for i in range(1, len(l)):
+                entry = l[i]
+                # Kernel name
+                kernel_name = entry[kernel_name_idx]
+                kernel_name = format_name(kernel_name)
+
+                # Metric name
+                # Remove "smsp__warp_issue_stalled_" prefix and "_per_warp_active.pct" suffix
+                metric_name = entry[metric_name_idx]
+                metric_name = metric_name.replace("smsp__warp_issue_stalled_", "")
+                metric_name = metric_name.replace("_per_warp_active.pct", "")
+
+                if metric_name not in metrics:
+                    print(f"Unknown metric: {metric_name}")
+                    exit(1)
+                metric_idx = metrics.index(metric_name)
+
+                # Metric value
+                metric_value = float(entry[metric_value_idx]) * weights[idx][kernel_name]
+
+                # Sum up
+                datas[idx][metric_idx] += metric_value
 
 
 def filter_labels(data, labels):
@@ -83,6 +122,9 @@ def filter_labels(data, labels):
 
 def filter_autopct(pct):
     return f'{pct:.1f}%' if pct >= 10 else ''
+
+read_exectime()
+read_stallreason()
 
 # Plot pie chart
 fig, axes = plt.subplots(1, 3, figsize=(18, 6))

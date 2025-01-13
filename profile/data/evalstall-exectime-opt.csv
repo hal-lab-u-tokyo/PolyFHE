@@ -1,0 +1,15 @@
+Generating SQLite file ./evalstall-exectime-opt.sqlite from ./evalstall-exectime-opt.nsys-rep
+Processing [./evalstall-exectime-opt.sqlite] with [/opt/nvidia/nsight-systems-cli/2024.7.1/target-linux-x64/reports/cuda_gpu_kern_sum.py]... 
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+23.0,300482,6,50080.3,50080.5,49825,50336,207.0,"NTTPhase2_37_NTTPhase2_35_Mult_17_Mult_11_Mult_9_Mult_15_Add_16_Add_10(Params *, int, int, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+19.2,251136,6,41856.0,41568.0,41312,43328,742.2,"NTTPhase2_33_Mult_12_Mult_6_Add_7_iNTTPhase2_27_Add_13_iNTTPhase2_29(Params *, int, int, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+17.9,234017,6,39002.8,39056.0,38784,39104,120.6,"iNTTPhase1_30(Params *, int, int, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+10.3,134049,6,22341.5,22192.5,21984,23360,507.7,"iNTTPhase1_26_Add_2(Params *, int, int, unsigned long *, unsigned long *, unsigned long *)"
+10.2,132672,6,22112.0,22064.0,21856,22368,203.4,"iNTTPhase1_28_Add_5(Params *, int, int, unsigned long *, unsigned long *, unsigned long *)"
+6.8,88704,6,14784.0,14800.0,14368,15104,245.4,"Mult_18_iNTTPhase2_31(Params *, int, int, unsigned long *, unsigned long *, unsigned long *)"
+5.8,76096,6,12682.7,14464.0,4288,14624,4128.3,"Mult_4(Params *, int, int, unsigned long *, unsigned long *, unsigned long *)"
+5.6,73120,6,12186.7,13584.0,5152,13664,3447.0,"Mult_1(Params *, int, int, unsigned long *, unsigned long *, unsigned long *)"
+0.4,4800,6,800.0,800.0,768,832,20.2,"ModUp_20_NTTPhase1_32(Params *, int, int, unsigned long *, unsigned long *)"
+0.4,4768,6,794.7,800.0,768,800,13.1,"ModUp_22_NTTPhase1_34(Params *, int, int, unsigned long *, unsigned long *)"
+0.4,4768,6,794.7,800.0,768,800,13.1,"ModUp_24_NTTPhase1_36(Params *, int, int, unsigned long *, unsigned long *)"
+

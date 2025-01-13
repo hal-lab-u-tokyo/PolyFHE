@@ -98,20 +98,20 @@ Params::Params(const int logN, const int L, const int dnum)
     ntt_params->batch = L;
     ntt_params->q = qVec;
     ntt_params->p = pVec;
-    ntt_params->root = new uint64_t[L];
-    ntt_params->root_inv = new uint64_t[L];
-    ntt_params->N_inv = new uint64_t[L];
-    for (int i = 0; i < L; i++) {
+    ntt_params->root = new uint64_t[L + K];
+    ntt_params->root_inv = new uint64_t[L + K];
+    ntt_params->N_inv = new uint64_t[L + K];
+    for (int i = 0; i < L + K; i++) {
         ntt_params->root[i] = findPrimitiveRoot(qVec[i]);
         ntt_params->root_inv[i] =
             powMod(ntt_params->root[i], qVec[i] - 2, qVec[i]);
         ntt_params->N_inv[i] = powMod(N, qVec[i] - 2, qVec[i]);
     }
-    ntt_params->roots_pow = new uint64_t *[L];
-    ntt_params->roots_pow_shoup = new uint64_t *[L];
-    ntt_params->roots_pow_inv = new uint64_t *[L];
-    ntt_params->roots_pow_inv_shoup = new uint64_t *[L];
-    for (int i = 0; i < L; i++) {
+    ntt_params->roots_pow = new uint64_t *[L + K];
+    ntt_params->roots_pow_shoup = new uint64_t *[L + K];
+    ntt_params->roots_pow_inv = new uint64_t *[L + K];
+    ntt_params->roots_pow_inv_shoup = new uint64_t *[L + K];
+    for (int i = 0; i < (L + K); i++) {
         ntt_params->roots_pow[i] = new uint64_t[N];
         ntt_params->roots_pow_inv[i] = new uint64_t[N];
         ntt_params->roots_pow_shoup[i] = new uint64_t[N];
@@ -138,40 +138,41 @@ Params::Params(const int logN, const int L, const int dnum)
 void FHEContext::CopyParamsToDevice() {
     Params params_tmp;
     memcpy(&params_tmp, h_params.get(), sizeof(Params));
+    const int L = h_params->L;
+    const int K = h_params->K;
 
     uint64_t *d_qVec;
-    checkCudaErrors(
-        cudaMalloc(&d_qVec, (h_params->L + h_params->K) * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc(&d_qVec, (L + K) * sizeof(uint64_t)));
     checkCudaErrors(cudaMemcpy(d_qVec, h_params->qVec,
-                               (h_params->L + h_params->K) * sizeof(uint64_t),
+                               (L + K) * sizeof(uint64_t),
                                cudaMemcpyHostToDevice));
     params_tmp.qVec = d_qVec;
-    params_tmp.pVec = d_qVec + h_params->L;
+    params_tmp.pVec = d_qVec + L;
 
     NTTParams ntt_params_tmp;
     memcpy(&ntt_params_tmp, h_params->ntt_params, sizeof(NTTParams));
     ntt_params_tmp.q = d_qVec;
-    ntt_params_tmp.p = d_qVec + h_params->L;
+    ntt_params_tmp.p = d_qVec + L;
     uint64_t *d_root;
     uint64_t *d_root_inv;
     uint64_t *d_N_inv;
-    checkCudaErrors(cudaMalloc(&d_root, h_params->L * sizeof(uint64_t)));
-    checkCudaErrors(cudaMalloc(&d_root_inv, h_params->L * sizeof(uint64_t)));
-    checkCudaErrors(cudaMalloc(&d_N_inv, h_params->L * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc(&d_root, (L + K) * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc(&d_root_inv, (L + K) * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc(&d_N_inv, (L + K) * sizeof(uint64_t)));
     checkCudaErrors(cudaMemcpy(d_root, h_params->ntt_params->root,
-                               params_tmp.L * sizeof(uint64_t),
+                               (L + K) * sizeof(uint64_t),
                                cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_root_inv, h_params->ntt_params->root_inv,
-                               params_tmp.L * sizeof(uint64_t),
+                               (L + K) * sizeof(uint64_t),
                                cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(d_N_inv, h_params->ntt_params->N_inv,
-                               params_tmp.L * sizeof(uint64_t),
+                               (L + K) * sizeof(uint64_t),
                                cudaMemcpyHostToDevice));
-    uint64_t **d_roots_pow = new uint64_t *[h_params->L];
-    uint64_t **d_roots_pow_inv = new uint64_t *[h_params->L];
-    uint64_t **d_roots_pow_shoup = new uint64_t *[h_params->L];
-    uint64_t **d_roots_pow_inv_shoup = new uint64_t *[h_params->L];
-    for (int i = 0; i < h_params->L; i++) {
+    uint64_t **d_roots_pow = new uint64_t *[L + K];
+    uint64_t **d_roots_pow_inv = new uint64_t *[L + K];
+    uint64_t **d_roots_pow_shoup = new uint64_t *[L + K];
+    uint64_t **d_roots_pow_inv_shoup = new uint64_t *[L + K];
+    for (int i = 0; i < L + K; i++) {
         checkCudaErrors(
             cudaMalloc(&d_roots_pow[i], h_params->N * sizeof(uint64_t)));
         checkCudaErrors(
@@ -194,26 +195,26 @@ void FHEContext::CopyParamsToDevice() {
                                    h_params->N * sizeof(uint64_t),
                                    cudaMemcpyHostToDevice));
     }
-    checkCudaErrors(cudaMalloc(&ntt_params_tmp.roots_pow,
-                               h_params->L * sizeof(uint64_t *)));
+    checkCudaErrors(
+        cudaMalloc(&ntt_params_tmp.roots_pow, (L + K) * sizeof(uint64_t *)));
     checkCudaErrors(cudaMalloc(&ntt_params_tmp.roots_pow_inv,
-                               h_params->L * sizeof(uint64_t *)));
+                               (L + K) * sizeof(uint64_t *)));
     checkCudaErrors(cudaMalloc(&ntt_params_tmp.roots_pow_shoup,
-                               h_params->L * sizeof(uint64_t *)));
+                               (L + K) * sizeof(uint64_t *)));
     checkCudaErrors(cudaMalloc(&ntt_params_tmp.roots_pow_inv_shoup,
-                               h_params->L * sizeof(uint64_t *)));
+                               (L + K) * sizeof(uint64_t *)));
     checkCudaErrors(cudaMemcpy(ntt_params_tmp.roots_pow, d_roots_pow,
-                               h_params->L * sizeof(uint64_t *),
+                               (L + K) * sizeof(uint64_t *),
                                cudaMemcpyHostToDevice));
     checkCudaErrors(cudaMemcpy(ntt_params_tmp.roots_pow_inv, d_roots_pow_inv,
-                               h_params->L * sizeof(uint64_t *),
+                               (L + K) * sizeof(uint64_t *),
+                               cudaMemcpyHostToDevice));
+    checkCudaErrors(cudaMemcpy(ntt_params_tmp.roots_pow_shoup,
+                               d_roots_pow_shoup, (L + K) * sizeof(uint64_t *),
                                cudaMemcpyHostToDevice));
     checkCudaErrors(
-        cudaMemcpy(ntt_params_tmp.roots_pow_shoup, d_roots_pow_shoup,
-                   h_params->L * sizeof(uint64_t *), cudaMemcpyHostToDevice));
-    checkCudaErrors(
         cudaMemcpy(ntt_params_tmp.roots_pow_inv_shoup, d_roots_pow_inv_shoup,
-                   h_params->L * sizeof(uint64_t *), cudaMemcpyHostToDevice));
+                   (L + K) * sizeof(uint64_t *), cudaMemcpyHostToDevice));
 
     checkCudaErrors(cudaMalloc(&d_ntt_params, sizeof(NTTParams)));
     checkCudaErrors(cudaMemcpy(d_ntt_params, &ntt_params_tmp, sizeof(NTTParams),

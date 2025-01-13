@@ -17,7 +17,7 @@ bool SetBlockPhasePass::run_on_graph(
     std::vector<int> stack;
 
     stack.push_back(graph->get_init_node_id());
-    graph->get_init_node()->set_block_phase(core::BlockPhase::NTTPhase1);
+    graph->get_init_node()->set_block_phase(core::BlockPhase::NTTPhase2);
 
     while (!stack.empty()) {
         int node_idx = stack.back();
@@ -33,9 +33,13 @@ bool SetBlockPhasePass::run_on_graph(
         }
 
         hifive::core::BlockPhase next_block_phase = node->get_block_phase();
-        if (node->get_op_type() == core::OpType::NTTPhase1) {
+        if (node->get_op_type() == core::OpType::NTTPhase1 ||
+            node->get_op_type() == core::OpType::iNTTPhase1) {
+            node->set_block_phase(core::BlockPhase::NTTPhase1);
             next_block_phase = core::BlockPhase::NTTPhase1;
-        } else if (node->get_op_type() == core::OpType::NTTPhase2) {
+        } else if (node->get_op_type() == core::OpType::NTTPhase2 ||
+                   node->get_op_type() == core::OpType::iNTTPhase2) {
+            node->set_block_phase(core::BlockPhase::NTTPhase2);
             next_block_phase = core::BlockPhase::NTTPhase2;
         }
 
