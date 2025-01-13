@@ -1,0 +1,13 @@
+Collecting data...
+Generating '/tmp/nsys-report-4a53.qdstrm'
+[1/8] [0%                          ] report17.nsys-rep[1/8] [0%                          ] report17.nsys-rep[1/8] [=======36%                  ] report17.nsys-rep[1/8] [=================72%        ] report17.nsys-rep[1/8] [===================81%      ] report17.nsys-rep[1/8] [=====================89%    ] report17.nsys-rep[1/8] [======================92%   ] report17.nsys-rep[1/8] [========================100%] report17.nsys-rep[1/8] [========================100%] report17.nsys-rep
+[2/8] [0%                          ] report17.sqlite[2/8] [5%                          ] report17.sqlite[2/8] [11%                         ] report17.sqlite[2/8] [=17%                        ] report17.sqlite[2/8] [===23%                      ] report17.sqlite[2/8] [=====29%                    ] report17.sqlite[2/8] [======35%                   ] report17.sqlite[2/8] [========41%                 ] report17.sqlite[2/8] [==========47%               ] report17.sqlite[2/8] [===========52%              ] report17.sqlite[2/8] [=============58%            ] report17.sqlite[2/8] [==============64%           ] report17.sqlite[2/8] [================70%         ] report17.sqlite[2/8] [==================76%       ] report17.sqlite[2/8] [===================82%      ] report17.sqlite[2/8] [=====================88%    ] report17.sqlite[2/8] [=======================94%  ] report17.sqlite[2/8] [========================100%] report17.sqlite[2/8] [========================100%] report17.sqlite
+[3/8] Executing 'nvtx_sum' stats report
+[4/8] Executing 'osrt_sum' stats report
+[5/8] Executing 'cuda_api_sum' stats report
+[6/8] Executing 'cuda_gpu_kern_sum' stats report
+[7/8] Executing 'cuda_gpu_mem_time_sum' stats report
+[8/8] Executing 'cuda_gpu_mem_size_sum' stats report
+Generated:
+    /opt/mount/HiFive/report17.nsys-rep
+    /opt/mount/HiFive/report17.sqlite

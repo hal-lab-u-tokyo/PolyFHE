@@ -23,10 +23,6 @@ bool CanReuse(std::shared_ptr<hifive::core::Node> src,
     if (dst->get_block_phase() != src->get_block_phase()) {
         return false;
     }
-    LOG_INFO("BlockPhase of %s: %s\n", src->get_op_name().c_str(),
-             core::toString(src->get_block_phase()).c_str());
-    LOG_INFO("BlockPhase of %s: %s\n", dst->get_op_name().c_str(),
-             core::toString(dst->get_block_phase()).c_str());
     return true;
 }
 

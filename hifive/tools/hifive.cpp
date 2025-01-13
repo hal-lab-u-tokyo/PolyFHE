@@ -18,6 +18,7 @@
 
 struct Args {
     std::string input_file;
+    std::string config_file;
     hifive::core::GraphType type;
     bool if_not_optimize;
 };
@@ -28,7 +29,9 @@ Args define_and_parse_arguments(int argc, char** argv) {
     desc.add_options()("noopt,n", "Not optimize graph")(
         "poly,p", "Input *.dot if poly graph")("help,h", "Print help message")(
         "input,i", boost::program_options::value<std::string>(),
-        "Input dot file");
+        "Input dot file")("config,c",
+                          boost::program_options::value<std::string>(),
+                          "Config file");
 
     boost::program_options::variables_map vm;
     boost::program_options::store(
@@ -39,6 +42,12 @@ Args define_and_parse_arguments(int argc, char** argv) {
         std::cout << desc << std::endl;
         exit(1);
     }
+
+    if (!vm.count("config")) {
+        LOG_ERROR("Config file is required\n");
+        exit(1);
+    }
+    args.config_file = vm["config"].as<std::string>();
 
     if (!vm.count("input")) {
         LOG_ERROR("Input file is required\n");
@@ -65,7 +74,7 @@ int main(int argc, char** argv) {
     LOG_INFO("Input file: %s\n", input_file_tail.c_str());
 
     // Read Hifive config file
-    hifive::Config config("config.csv");
+    hifive::Config config(args.config_file);
 
     // Parse dot file
     std::shared_ptr<hifive::core::Graph> graph =
@@ -117,11 +126,13 @@ int main(int argc, char** argv) {
     // Run PassManager
     std::cout << "==================================================\n";
     std::cout << "    Input file: " << input_file_tail << std::endl;
+    std::cout << "    Config file: " << args.config_file << std::endl;
     std::cout << "    Graph type: "
               << (args.type == hifive::core::GraphType::FHE ? "FHE" : "Poly")
               << std::endl;
     std::cout << "    Optimize: " << (args.if_not_optimize ? "No" : "Yes")
               << std::endl;
+    std::cout << "    config.SharedMemKB: " << config.SharedMemKB << std::endl;
     pass_manager.display_passes();
     std::cout << "==================================================\n";
     pass_manager.run_on_graph(graph);
