@@ -1,8 +1,4 @@
-
-NOTICE: Existing SQLite export found: ./evalstall-exectime-noopt.sqlite
-        It is assumed file was previously exported from: ./evalstall-exectime-noopt.nsys-rep
-        Consider using --force-export=true if needed.
-
+Generating SQLite file ./evalstall-exectime-noopt.sqlite from ./evalstall-exectime-noopt.nsys-rep
 Processing [./evalstall-exectime-noopt.sqlite] with [/opt/nvidia/nsight-systems-cli/2024.7.1/target-linux-x64/reports/cuda_gpu_kern_sum.py]... 
 Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
 11.5,233313,6,38885.5,38848.0,38688,39265,219.6,"iNTTPhase1_30(Params *, int, int, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
