@@ -416,18 +416,27 @@ void CudaCodegen::generate_kernel_defs(
                     w.block_end();
                 } else if (op_type == core::OpType::NTTPhase2 ||
                            op_type == core::OpType::iNTTPhase2) {
-                    // Inedge must be Global
+                    if (op_type == core::OpType::NTTPhase2) {
+                        // Inedge must be Global
+                        assert(node->get_in_edges()[0]->get_level() ==
+                               hifive::core::EdgeLevel::Global);
+                    }
                     assert(node->get_in_edges().size() == 1);
-                    assert(node->get_in_edges()[0]->get_level() ==
-                           hifive::core::EdgeLevel::Global);
-                    std::vector<std::string> args_load;
-                    args_load.push_back(node->get_in_edges()[0]->get_name());
-                    args_load.push_back("shared");
-                    args_load.push_back("params->N");
-                    args_load.push_back("params->n1");
-                    args_load.push_back("params->n2");
-                    w << "load_g2s_phase2(" << GenerateArgs(args_load)
-                      << ");\n";
+
+                    for (auto inedge : node->get_in_edges()) {
+                        if (inedge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            // Load from global
+                            std::vector<std::string> args_load;
+                            args_load.push_back(inedge->get_name());
+                            args_load.push_back("shared");
+                            args_load.push_back("params->N");
+                            args_load.push_back("params->n1");
+                            args_load.push_back("params->n2");
+                            w << "load_g2s_phase2(" << GenerateArgs(args_load)
+                              << ");\n";
+                        }
+                    }
 
                     // Call NTTPhase2
                     std::vector<std::string> args;
