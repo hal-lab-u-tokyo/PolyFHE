@@ -10,6 +10,8 @@ METRICS="smsp__warp_issue_stalled_barrier_per_warp_active.pct,smsp__warp_issue_s
 ncu -f -o motivative-stallreason --profile-from-start off --csv --metrics "${METRICS}" "${BIN}"
 ncu --csv --import motivative-stallreason.ncu-rep > profile/data/phantom/phantom-L36-stallreason.csv
 
-#nsys start -c cudaProfilerApi
-#nsys launch -w true thirdparty/phantom-fhe/build-for-eval/ckks_hmult_logn16_L36
-#nsys stats --report cuda_gpu_kern_sum --format csv ./report22.nsys-rep > profile/data/phantom/phantom-L36-exectime.csv
+nsys profile -w true -o motivative-exectime --capture-range=cudaProfilerApi "${BIN}"
+nsys stats --report cuda_gpu_kern_sum --format csv ./motivative-exectime.nsys-rep > profile/data/phantom/phantom-L36-exectime.csv
+
+python3 ./profile/plot-motivative-ex-exectime.py
+python3 ./profile/plot-motivative-ex-stallreason.py
