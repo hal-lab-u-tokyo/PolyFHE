@@ -918,32 +918,43 @@ void CudaCodegen::generate_entry(std::shared_ptr<hifive::core::Graph>& graph,
             } else if (op_type == core::OpType::NTTPhase1) {
                 assert(node->get_in_edges().size() == 1);
                 assert(node->get_out_edges().size() == 1);
+                auto outedge = node->get_out_edges()[0];
+                auto inedge = node->get_in_edges()[0];
                 w << "NTTPhase1_h(params_h,";
-                w << node->get_out_edges()[0]->get_name() << "_h, ";
-                w << node->get_in_edges()[0]->get_name() << "_h, ";
-                w << node->get_in_edges()[0]->get_start_limb() << ", ";
-                w << node->get_in_edges()[0]->get_end_limb() << ");\n";
+                w << outedge->get_name() << "_h, ";
+                w << inedge->get_name() << "_h, ";
+                w << inedge->get_start_limb() << ", ";
+                w << inedge->get_end_limb() << ");\n";
             } else if (op_type == core::OpType::NTTPhase2) {
                 assert(node->get_in_edges().size() == 1);
+                auto inedge = node->get_in_edges()[0];
                 for (auto outedge : node->get_out_edges()) {
                     w << "NTTPhase2_h(params_h,";
                     w << outedge->get_name() << "_h, ";
-                    w << node->get_in_edges()[0]->get_name() << "_h, ";
-                    w << node->get_in_edges()[0]->get_start_limb() << ", ";
-                    w << node->get_in_edges()[0]->get_end_limb() << ");\n";
+                    w << inedge->get_name() << "_h, ";
+                    w << inedge->get_start_limb() << ", ";
+                    w << inedge->get_end_limb() << ");\n";
                 }
             } else if (op_type == core::OpType::iNTTPhase2) {
                 assert(node->get_out_edges().size() == 1);
-                auto phase1_node = node->get_out_edges()[0]->get_dst();
-                for (auto outedge : phase1_node->get_out_edges()) {
-                    w << "iNTT_h(params_h,";
-                    w << outedge->get_name() << "_h, ";
-                    w << node->get_in_edges()[0]->get_name() << "_h";
-                    w << node->get_in_edges()[0]->get_start_limb() << ", ";
-                    w << node->get_in_edges()[0]->get_end_limb() << ");\n";
-                }
+                assert(node->get_in_edges().size() == 1);
+                auto outedge = node->get_out_edges()[0];
+                auto inedge = node->get_in_edges()[0];
+                w << "NTTPhase2_h(params_h,";
+                w << outedge->get_name() << "_h, ";
+                w << inedge->get_name() << "_h, ";
+                w << inedge->get_start_limb() << ", ";
+                w << inedge->get_end_limb() << ");\n";
             } else if (op_type == core::OpType::iNTTPhase1) {
-                // Nothing to do
+                assert(node->get_in_edges().size() == 1);
+                auto inedge = node->get_in_edges()[0];
+                for (auto outedge : node->get_out_edges()) {
+                    w << "NTTPhase1_h(params_h,";
+                    w << outedge->get_name() << "_h, ";
+                    w << inedge->get_name() << "_h, ";
+                    w << inedge->get_start_limb() << ", ";
+                    w << inedge->get_end_limb() << ");\n";
+                }
             } else if (op_type == core::OpType::ModUp) {
                 assert(node->get_out_edges().size() == 1);
                 assert(node->get_in_edges().size() == 1);
