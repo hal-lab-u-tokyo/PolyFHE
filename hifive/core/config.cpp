@@ -1,5 +1,6 @@
 #include "hifive/core/config.hpp"
 
+#include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -38,6 +39,9 @@ Config::Config(std::string filename) {
         }
     }
     file.close();
+
+    alpha = std::ceil((L + 1) / dnum);
+    k = alpha;
 }
 
 } // namespace hifive

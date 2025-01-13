@@ -12,9 +12,12 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
     std::vector<std::shared_ptr<core::Node>> tops;
     std::vector<std::shared_ptr<core::Node>> bottoms;
 
-    // TODO: parameters
-    const std::string edge_label = "20";
-    const int d = 3;
+    std::shared_ptr<Config> config = graph_poly->get_m_config();
+    std::string edge_label =
+        std::to_string(config->L) + "_0_" + std::to_string(config->L);
+    std::string edge_label_after_modup = std::to_string(config->L + config->k) +
+                                         "_0_" +
+                                         std::to_string(config->L + config->k);
 
     if (node->get_op_type() == core::OpType::Init) {
         auto init = std::make_shared<hifive::core::Node>(core::OpType::Init);
@@ -39,33 +42,39 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
         std::vector<std::shared_ptr<hifive::core::Node>> list_accum_ax;
         std::vector<std::shared_ptr<hifive::core::Node>> list_accum_bx;
 
-        auto mult_axax =
+        auto init = graph_poly->get_init_node();
+        auto mult_d0 = std::make_shared<hifive::core::Node>(core::OpType::Mult);
+        auto mult_d1 = std::make_shared<hifive::core::Node>(core::OpType::Mult);
+        auto mult_d1_2 =
             std::make_shared<hifive::core::Node>(core::OpType::Mult);
-        auto mult_bxbx =
-            std::make_shared<hifive::core::Node>(core::OpType::Mult);
-        auto mult_axbx =
-            std::make_shared<hifive::core::Node>(core::OpType::Mult);
-        auto mult_bxax =
-            std::make_shared<hifive::core::Node>(core::OpType::Mult);
-        auto add_axbx = std::make_shared<hifive::core::Node>(core::OpType::Add);
-        auto intt_axax =
-            std::make_shared<hifive::core::Node>(core::OpType::iNTT);
-        auto mult_decomp =
-            std::make_shared<hifive::core::Node>(core::OpType::Mult);
-        graph_poly->add_node(mult_axax);
-        graph_poly->add_node(mult_bxbx);
-        graph_poly->add_node(mult_axbx);
-        graph_poly->add_node(mult_bxax);
-        graph_poly->add_node(add_axbx);
-        graph_poly->add_node(intt_axax);
-        graph_poly->add_node(mult_decomp);
-        graph_poly->add_edge(mult_axbx, add_axbx, edge_label);
-        graph_poly->add_edge(mult_bxax, add_axbx, edge_label);
-        graph_poly->add_edge(mult_axax, intt_axax, edge_label);
-        graph_poly->add_edge(intt_axax, mult_decomp, edge_label);
+        auto mult_d2 = std::make_shared<hifive::core::Node>(core::OpType::Mult);
+        auto add_d1 = std::make_shared<hifive::core::Node>(core::OpType::Add);
+        auto intt_d2 = std::make_shared<hifive::core::Node>(core::OpType::iNTT);
+        graph_poly->add_node(mult_d0);
+        graph_poly->add_node(mult_d1);
+        graph_poly->add_node(mult_d1_2);
+        graph_poly->add_node(mult_d2);
+        graph_poly->add_node(add_d1);
+        graph_poly->add_node(intt_d2);
+        graph_poly->add_edge(init, mult_d0, edge_label);
+        graph_poly->add_edge(init, mult_d0, edge_label);
+        graph_poly->add_edge(init, mult_d1, edge_label);
+        graph_poly->add_edge(init, mult_d1, edge_label);
+        graph_poly->add_edge(init, mult_d1_2, edge_label);
+        graph_poly->add_edge(init, mult_d1_2, edge_label);
+        graph_poly->add_edge(init, mult_d2, edge_label);
+        graph_poly->add_edge(init, mult_d2, edge_label);
+        graph_poly->add_edge(mult_d1, add_d1, edge_label);
+        graph_poly->add_edge(mult_d1_2, add_d1, edge_label);
+        graph_poly->add_edge(mult_d2, intt_d2, edge_label);
 
         std::shared_ptr<hifive::core::Node> accum = nullptr;
-        for (int i = 0; i < d; i++) {
+        for (int i = 0; i < graph_poly->m_config->dnum; i++) {
+            const int start_limb = i * config->alpha;
+            const int end_limb = std::min((i + 1) * config->alpha, config->L);
+            std::string edge_label_digit = std::to_string(config->L) + "_" +
+                                           std::to_string(start_limb) + "_" +
+                                           std::to_string(end_limb);
             auto modup =
                 std::make_shared<hifive::core::Node>(core::OpType::ModUp);
             auto ntt = std::make_shared<hifive::core::Node>(core::OpType::NTT);
@@ -77,10 +86,12 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
             graph_poly->add_node(ntt);
             graph_poly->add_node(multkey_ax);
             graph_poly->add_node(multkey_bx);
-            graph_poly->add_edge(mult_decomp, modup, edge_label);
+            graph_poly->add_edge(intt_d2, modup, edge_label);
             graph_poly->add_edge(modup, ntt, edge_label);
             graph_poly->add_edge(ntt, multkey_ax, edge_label);
             graph_poly->add_edge(ntt, multkey_bx, edge_label);
+            graph_poly->add_edge(init, multkey_ax, edge_label);
+            graph_poly->add_edge(init, multkey_bx, edge_label);
 
             if (i == 0) {
                 list_accum_ax.push_back(multkey_ax);
@@ -132,13 +143,13 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
         graph_poly->add_edge(moddown_bx, ntt_bx, edge_label);
         graph_poly->add_edge(ntt_ax, add_final_ax, edge_label);
         graph_poly->add_edge(ntt_bx, add_final_bx, edge_label);
-        graph_poly->add_edge(add_axbx, add_final_ax, edge_label);
-        graph_poly->add_edge(mult_bxbx, add_final_bx, edge_label);
+        graph_poly->add_edge(mult_d0, add_final_ax, edge_label);
+        graph_poly->add_edge(add_d1, add_final_bx, edge_label);
 
-        tops.push_back(mult_axax);
-        tops.push_back(mult_bxbx);
-        tops.push_back(mult_axbx);
-        tops.push_back(mult_bxax);
+        tops.push_back(mult_d0);
+        tops.push_back(mult_d1);
+        tops.push_back(mult_d1_2);
+        tops.push_back(mult_d2);
         bottoms.push_back(add_final_ax);
         bottoms.push_back(add_final_bx);
     }
@@ -196,7 +207,10 @@ bool LoweringCKKSToPolyPass::run_on_graph(
     }
 
     // Lowering edges
-    const std::string edge_label = "32768_20";
+    std::shared_ptr<Config> config = graph_poly->get_m_config();
+    const std::string edge_label =
+        std::to_string(config->L) + "_0_" + std::to_string(config->L);
+
     for (auto node : graph->get_nodes()) {
         for (auto edge : node->get_out_edges()) {
             auto src = edge->get_src();
@@ -213,9 +227,6 @@ bool LoweringCKKSToPolyPass::run_on_graph(
                     if (src_outputs.size() != 1) {
                         LOG_ERROR("Init node should have only one output\n");
                         return false;
-                    }
-                    for (auto d : dst_inputs) {
-                        graph_poly->add_edge(src_outputs[0], d, edge_label);
                     }
                 }
                 if (dst->get_op_type() == core::OpType::End) {

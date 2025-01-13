@@ -56,7 +56,7 @@ class Node : public std::enable_shared_from_this<Node> {
 public:
     Node(){};
     explicit Node(std::string op_name);
-    explicit Node(OpType op_type) : m_op_type(op_type) {}
+    explicit Node(OpType op_type);
     virtual ~Node() = default;
 
     // Edge
