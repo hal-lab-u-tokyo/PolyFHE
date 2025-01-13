@@ -1,13 +1,148 @@
+
++-----------------------------------------------------------------------------------------+
+|         CKKS Performance Test with Degrees: 4096, 8192, 16384, 32768, and 65536         |
++-----------------------------------------------------------------------------------------+
+/
+| Encryption parameters :
+|   scheme: CKKS
+|   poly_modulus_degree: 65536
+|   coeff_modulus size: 280 (60 + 40 + 40 + 40 + 40 + 60) bits
+
+1152921504598720513 ,  1099504549889 ,  1099506515969 ,  1099507695617 ,  1099510054913 ,  1152921504606584833 ,  
+
+\
+
+function,trials,median time (us),mean time (us),std. dev.
+gen_secretkey,5,142.112,3355.03
+gen_publickey,5,163.584,164.506
+gen_relinkey,5,289.856,314.394
+encode,5,328.128,353.664
+decode,5,227.104,243.456
+encrypt_asymmetric,5,259.904,290.4
+decrypt,5,11.744,11.8464
+multiply,5,148.896,178.47
 Collecting data...
-Generating '/tmp/nsys-report-4a53.qdstrm'
-[1/8] [0%                          ] report17.nsys-rep[1/8] [0%                          ] report17.nsys-rep[1/8] [=======36%                  ] report17.nsys-rep[1/8] [=================72%        ] report17.nsys-rep[1/8] [===================81%      ] report17.nsys-rep[1/8] [=====================89%    ] report17.nsys-rep[1/8] [======================92%   ] report17.nsys-rep[1/8] [========================100%] report17.nsys-rep[1/8] [========================100%] report17.nsys-rep
-[2/8] [0%                          ] report17.sqlite[2/8] [5%                          ] report17.sqlite[2/8] [11%                         ] report17.sqlite[2/8] [=17%                        ] report17.sqlite[2/8] [===23%                      ] report17.sqlite[2/8] [=====29%                    ] report17.sqlite[2/8] [======35%                   ] report17.sqlite[2/8] [========41%                 ] report17.sqlite[2/8] [==========47%               ] report17.sqlite[2/8] [===========52%              ] report17.sqlite[2/8] [=============58%            ] report17.sqlite[2/8] [==============64%           ] report17.sqlite[2/8] [================70%         ] report17.sqlite[2/8] [==================76%       ] report17.sqlite[2/8] [===================82%      ] report17.sqlite[2/8] [=====================88%    ] report17.sqlite[2/8] [=======================94%  ] report17.sqlite[2/8] [========================100%] report17.sqlite[2/8] [========================100%] report17.sqlite
+Generating '/tmp/nsys-report-8438.qdstrm'
+[1/8] [0%                          ] report18.nsys-rep[1/8] [0%                          ] report18.nsys-rep[1/8] [===================79%      ] report18.nsys-rep[1/8] [========================100%] report18.nsys-rep[1/8] [========================100%] report18.nsys-rep
+[2/8] [0%                          ] report18.sqlite[2/8] [1%                          ] report18.sqlite[2/8] [2%                          ] report18.sqlite[2/8] [3%                          ] report18.sqlite[2/8] [4%                          ] report18.sqlite[2/8] [5%                          ] report18.sqlite[2/8] [6%                          ] report18.sqlite[2/8] [7%                          ] report18.sqlite[2/8] [8%                          ] report18.sqlite[2/8] [9%                          ] report18.sqlite[2/8] [10%                         ] report18.sqlite[2/8] [11%                         ] report18.sqlite[2/8] [12%                         ] report18.sqlite[2/8] [13%                         ] report18.sqlite[2/8] [14%                         ] report18.sqlite[2/8] [=15%                        ] report18.sqlite[2/8] [=16%                        ] report18.sqlite[2/8] [=17%                        ] report18.sqlite[2/8] [==18%                       ] report18.sqlite[2/8] [==19%                       ] report18.sqlite[2/8] [==20%                       ] report18.sqlite[2/8] [==21%                       ] report18.sqlite[2/8] [===22%                      ] report18.sqlite[2/8] [===23%                      ] report18.sqlite[2/8] [===24%                      ] report18.sqlite[2/8] [====25%                     ] report18.sqlite[2/8] [====26%                     ] report18.sqlite[2/8] [====27%                     ] report18.sqlite[2/8] [====28%                     ] report18.sqlite[2/8] [=====29%                    ] report18.sqlite[2/8] [=====30%                    ] report18.sqlite[2/8] [=====31%                    ] report18.sqlite[2/8] [=====32%                    ] report18.sqlite[2/8] [======33%                   ] report18.sqlite[2/8] [======34%                   ] report18.sqlite[2/8] [======35%                   ] report18.sqlite[2/8] [=======36%                  ] report18.sqlite[2/8] [=======37%                  ] report18.sqlite[2/8] [=======38%                  ] report18.sqlite[2/8] [=======39%                  ] report18.sqlite[2/8] [========40%                 ] report18.sqlite[2/8] [========41%                 ] report18.sqlite[2/8] [========42%                 ] report18.sqlite[2/8] [=========43%                ] report18.sqlite[2/8] [=========44%                ] report18.sqlite[2/8] [=========45%                ] report18.sqlite[2/8] [=========46%                ] report18.sqlite[2/8] [==========47%               ] report18.sqlite[2/8] [==========48%               ] report18.sqlite[2/8] [==========49%               ] report18.sqlite[2/8] [===========50%              ] report18.sqlite[2/8] [===========51%              ] report18.sqlite[2/8] [===========52%              ] report18.sqlite[2/8] [===========53%              ] report18.sqlite[2/8] [============54%             ] report18.sqlite[2/8] [============55%             ] report18.sqlite[2/8] [============56%             ] report18.sqlite[2/8] [============57%             ] report18.sqlite[2/8] [=============58%            ] report18.sqlite[2/8] [=============59%            ] report18.sqlite[2/8] [=============60%            ] report18.sqlite[2/8] [==============61%           ] report18.sqlite[2/8] [==============62%           ] report18.sqlite[2/8] [==============63%           ] report18.sqlite[2/8] [==============64%           ] report18.sqlite[2/8] [===============65%          ] report18.sqlite[2/8] [===============66%          ] report18.sqlite[2/8] [===============67%          ] report18.sqlite[2/8] [================68%         ] report18.sqlite[2/8] [================69%         ] report18.sqlite[2/8] [================70%         ] report18.sqlite[2/8] [================71%         ] report18.sqlite[2/8] [=================72%        ] report18.sqlite[2/8] [=================73%        ] report18.sqlite[2/8] [=================74%        ] report18.sqlite[2/8] [==================75%       ] report18.sqlite[2/8] [==================76%       ] report18.sqlite[2/8] [==================77%       ] report18.sqlite[2/8] [==================78%       ] report18.sqlite[2/8] [===================79%      ] report18.sqlite[2/8] [===================80%      ] report18.sqlite[2/8] [===================81%      ] report18.sqlite[2/8] [===================82%      ] report18.sqlite[2/8] [====================83%     ] report18.sqlite[2/8] [====================84%     ] report18.sqlite[2/8] [====================85%     ] report18.sqlite[2/8] [=====================86%    ] report18.sqlite[2/8] [=====================87%    ] report18.sqlite[2/8] [=====================88%    ] report18.sqlite[2/8] [=====================89%    ] report18.sqlite[2/8] [======================90%   ] report18.sqlite[2/8] [======================91%   ] report18.sqlite[2/8] [======================92%   ] report18.sqlite[2/8] [=======================93%  ] report18.sqlite[2/8] [=======================94%  ] report18.sqlite[2/8] [=======================95%  ] report18.sqlite[2/8] [=======================96%  ] report18.sqlite[2/8] [========================97% ] report18.sqlite[2/8] [========================98% ] report18.sqlite[2/8] [========================99% ] report18.sqlite[2/8] [========================100%] report18.sqlite[2/8] [========================100%] report18.sqlite
 [3/8] Executing 'nvtx_sum' stats report
 [4/8] Executing 'osrt_sum' stats report
+
+ Time (%)  Total Time (ns)  Num Calls   Avg (ns)   Med (ns)   Min (ns)  Max (ns)  StdDev (ns)           Name         
+ --------  ---------------  ---------  ----------  ---------  --------  --------  -----------  ----------------------
+     48.3        220553280         10  22055328.0  1385453.5    175484  77756767   33748437.4  sem_wait              
+     38.5        175720144         12  14643345.3   817471.0      1391  75330246   24541854.9  poll                  
+      9.8         44723578        521     85841.8     6726.0      1003  13720783     717497.2  ioctl                 
+      2.6         11717452         85    137852.4     1852.0      1080  11504012    1247511.5  fopen                 
+      0.2          1066887         32     33340.2     7593.0      1322    629475     109490.1  mmap64                
+      0.1           631954         51     12391.3     3524.0      1100     88155      18138.4  fread                 
+      0.1           598489          6     99748.2    38368.5     31997    230286      98346.2  pthread_create        
+      0.1           560940          9     62326.7    15029.0      7658    277161      96546.0  sem_timedwait         
+      0.1           241420         10     24142.0     4414.5      1213    177849      54896.0  mmap                  
+      0.0           202401          1    202401.0   202401.0    202401    202401          0.0  pthread_cond_wait     
+      0.0           185820         49      3792.2     3182.0      1183      9292       2123.2  open64                
+      0.0            27115          9      3012.8     3408.0      1233      4512       1227.3  fflush                
+      0.0            17952          1     17952.0    17952.0     17952     17952          0.0  fgets                 
+      0.0            15176          7      2168.0     2041.0      1470      2979        492.3  munmap                
+      0.0            14380          6      2396.7     2359.5      1612      3367        599.8  open                  
+      0.0            14216          5      2843.2     1857.0      1056      6548       2308.1  fclose                
+      0.0            13044          2      6522.0     6522.0      5476      7568       1479.3  socket                
+      0.0            12067          7      1723.9     1483.0      1221      2786        555.7  write                 
+      0.0            10094          6      1682.3     1655.0      1111      2105        379.0  read                  
+      0.0             6311          3      2103.7     2424.0      1344      2543        660.6  pipe2                 
+      0.0             5951          2      2975.5     2975.5      1621      4330       1915.6  pthread_cond_broadcast
+      0.0             5269          1      5269.0     5269.0      5269      5269          0.0  connect               
+      0.0             2165          1      2165.0     2165.0      2165      2165          0.0  fcntl                 
+      0.0             1473          1      1473.0     1473.0      1473      1473          0.0  putc                  
+      0.0             1325          1      1325.0     1325.0      1325      1325          0.0  fwrite                
+      0.0             1237          1      1237.0     1237.0      1237      1237          0.0  getentropy            
+      0.0             1126          1      1126.0     1126.0      1126      1126          0.0  bind                  
+
 [5/8] Executing 'cuda_api_sum' stats report
+
+ Time (%)  Total Time (ns)  Num Calls  Avg (ns)   Med (ns)   Min (ns)  Max (ns)  StdDev (ns)                 Name               
+ --------  ---------------  ---------  ---------  ---------  --------  --------  -----------  ----------------------------------
+     69.7         63499482        703    90326.4      460.0       297  62740924    2366287.8  cudaMallocAsync_ptsz_v11020       
+     19.4         17694987        547    32349.2     2004.0      1723  16002793     684111.8  cudaLaunchKernel_ptsz             
+      5.1          4632019        799     5797.3     1516.0        44    193441      20969.5  cudaMemcpyAsync_ptsz              
+      3.0          2730025          1  2730025.0  2730025.0   2730025   2730025          0.0  cudaProfilerStop                  
+      1.5          1391778         40    34794.4    28709.0      4215     96108      30543.6  cudaEventSynchronize              
+      0.4           352670          1   352670.0   352670.0    352670    352670          0.0  cudaDeviceGetDefaultMemPool_v11020
+      0.3           230169        393      585.7      530.0       339      3870        275.0  cudaFreeAsync_ptsz_v11020         
+      0.2           206329        322      640.8      598.0       339      6375        366.4  cudaFreeAsync_v11020              
+      0.1           121158         80     1514.5     1328.5      1034      5844        743.1  cudaEventRecord                   
+      0.1            56229         17     3307.6     2592.0      1927     10447       2104.0  cudaMemsetAsync_ptsz              
+      0.1            54082        409      132.2       95.0        46       488         84.2  cuGetProcAddress_v2               
+      0.0            17195          5     3439.0     2806.0      2701      5871       1370.0  cudaMemcpyAsync                   
+      0.0            15826          1    15826.0    15826.0     15826     15826          0.0  cudaStreamCreateWithFlags         
+      0.0            15521         12     1293.4      998.5       754      3706        826.8  cudaStreamSynchronize_ptsz        
+      0.0            13978         16      873.6      406.0       270      4475       1064.7  cudaEventCreate                   
+      0.0            12186          1    12186.0    12186.0     12186     12186          0.0  cudaStreamDestroy                 
+      0.0            10935         12      911.3      756.0       333      2926        727.4  cudaMallocAsync_v11020            
+      0.0             6389         16      399.3      287.5       222       854        221.7  cudaEventDestroy                  
+      0.0             5764          1     5764.0     5764.0      5764      5764          0.0  cudaMemPoolSetAttribute_v11020    
+      0.0             2445          1     2445.0     2445.0      2445      2445          0.0  cudaProfilerStart                 
+      0.0             1385          2      692.5      692.5       129      1256        796.9  cuModuleGetLoadingMode            
+      0.0             1187          1     1187.0     1187.0      1187      1187          0.0  cuInit                            
+
 [6/8] Executing 'cuda_gpu_kern_sum' stats report
+
+ Time (%)  Total Time (ns)  Instances  Avg (ns)  Med (ns)  Min (ns)  Max (ns)  StdDev (ns)                                                  Name                                                
+ --------  ---------------  ---------  --------  --------  --------  --------  -----------  ----------------------------------------------------------------------------------------------------
+     14.9           573376         34   16864.0   16960.0     16192     17280        288.6  sample_error_poly(unsigned long *, const unsigned char *, const DModulus *, unsigned long, unsigned…
+     12.0           463776         78    5945.8    6112.0      5440      6816        325.6  inplace_fnwt_radix8_phase1(unsigned long *, const unsigned long *, const unsigned long *, const DMo…
+     11.5           444512         68    6536.9    6592.0      5856     10944        659.7  inplace_fnwt_radix8_phase2(unsigned long *, const unsigned long *, const unsigned long *, const DMo…
+      6.8           260192          7   37170.3   37184.0     37088     37216         48.4  inplace_special_ifft_base_kernel(double2 *, const double2 *, const unsigned int *, unsigned int, un…
+      6.7           258816          5   51763.2   51808.0     51392     52320        379.7  compose_array_kernel(double2 *, unsigned long *, unsigned long *, const unsigned long *, unsigned i…
+      6.6           252896         20   12644.8   12576.0     12416     13184        201.4  sample_uniform_poly(unsigned long *, const unsigned char *, const DModulus *, unsigned long, unsign…
+      5.8           222816         13   17139.7   17088.0     16928     17760        220.4  sample_ternary_poly(unsigned long *, const unsigned char *, const DModulus *, unsigned long, unsign…
+      3.4           131168         24    5465.3    5408.0      5376      6656        255.3  inplace_inwt_radix8_phase1_include_special_mod(unsigned long *, const unsigned long *, const unsign…
+      3.4           129440          5   25888.0   25888.0     25856     25920         32.0  inplace_special_ffft_base_kernel(double2 *, const double2 *, const unsigned int *, unsigned int, un…
+      3.1           120544         24    5022.7    5024.0      4960      5120         44.7  inplace_inwt_radix8_phase2_include_special_mod(unsigned long *, const unsigned long *, const unsign…
+      2.4            92320         28    3297.1    3040.0      3008      4064        445.8  inplace_special_ifft_iter_kernel(double2 *, const double2 *, const unsigned int *, unsigned int, un…
+      2.0            77920         20    3896.0    3904.0      3808      4032         63.9  multiply_and_add_negate_rns_poly(const unsigned long *, const unsigned long *, const unsigned long …
+      2.0            76160         24    3173.3    3168.0      3104      3456         74.7  bconv_matmul_unroll2_kernel(unsigned long *, const unsigned long *, const unsigned long *, const DM…
+      1.9            72032         10    7203.2    7216.0      7072      7328         76.1  inplace_fnwt_radix8_phase2_fuse_moddown(unsigned long *, const unsigned long *, const unsigned long…
+      1.8            67488         19    3552.0    3712.0      3008      3936        337.5  multiply_and_add_rns_poly(const unsigned long *, const unsigned long *, const unsigned long *, cons…
+      1.7            63680         20    3184.0    3168.0      3136      3296         42.2  inplace_special_ffft_iter_kernel(double2 *, const double2 *, const unsigned int *, unsigned int, un…
+      1.6            60704         10    6070.4    6032.0      5984      6336        112.9  inplace_fnwt_radix8_phase2_include_special_mod_exclude_range(unsigned long *, const unsigned long *…
+      1.4            55616         10    5561.6    5568.0      5504      5632         44.7  inplace_fnwt_radix8_phase1_include_special_mod_exclude_range(unsigned long *, const unsigned long *…
+      1.2            47680          5    9536.0    7168.0      7072     19040       5313.3  phantom::key_switch_inner_prod_c2_and_evk(unsigned long *, const unsigned long *, const unsigned lo…
+      1.0            39008         24    1625.3    1632.0      1600      1696         23.1  bconv_mult_unroll2_kernel(unsigned long *, const unsigned long *, const unsigned long *, const unsi…
+      1.0            37472         14    2676.6    2672.0      2592      2752         51.1  moddown_kernel(unsigned long *, const unsigned long *, const unsigned long *, const DModulus *, con…
+      0.9            33600          5    6720.0    5856.0      5760     10240       1968.3  inplace_inwt_radix8_phase1(unsigned long *, const unsigned long *, const unsigned long *, const DMo…
+      0.8            31904         10    3190.4    3200.0      2976      3296         86.7  bconv_matmul_padded_unroll2_kernel(unsigned long *, const unsigned long *, const unsigned long *, c…
+      0.8            29760          5    5952.0    5952.0      5920      5984         22.6  inplace_inwt_radix8_phase2_scale(unsigned long *, const unsigned long *, const unsigned long *, con…
+      0.8            29408          5    5881.6    5888.0      5824      5920         35.1  inwt_radix8_phase1(unsigned long *, const unsigned long *, const unsigned long *, const unsigned lo…
+      0.7            27680          5    5536.0    5568.0      5408      5632         93.3  inplace_inwt_radix8_phase2(unsigned long *, const unsigned long *, const unsigned long *, const uns…
+      0.7            26912          5    5382.4    5344.0      5280      5600        126.8  tensor_prod_2x2_rns_poly(const unsigned long *, const unsigned long *, const DModulus *, unsigned l…
+      0.7            25760         10    2576.0    2560.0      2560      2624         22.6  add_to_ct_kernel(unsigned long *, const unsigned long *, const DModulus *, unsigned long, unsigned …
+      0.6            21632         12    1802.7    1792.0      1792      1824         15.8  bit_reverse_kernel(double2 *, double2 *, unsigned long, unsigned int)                               
+      0.5            19776          7    2825.1    2816.0      2784      2912         47.9  decompose_array_uint64_kernel(unsigned long *, const double2 *, const DModulus *, unsigned int)     
+      0.5            19424          7    2774.9    2752.0      2752      2848         35.6  multiply_temp_mod_and_add_rns_poly(const unsigned long *, const unsigned long *const *, const DModu…
+      0.5            18272          7    2610.3    2592.0      2560      2656         36.3  add_rns_poly(const unsigned long *, const unsigned long *, const DModulus *, unsigned long *, unsig…
+      0.3            10880          5    2176.0    2176.0      2176      2176          0.0  modup_copy_partQl_kernel(unsigned long *, const unsigned long *, unsigned long, unsigned long, unsi…
+      0.1             3360          1    3360.0    3360.0      3360      3360          0.0  multiply_rns_poly(const unsigned long *, const unsigned long *, const DModulus *, unsigned long *, …
+      0.1             3136          1    3136.0    3136.0      3136      3136          0.0  phantom::util::apply_galois_ntt_permutation(unsigned long *, const unsigned long *, const unsigned …
+
 [7/8] Executing 'cuda_gpu_mem_time_sum' stats report
+
+ Time (%)  Total Time (ns)  Count  Avg (ns)  Med (ns)  Min (ns)  Max (ns)  StdDev (ns)            Operation           
+ --------  ---------------  -----  --------  --------  --------  --------  -----------  ------------------------------
+     76.6          1136096    736    1543.6     384.0       352     96800       5634.0  [CUDA memcpy Host-to-Device]  
+     17.0           252352     12   21029.3   20912.0     20640     21856        347.3  [CUDA memcpy Device-to-Host]  
+      4.9            72992     26    2807.4    3200.0      2080      3360        542.2  [CUDA memcpy Device-to-Device]
+      1.4            21056     17    1238.6    1056.0      1024      1728        309.0  [CUDA memset]                 
+
 [8/8] Executing 'cuda_gpu_mem_size_sum' stats report
+
+ Total (MB)  Count  Avg (MB)  Med (MB)  Min (MB)  Max (MB)  StdDev (MB)            Operation           
+ ----------  -----  --------  --------  --------  --------  -----------  ------------------------------
+     87.032     26     3.347     4.194     2.097     4.194        1.028  [CUDA memcpy Device-to-Device]
+     18.699    736     0.025     0.000     0.000     2.097        0.130  [CUDA memcpy Host-to-Device]  
+     16.777     17     0.987     0.524     0.524     2.097        0.739  [CUDA memset]                 
+      6.291     12     0.524     0.524     0.524     0.524        0.000  [CUDA memcpy Device-to-Host]  
+
 Generated:
-    /opt/mount/HiFive/report17.nsys-rep
-    /opt/mount/HiFive/report17.sqlite
+    /opt/mount/HiFive/report18.nsys-rep
+    /opt/mount/HiFive/report18.sqlite

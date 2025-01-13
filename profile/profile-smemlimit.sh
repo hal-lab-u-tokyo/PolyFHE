@@ -22,7 +22,7 @@ CONFIG=config/config-${i}0KB.csv
 echo "Running with config file: $CONFIG"
 ./${BIN} -i ${TARGET} -p -c ${CONFIG}
 nvcc -o ${BIN_RUNTIME} build/generated.cu ${SRC_RUNTIME} ${CXXFLAGS_RUNTIME}
-./${BIN_RUNTIME} > profile/data/smem_limit/${i}0KB.txt	
+./${BIN_RUNTIME} > profile/data/smem_limit/iwashi/${i}0KB.txt	
 done
 
 
