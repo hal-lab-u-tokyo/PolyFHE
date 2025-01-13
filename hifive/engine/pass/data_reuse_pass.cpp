@@ -12,10 +12,12 @@ namespace engine {
 
 bool CanReuse(std::shared_ptr<hifive::core::Node> src,
               std::shared_ptr<hifive::core::Node> dst) {
-    if (src->get_op_type() == core::OpType::Init) {
+    if (src->get_op_type() == core::OpType::Init ||
+        src->get_op_type() == core::OpType::End) {
         return false;
     }
-    if (dst->get_op_type() == core::OpType::Init) {
+    if (dst->get_op_type() == core::OpType::Init ||
+        dst->get_op_type() == core::OpType::End) {
         return false;
     }
     if (dst->get_block_phase() != src->get_block_phase()) {
@@ -91,7 +93,9 @@ void ReuseWithSuccessor(
     if (footprint_kb > graph->m_config->SharedMemKB) {
         LOG_INFO("Footprint %d KB exceeds the limit %d KB\n", footprint_kb,
                  graph->m_config->SharedMemKB);
-        WithdrawReuse(seed);
+        for (auto edge : seed->get_out_edges()) {
+            edge->set_level(hifive::core::EdgeLevel::Global);
+        }
         return;
     }
 
@@ -126,7 +130,9 @@ void ReuseWithPredecessor(
     if (footprint_kb > graph->m_config->SharedMemKB) {
         LOG_INFO("Footprint %d KB exceeds the limit %d KB\n", footprint_kb,
                  graph->m_config->SharedMemKB);
-        WithdrawReuse(seed);
+        for (auto edge : seed->get_in_edges()) {
+            edge->set_level(hifive::core::EdgeLevel::Global);
+        }
         return;
     }
 

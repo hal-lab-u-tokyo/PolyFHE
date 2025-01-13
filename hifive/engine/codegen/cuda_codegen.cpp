@@ -416,6 +416,7 @@ void CudaCodegen::generate_kernel_defs(
                     w.block_end();
                 } else if (op_type == core::OpType::NTTPhase2 ||
                            op_type == core::OpType::iNTTPhase2) {
+                    w.block_begin();
                     if (op_type == core::OpType::NTTPhase2) {
                         // Inedge must be Global
                         assert(node->get_in_edges()[0]->get_level() ==
@@ -463,6 +464,7 @@ void CudaCodegen::generate_kernel_defs(
                               << ");\n";
                         }
                     }
+                    w.block_end();
                 } else {
                     LOG_ERROR(
                         "Only ElementWiseOp, NTTPhase2 and iNTTPhase2 are "
