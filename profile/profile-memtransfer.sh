@@ -20,7 +20,7 @@ ncu --csv --import memtransfer-opt.ncu-rep > profile/data/memtransfer-opt.csv
 ncu -f -o memtransfer-noopt --csv --metrics "${METRICS}" ./build-noopt/bench
 ncu --csv --import memtransfer-noopt.ncu-rep > profile/data/memtransfer-noopt.csv
 
-ncu -f -o memtransfer-phantom --csv --metrics "${METRICS}" ./thirdparty/phantom-fhe/build-for-eval/ckks_hmult_logn15_k4
+ncu -f -o memtransfer-phantom --csv --metrics "${METRICS}" ./thirdparty/phantom-fhe/build-for-eval/ckks_hmult_logn16_L6
 ncu --csv --import memtransfer-phantom.ncu-rep > profile/data/memtransfer-phantom.csv
 
 python3 ./profile/plot-memtransfer.py

@@ -38,6 +38,8 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
                 hifive::core::MemoryAccessPattern::LimbWise);
             ntt_phase2->set_access_pattern(
                 hifive::core::MemoryAccessPattern::LimbWise);
+            ntt_phase1->set_block_phase(core::BlockPhase::NTTPhase1);
+            ntt_phase2->set_block_phase(core::BlockPhase::NTTPhase2);
             // Update graph
             graph->add_node(ntt_phase1);
             graph->add_node(ntt_phase2);
@@ -71,6 +73,8 @@ bool RewriteNTTPass::run_on_graph(std::shared_ptr<hifive::core::Graph>& graph) {
                 hifive::core::MemoryAccessPattern::LimbWise);
             intt_phase2->set_access_pattern(
                 hifive::core::MemoryAccessPattern::LimbWise);
+            intt_phase1->set_block_phase(core::BlockPhase::NTTPhase1);
+            intt_phase2->set_block_phase(core::BlockPhase::NTTPhase2);
             // Update graph
             graph->add_node(intt_phase1);
             graph->add_node(intt_phase2);

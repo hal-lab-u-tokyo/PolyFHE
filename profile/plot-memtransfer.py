@@ -57,7 +57,7 @@ print(datas[2])
 # Plot
 fig, ax = plt.subplots(figsize=(18, 10))
 metric = "dram__bytes_read.sum"
-candidates = ["ThisWork(Baseline)", "ThisWork", "Phantom"]
+candidates = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
 result = [datas[i][metric] for i in range(len(datas))]
 
 print(metric)

@@ -312,19 +312,26 @@ void CudaCodegen::generate_kernel_defs(
                     args.push_back("idx/params->n2");
                     args.push_back("threadIdx.x");
                     w << "NTTPhase1Op(" << GenerateArgs(args) << ");\n";
-                    // Outedge must be Global
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_out_edges()[0]->get_level() ==
-                           hifive::core::EdgeLevel::Global);
-                    // Store to global
-                    std::vector<std::string> args_store;
-                    args_store.push_back(node->get_out_edges()[0]->get_name());
-                    args_store.push_back("shared");
-                    args_store.push_back("params->N");
-                    args_store.push_back("params->n1");
-                    args_store.push_back("params->n2");
-                    w << "store_s2g_phase1(" << GenerateArgs(args_store)
-                      << ");\n";
+                    if (op_type == core::OpType::NTTPhase1) {
+                        // Outedge must be Global
+                        assert(node->get_out_edges().size() == 1);
+                        assert(node->get_out_edges()[0]->get_level() ==
+                               hifive::core::EdgeLevel::Global);
+                    }
+                    for (auto outedge : node->get_out_edges()) {
+                        if (outedge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            // Store to global
+                            std::vector<std::string> args_store;
+                            args_store.push_back(outedge->get_name());
+                            args_store.push_back("shared");
+                            args_store.push_back("params->N");
+                            args_store.push_back("params->n1");
+                            args_store.push_back("params->n2");
+                            w << "store_s2g_phase1(" << GenerateArgs(args_store)
+                              << ");\n";
+                        }
+                    }
                 } else {
                     LOG_ERROR(
                         "Only ElementWiseOp, NTTPhase1 and iNTTPhase1 are "

@@ -12,7 +12,7 @@ ncu --csv --import stallreason-noopt.ncu-rep > profile/data/stallreason-noopt.cs
 ncu -f -o stallreason-opt --csv --metrics "${METRICS}" ./build-opt/bench
 ncu --csv --import stallreason-opt.ncu-rep > profile/data/stallreason-opt.csv
 
-ncu -f -o stallreason-phantom --csv --metrics "${METRICS}" ./thirdparty/phantom-fhe/build-for-eval/ckks_hmult_logn15_k4
+ncu -f -o stallreason-phantom --csv --metrics "${METRICS}" ./thirdparty/phantom-fhe/build-for-eval/ckks_hmult_logn16_L6
 ncu --csv --import stallreason-phantom.ncu-rep > profile/data/stallreason-phantom.csv
 
 python3 ./profile/plot-stallreason.py
