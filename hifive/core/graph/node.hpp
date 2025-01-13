@@ -49,6 +49,7 @@ enum class OpType {
     HMult
 };
 std::string toStringOpType(OpType op_type);
+std::string toString(BlockPhase block_phase);
 MemoryAccessPattern OpType_access_pattern(OpType op_type);
 
 class Node : public std::enable_shared_from_this<Node> {
