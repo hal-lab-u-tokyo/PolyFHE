@@ -86,12 +86,12 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
             graph_poly->add_node(ntt);
             graph_poly->add_node(multkey_ax);
             graph_poly->add_node(multkey_bx);
-            graph_poly->add_edge(intt_d2, modup, edge_label);
-            graph_poly->add_edge(modup, ntt, edge_label);
-            graph_poly->add_edge(ntt, multkey_ax, edge_label);
-            graph_poly->add_edge(ntt, multkey_bx, edge_label);
-            graph_poly->add_edge(init, multkey_ax, edge_label);
-            graph_poly->add_edge(init, multkey_bx, edge_label);
+            graph_poly->add_edge(intt_d2, modup, edge_label_digit);
+            graph_poly->add_edge(modup, ntt, edge_label_after_modup);
+            graph_poly->add_edge(ntt, multkey_ax, edge_label_after_modup);
+            graph_poly->add_edge(ntt, multkey_bx, edge_label_after_modup);
+            graph_poly->add_edge(init, multkey_ax, edge_label_after_modup);
+            graph_poly->add_edge(init, multkey_bx, edge_label_after_modup);
 
             if (i == 0) {
                 list_accum_ax.push_back(multkey_ax);
@@ -106,11 +106,13 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
                 graph_poly->add_node(accum_ax);
                 graph_poly->add_node(accum_bx);
                 graph_poly->add_edge(list_accum_ax[i - 1], accum_ax,
-                                     edge_label);
+                                     edge_label_after_modup);
                 graph_poly->add_edge(list_accum_bx[i - 1], accum_bx,
-                                     edge_label);
-                graph_poly->add_edge(multkey_ax, accum_ax, edge_label);
-                graph_poly->add_edge(multkey_bx, accum_bx, edge_label);
+                                     edge_label_after_modup);
+                graph_poly->add_edge(multkey_ax, accum_ax,
+                                     edge_label_after_modup);
+                graph_poly->add_edge(multkey_bx, accum_bx,
+                                     edge_label_after_modup);
             }
         }
         auto intt_ax = std::make_shared<hifive::core::Node>(core::OpType::iNTT);
@@ -134,11 +136,11 @@ lower_fhe_node_to_poly(std::shared_ptr<hifive::core::Graph>& graph_poly,
         graph_poly->add_node(add_final_ax);
         graph_poly->add_node(add_final_bx);
         graph_poly->add_edge(list_accum_ax[list_accum_ax.size() - 1], intt_ax,
-                             edge_label);
+                             edge_label_after_modup);
         graph_poly->add_edge(list_accum_bx[list_accum_bx.size() - 1], intt_bx,
-                             edge_label);
-        graph_poly->add_edge(intt_ax, moddown_ax, edge_label);
-        graph_poly->add_edge(intt_bx, moddown_bx, edge_label);
+                             edge_label_after_modup);
+        graph_poly->add_edge(intt_ax, moddown_ax, edge_label_after_modup);
+        graph_poly->add_edge(intt_bx, moddown_bx, edge_label_after_modup);
         graph_poly->add_edge(moddown_ax, ntt_ax, edge_label);
         graph_poly->add_edge(moddown_bx, ntt_bx, edge_label);
         graph_poly->add_edge(ntt_ax, add_final_ax, edge_label);
