@@ -8,6 +8,26 @@
 namespace hifive {
 namespace core {
 
+std::string to_string(SubgraphType subgraph_type) {
+    switch (subgraph_type) {
+    case SubgraphType::Elem:
+        return "Elem";
+    case SubgraphType::ElemLimb1:
+        return "ElemLimb1";
+    case SubgraphType::ElemLimb2:
+        return "ElemLimb2";
+    case SubgraphType::ElemSlot:
+        return "ElemSlot";
+    case SubgraphType::ElemLimb1Slot:
+        return "ElemLimb1Slot";
+    case SubgraphType::ElemLimb2Slot:
+        return "ElemLimb2Slot";
+    default:
+        LOG_ERROR("Invalid SubgraphType\n");
+        exit(1);
+    }
+}
+
 std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type) {
     switch (subgraph_type) {
     case SubgraphType::Elem:

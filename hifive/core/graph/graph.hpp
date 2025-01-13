@@ -29,6 +29,7 @@ enum class SubgraphType {
 };
 
 std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type);
+std::string to_string(SubgraphType subgraph_type);
 
 class SubGraph {
 public:

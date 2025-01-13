@@ -733,14 +733,15 @@ void CudaCodegen::generate_call_kernels(
         } else if (s_type == core::SubgraphType::ElemSlot) {
             w << subgraph->get_name() << "<<< params_h->N / 128, 128, "
               << subgraph->get_smem_size() << ">>>";
-        } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
-        } else if (s_type == core::SubgraphType::ElemLimb2Slot) {
+        } else if (s_type == core::SubgraphType::ElemLimb1Slot ||
+                   s_type == core::SubgraphType::ElemLimb2Slot) {
             w << subgraph->get_name() << "<<<params_h->n1, ";
             w << std::to_string(subgraph->get_max_limb());
             w << " * params_h->n2/8, ";
             w << subgraph->get_smem_size() << ">>>";
         } else {
-            LOG_ERROR("Not implemented\n");
+            LOG_ERROR("Not implemented subgraph %s\n",
+                      core::to_string(s_type).c_str());
         }
         w << "(params_d";
         if (subgraph->get_block_phase() !=
