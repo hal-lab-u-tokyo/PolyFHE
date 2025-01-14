@@ -18,7 +18,7 @@ thiswork_colors = ["lightcoral", "red"]
 # CSV format
 # logN,L,dnum,alpha,latency
 def read_phantom():
-    filenames = [f"profile/data/phantom/logN{logn}_L_dnum3.csv" for logn in [15, 16]]
+    filenames = [f"profile/data/phantom/logN{logn}_L_dnum6.csv" for logn in [15, 16]]
     for idx in range(len(filenames)):
         fname = filenames[idx]
         data = phantom_datas[idx]
@@ -44,7 +44,7 @@ def read_phantom():
                 data[limb_idx] = latency
 
 def read_thiswork():
-    files = [f"profile/data/exectime/exectime-logN{logn}_L{limb}_dnum3_SMemKB80.txt" for logn in [15, 16] for limb in limbs]
+    files = [f"profile/data/exectime/exectime-logN{logn}_L{limb}_dnum6_SMemKB80.txt" for logn in [15, 16] for limb in limbs]
 
     logns = [15, 16]
     for idx_logn in range(len(logns)):
@@ -67,6 +67,34 @@ def read_thiswork():
                         data[idx_limb] = float(line.split(":")[1].strip())
                         break
 
+def print_diff():
+    # max diff
+    max_improve = 0
+    max_improve_logn = 0
+    max_improve_limb = 0
+    max_overhead = 1
+    max_overhead_logn = 0
+    max_overhead_limb = 0
+    average_improve = 0
+    for idx in range(len(phantom_datas)):
+        for l_idx in range(len(limbs)):
+            phantom_v = phantom_datas[idx][l_idx]
+            thiswork_v = thiswork_datas[idx][l_idx]
+            diff = phantom_v / thiswork_v
+            if diff > max_improve:
+                max_improve = diff
+                max_improve_logn = [15, 16][idx]
+                max_improve_limb = limbs[l_idx]
+            elif diff < max_overhead:
+                max_overhead = diff
+                max_overhead_logn = [15, 16][idx]
+                max_overhead_limb = limbs[l_idx]
+            average_improve += diff
+            print(f"performance: {diff:.2f}")
+    print(f"Max performance: {max_improve} at {max_improve_logn} with {max_improve_limb} limbs")
+    print(f"Min performance: {max_overhead} at {max_overhead_logn} with {max_overhead_limb} limbs")
+    print(f"Average: {average_improve / (len(phantom_datas) * len(limbs))}")
+
 
 read_phantom()
 read_thiswork()
@@ -75,12 +103,14 @@ print(phantom_datas)
 print("thiswork_datas")
 print(thiswork_datas)
 
+print_diff()
+
 def gen_marker(idx):
     if idx == 0:
         return "o"
     elif idx == 1:
         return "v"
-
+    
 # Plot
 fig, ax = plt.subplots(figsize=(18, 10))
 for idx in range(len(phantom_datas)):
@@ -93,7 +123,7 @@ ax.set_xlabel("Limbs", fontsize=24)
 ax.set_ylabel("Latency [us]", fontsize=24)
 ax.tick_params(axis='both', labelsize=20)
 ax.legend(fontsize=20)
-plt.savefig(f"{directory_path}/profile/figure/exectime-L.png", dpi=500)
+plt.savefig(f"{directory_path}/profile/figure/exectime-L.png", dpi=500,bbox_inches='tight', pad_inches=0)
 print(f"Figure saved at {directory_path}/profile/figure/exectime-L.png")
 
 

@@ -284,7 +284,7 @@ void CudaCodegen::generate_kernel_defs(
                     } else {
                         w << "n_gidx = n_idx + threadIdx.x * params->n1;\n";
                     }
-                    w << "for (int i = 0; i < 8; i++)";
+                    w << "for (int i = 0; i < 1; i++)";
                     w.block_begin();
                     w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
                     w << "n_gidx += params->n1 * blockDim.x;\n";
@@ -368,7 +368,7 @@ void CudaCodegen::generate_kernel_defs(
                         w << "n_idx = (idx % params->n1) * params->n2 + "
                              "threadIdx.x;\n";
                     }
-                    w << "for (int i = 0; i < 8; i++)";
+                    w << "for (int i = 0; i < 1; i++)";
                     w.block_begin();
                     // src
                     for (int i = 0; i < 2; i++) {

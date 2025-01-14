@@ -128,15 +128,15 @@ print(datas)
 
 def filter_labels(data, labels):
     total = sum(data)
-    return [label if (value / total) * 100 >= 20 else '' for label, value in zip(labels, data)]
+    return [label if (value / total) * 100 >= 5 else '' for label, value in zip(labels, data)]
 
 def filter_autopct(pct):
     return f'{pct:.1f}%' if pct >= 5 else ''
 
 # Plot pie chart
 fig,ax = plt.subplots(figsize=(18, 10))
-ax.pie(datas, startangle=90, colors=cm.tab20.colors, autopct=filter_autopct, textprops={'fontsize': 16})
-#ax.pie(datas, startangle=90, colors=cm.tab20.colors, labels=filter_labels(datas, metrics), autopct=filter_autopct, textprops={'fontsize': 16})
+#ax.pie(datas, startangle=90, colors=cm.tab20.colors, autopct=filter_autopct, textprops={'fontsize': 16})
+ax.pie(datas, startangle=90, colors=cm.tab20.colors, labels=filter_labels(datas, metrics), autopct=filter_autopct, textprops={'fontsize': 24})
 ax.axis('equal')
 #plt.legend(metrics, fontsize=16, loc='best')
 plt.tight_layout()

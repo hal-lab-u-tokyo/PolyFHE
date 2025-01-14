@@ -14,13 +14,11 @@ root[0] : 3
 ### GPU
 ### CPU
 ### Check
-Check passed
-Check passed
 ### Benchmark
-Elapsed time: 353us
-Elapsed time: 328us
-Elapsed time: 326us
-Elapsed time: 326us
-Elapsed time: 326us
-Average time[us]: 326.5
+Elapsed time: 288us
+Elapsed time: 262us
+Elapsed time: 261us
+Elapsed time: 261us
+Elapsed time: 262us
+Average time[us]: 261.5
 Finished Benchmarking...
