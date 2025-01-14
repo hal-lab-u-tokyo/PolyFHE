@@ -21,7 +21,7 @@ inline void __checkCudaErrors(cudaError_t err, const char* filename, int line) {
             "CUDA API Error %04d: \"%s\" from file <%s>, "
             "line %i.\n",
             err, ((ename != NULL) ? ename : "Unknown"), filename, line);
-        exit(err);
+        // exit(err);
     }
 }
 

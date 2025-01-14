@@ -106,6 +106,10 @@ run-fhe: $(BIN)
 	rm -rf build-opt
 	mv build build-opt
 
+bin:
+	nvcc -o build/bench build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./build/bench
+
 bin-opt:
 	nvcc -o build-opt/bench build-opt/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./build-opt/bench

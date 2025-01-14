@@ -357,53 +357,12 @@ void CudaCodegen::generate_kernel_defs(
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
-                    std::vector<std::string> args;
-                    std::vector<std::string> args_if_gmem;
-                    if (op_type == core::OpType::Add) {
-                        args.push_back("ElemWiseOp::Add");
-                    } else if (op_type == core::OpType::Sub) {
-                        args.push_back("ElemWiseOp::Sub");
-                    } else if (op_type == core::OpType::Mult) {
-                        args.push_back("ElemWiseOp::Mult");
-                    }
-                    args.push_back("params");
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 2);
-                    for (auto edge : node->get_out_edges()) {
-                        if (edge->get_level() ==
-                            hifive::core::EdgeLevel::Global) {
-                            args.push_back(edge->get_name());
-                            args_if_gmem.push_back("1");
-                        } else {
-                            args.push_back(
-                                "shared + " +
-                                std::to_string(edge->get_offset_smem()));
-                            args_if_gmem.push_back("0");
-                        }
-                    }
-                    for (auto edge : node->get_in_edges()) {
-                        if (edge->get_level() ==
-                            hifive::core::EdgeLevel::Global) {
-                            args.push_back(edge->get_name());
-                            args_if_gmem.push_back("1");
-                        } else {
-                            args.push_back(
-                                "shared + " +
-                                std::to_string(edge->get_offset_smem()));
-                            args_if_gmem.push_back("0");
-                        }
-                    }
-                    args.insert(args.end(), args_if_gmem.begin(),
-                                args_if_gmem.end());
-                    args.push_back("params->n2");
-                    args.push_back("l_idx");
-                    args.push_back("n_idx");
-                    args.push_back("threadIdx.x + i * params->n2 / 8");
-
                     if (!defined_l_idx) {
                         w << "const int l_idx = idx / params->n1;\n";
                         w << "int n_idx = (idx % params->n1) * params->n2 + "
                              "threadIdx.x;\n";
+                        w << "const uint64_t q = "
+                             "params->ntt_params->q[l_idx];\n";
                         defined_l_idx = true;
                     } else {
                         w << "n_idx = (idx % params->n1) * params->n2 + "
@@ -411,7 +370,41 @@ void CudaCodegen::generate_kernel_defs(
                     }
                     w << "for (int i = 0; i < 8; i++)";
                     w.block_begin();
-                    w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
+                    // src
+                    for (int i = 0; i < 2; i++) {
+                        auto inedge = node->get_in_edges()[i];
+                        if (inedge->get_level() ==
+                            hifive::core::EdgeLevel::Global) {
+                            w << "uint64_t src" << i << " = "
+                              << inedge->get_name()
+                              << "[l_idx * params->N + n_idx];\n";
+                        } else {
+                            w << "uint64_t src" << i << " = shared["
+                              << inedge->get_offset_smem()
+                              << " + threadIdx.x + i * params->n2 / 8];\n";
+                        }
+                    }
+                    // calc
+                    if (op_type == core::OpType::Add) {
+                        w << "uint64_t res = src0 + src1;\n";
+                        w << "if (res >= q) res -= q;\n";
+                    } else if (op_type == core::OpType::Sub) {
+                        w << "uint64_t res = src0 + q - src1;\n";
+                        w << "if (res >= q) res -= q;\n";
+                    } else if (op_type == core::OpType::Mult) {
+                        w << "uint64_t res = (src0 * src1) % q;\n";
+                    }
+
+                    // dst
+                    auto outedge = node->get_out_edges()[0];
+                    if (outedge->get_level() ==
+                        hifive::core::EdgeLevel::Global) {
+                        w << outedge->get_name()
+                          << "[l_idx * params->N + n_idx] = res;\n";
+                    } else {
+                        w << "shared[" << outedge->get_offset_smem()
+                          << " + threadIdx.x + i * params->n2 / 8] = res;\n";
+                    }
                     w << "n_idx += params->n2/8;\n";
                     w.block_end();
                 } else if (op_type == core::OpType::NTTPhase2 ||
@@ -541,6 +534,7 @@ void CudaCodegen::generate_kernel_defs(
                     w << "ElemWiseOp_ElemSlot(" << GenerateArgs(args) << ");\n";
                 } else if (op_type == core::OpType::ModUp) {
                     generate_modup(node, w, "blockDim.x", "idx", "threadIdx.x");
+                } else if (op_type == core::OpType::ModDown) {
                 } else {
                     LOG_ERROR(
                         "Only Add, Sub, Mult and ModUp/Down are supported for "
