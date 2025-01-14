@@ -12,9 +12,9 @@ paramset = os.sys.argv[1]
 directory_path = "/opt/mount/HiFive"
 
 
-label = ["ThisWork(Baseline)", "ThisWork", "Phantom"]
+label = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
 metrics = ["L1 Cache Hit Rate", "L2 Cache Hit Rate"]
-row_metrics = ["l1tex__t_sector_hit_rate.pct", "l1tex__t_sector_hit_rate.pct"]
+row_metrics = ["l1tex__t_sector_hit_rate.pct", "lts__t_sector_hit_rate.pct"]
 
 data_opt = {}
 data_noopt = {}
