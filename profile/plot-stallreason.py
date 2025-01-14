@@ -25,6 +25,12 @@ metrics = ["barrier",
         "tex_throttle",
         "wait"]
 
+# argument set1 or set2
+if len(os.sys.argv) != 2:
+    print("Usage: python plot-memtransfer.py <set1 or set2>")
+    exit(1)
+paramset = os.sys.argv[1]
+
 datas = [[] for i in range(len(filename))]
 weights = [{} for i in range(len(filename))]
 for i in range(len(filename)):
@@ -140,8 +146,10 @@ for i in range(len(datas)):
 
 #plt.legend(metrics, fontsize=16, loc='best')
 plt.tight_layout()
-plt.savefig(f"{directory_path}/profile/figure/stallreason.png", dpi=500)
-print(f"Figure saved as {directory_path}/profile/figure/stallreason.png")
+plt.savefig(f"{directory_path}/profile/figure/stallreason-{paramset}.eps", dpi=500, bbox_inches='tight', pad_inches=0)
+print(f"Figure saved as {directory_path}/profile/figure/stallreason-{paramset}.eps")
+plt.savefig(f"{directory_path}/profile/figure/stallreason-{paramset}.png", dpi=500, bbox_inches='tight', pad_inches=0)
+print(f"Figure saved as {directory_path}/profile/figure/stallreason-{paramset}.png")
 
 # Correspondence between metric name and color
 #selected_label = []
