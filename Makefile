@@ -74,7 +74,7 @@ test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
 	./build/test
 
 TARGET=data/graph_poly.dot
-CONFIG=config/config-logN16_L18_dnum6_SMemKB60.csv
+CONFIG=config/config-set1.csv
 
 run: $(BIN)
 	rm -f ./build/*.dot
@@ -105,6 +105,16 @@ run-fhe: $(BIN)
 	./$(BIN_RUNTIME)
 	rm -rf build-opt
 	mv build build-opt
+
+run-fhe-noopt: $(BIN)
+	rm -f ./build/*.dot
+	rm -f ./build/*.png
+	./$(BIN) -i data/graph_fhe.dot --noopt -c $(CONFIG)
+	make dot
+	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./$(BIN_RUNTIME)
+	rm -rf build-noopt
+	mv build build-noopt
 
 bin:
 	nvcc -o build/bench build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)

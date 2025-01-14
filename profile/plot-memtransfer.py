@@ -4,6 +4,13 @@ import matplotlib.cm as cm
 import csv
 import numpy as np
 
+# argument set1 or set2
+if len(os.sys.argv) != 2:
+    print("Usage: python plot-memtransfer.py <set1 or set2>")
+    exit(1)
+paramset = os.sys.argv[1]
+
+
 directory_path = "/opt/mount/HiFive"
 
 data_opt = {}
@@ -80,5 +87,5 @@ ax.bar(candidates, result, color='tab:blue')
 ax.set_ylabel("Data Transfer [MB]", fontsize=24)
 ax.tick_params(axis='y', labelsize=24)
 ax.tick_params(axis='x', labelsize=24)
-plt.savefig(f"{directory_path}/profile/figure/memtransfer.png", dpi=500)
-print(f"Figure saved at {directory_path}/profile/figure/memtransfer.png")
+plt.savefig(f"{directory_path}/profile/figure/memtransfer-{paramset}.eps", dpi=500,bbox_inches='tight', pad_inches=0)
+print(f"Figure saved at {directory_path}/profile/figure/memtransfer-{paramset}.eps")

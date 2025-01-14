@@ -44,8 +44,6 @@ def read_phantom():
                 data[limb_idx] = latency
 
 def read_thiswork():
-    files = [f"profile/data/exectime/exectime-logN{logn}_L{limb}_dnum6_SMemKB80.txt" for logn in [15, 16] for limb in limbs]
-
     logns = [15, 16]
     for idx_logn in range(len(logns)):
         logn = logns[idx_logn]
