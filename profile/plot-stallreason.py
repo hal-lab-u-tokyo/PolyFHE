@@ -5,8 +5,8 @@ import csv
 import numpy as np
 
 directory_path = "/opt/mount/HiFive"
-filename = [f"evalstall-stallreason-{w}.csv" for w in ["noopt", "opt", "phantom"]]
-title = ["ThisWork(Baseline)", "ThisWork", "Phantom"]
+filename = [f"evalstall-stallreason-{w}.csv" for w in ["opt", "noopt", "phantom"]]
+title = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
 metrics = ["barrier", 
         "dispatch_stall",
         "drain",
@@ -139,8 +139,8 @@ for i in range(len(datas)):
     data = datas[i]
     ax = axes[i]
     ax.set_title(f"{title[i]}", fontsize=24)
-    #ax.pie(data, startangle=90, colors=cm.tab20.colors, labels=filter_labels(data, metrics), autopct=filter_autopct, textprops={'fontsize': 16})
-    ax.pie(data, startangle=90, colors=cm.tab20.colors, autopct=filter_autopct, textprops={'fontsize': 16})
+    ax.pie(data, startangle=90, colors=cm.tab20.colors, labels=filter_labels(data, metrics), autopct=filter_autopct, textprops={'fontsize': 16})
+    #ax.pie(data, startangle=90, colors=cm.tab20.colors, autopct=filter_autopct, textprops={'fontsize': 16})
     ax.axis('equal')
 
 

@@ -6,7 +6,7 @@ import numpy as np
 
 # argument set1 or set2
 if len(os.sys.argv) != 2:
-    print("Usage: python plot-memtransfer.py <set1 or set2>")
+    print("Usage: python plot-smem-conflict.py <set1 or set2>")
     exit(1)
 paramset = os.sys.argv[1]
 
@@ -20,9 +20,9 @@ datas = [data_opt, data_noopt, data_phantom]
 
 
 # Read CSV
-fname_opt = "profile/data/memtransfer-opt.csv"
-fname_noopt = "profile/data/memtransfer-noopt.csv"
-fname_phantom = "profile/data/memtransfer-phantom.csv"
+fname_opt = f"profile/data/smem-conflict-opt-{paramset}.csv"
+fname_noopt = f"profile/data/smem-conflict-noopt-{paramset}.csv"
+fname_phantom = f"profile/data/smem-conflict-phantom-{paramset}.csv"
 files = [fname_opt, fname_noopt, fname_phantom]
 
 for idx in range(len(files)):
@@ -49,16 +49,6 @@ for idx in range(len(files)):
             metric_value = float(entry[metric_value_idx])
             metric_unit = entry[metric_unit_idx]
 
-            if metric_unit == "Mbyte":
-                metric_value *= 1
-            elif metric_unit == "Kbyte":
-                metric_value *= 0.001
-            elif metric_unit == "byte":
-                metric_value /= 1000000
-            else:
-                print(f"Unknown unit {metric_unit}")
-                exit(1)
-            
             if metric_name not in data:
                 data[metric_name] = metric_value
             else:
@@ -74,10 +64,13 @@ print(datas[2])
 
 # Plot
 fig, ax = plt.subplots(figsize=(18, 10))
-metric = "dram__bytes_read.sum"
+metric = "l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_st.sum"
 candidates = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
 num_iters = [6, 6, 5]
 result = [datas[i][metric] / num_iters[i] for i in range(len(datas))]
+
+# normalize to ThisWork
+result = [result[i] / result[0] for i in range(len(result))]
 
 print(metric)
 print(candidates)
@@ -87,8 +80,9 @@ print(f"(Phantom - ThisWork) / Phantom = {(result[2] - result[0]) / result[2] * 
 print(f"(Baseline - ThisWork) / Baseline = {(result[1] - result[0]) / result[1] * 100:.2f}%")
 
 ax.bar(candidates, result, color='tab:blue')
-ax.set_ylabel("Data Transfer [MB]", fontsize=24)
+ax.set_ylabel("Shared Memory Conflict Count (Normalized)", fontsize=24)
 ax.tick_params(axis='y', labelsize=24)
 ax.tick_params(axis='x', labelsize=24)
-plt.savefig(f"{directory_path}/profile/figure/memtransfer-{paramset}.eps", dpi=500,bbox_inches='tight', pad_inches=0)
-print(f"Figure saved at {directory_path}/profile/figure/memtransfer-{paramset}.eps")
+plt.savefig(f"{directory_path}/profile/figure/smem-conflict-{paramset}.eps", dpi=500,bbox_inches='tight', pad_inches=0)
+plt.savefig(f"{directory_path}/profile/figure/smem-conflict-{paramset}.png", dpi=500,bbox_inches='tight', pad_inches=0)
+print(f"Figure saved at {directory_path}/profile/figure/smem-conflict-{paramset}.eps")
