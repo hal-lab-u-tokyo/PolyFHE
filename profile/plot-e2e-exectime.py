@@ -7,7 +7,7 @@ benchmarks = ("Sobel Filter", "Linear Regression", "Multi-Layer Perceptron")
 
 works = {
     'This Work(GPU)': (189.95, 195.82, 217.19),
-    'Phantom(GPU)': (189.95, 195.82, 217.19),
+    'This Work(Baseline)': (189.95, 195.82, 217.19),
 }
 
 x = np.arange(len(benchmarks))

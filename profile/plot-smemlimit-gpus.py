@@ -9,11 +9,12 @@ directory_path = "/opt/mount/HiFive"
 # Read log *.txt file
 
 smem_limit = [i * 10 for i in range(1, 11)]
-gpus = ["brisket", "iwashi"]
-files = [["profile/data/smem_limit/" + str(gpus[i_gpus]) + "/" + str(i) + "0KB.txt" for i in range(1, 11)] for i_gpus in range(2)]
-datas = [[0 for i in range(1, 11)] for i in range(2)]
+gpus = ["brisket", "iwashi", "rump"]
+files = [["profile/data/smem_limit/" + str(gpus[i_gpus]) + "/" + str(i) + "0KB.txt" for i in range(1, 11)] for i_gpus in range(len(gpus))]
+datas = [[0 for i in range(1, 11)] for i in range(len(gpus))]
 
-for i_gpus in range(2):
+for i_gpus in range(len(gpus)):
+    print(f"GPU: {gpus[i_gpus]}")
     file_in_gpu = files[i_gpus]
     for idx in range(len(file_in_gpu)):
         fname = file_in_gpu[idx]
@@ -21,7 +22,7 @@ for i_gpus in range(2):
 
         if not os.path.exists(filepath):
             print(f"File {filepath} does not exist")
-            exit(1)
+            continue
 
         with open(filepath) as f:
             # Find "Average time[us]: 194.25" and extract the value
@@ -43,11 +44,11 @@ def gen_label(gpu):
 
 # Plot
 fig, ax = plt.subplots(figsize=(18, 10))
-for i_gpus in range(2):
-    ax.plot(smem_limit, datas[i_gpus], marker='o', label=f'Average time [us] {gpus[i_gpus]}')
+for i_gpus in range(len(gpus)):
+    ax.plot(smem_limit, datas[i_gpus], marker='o', label=f'{gen_label(gpus[i_gpus])}', linewidth=2)
 
 ax.set_xlabel('Limit Size of Shared Memory [KB]', fontsize=24)
-ax.set_ylabel('Average time[us]', fontsize=24)
+ax.set_ylabel('Execution time[us]', fontsize=24)
 # set font sizeof x and y axis
 ax.tick_params(axis='both', labelsize=20)
 ax.legend(fontsize=20)

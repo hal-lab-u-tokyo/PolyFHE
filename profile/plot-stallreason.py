@@ -4,8 +4,14 @@ import matplotlib.cm as cm
 import csv
 import numpy as np
 
+# argument set1 or set2
+if len(os.sys.argv) != 2:
+    print("Usage: python plot-memtransfer.py <set1 or set2>")
+    exit(1)
+paramset = os.sys.argv[1]
+
 directory_path = "/opt/mount/HiFive"
-filename = [f"evalstall-stallreason-{w}.csv" for w in ["opt", "noopt", "phantom"]]
+filename = [f"evalstall-stallreason-{w}-{paramset}.csv" for w in ["opt", "noopt", "phantom"]]
 title = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
 metrics = ["barrier", 
         "dispatch_stall",
@@ -25,12 +31,6 @@ metrics = ["barrier",
         "tex_throttle",
         "wait"]
 
-# argument set1 or set2
-if len(os.sys.argv) != 2:
-    print("Usage: python plot-memtransfer.py <set1 or set2>")
-    exit(1)
-paramset = os.sys.argv[1]
-
 datas = [[] for i in range(len(filename))]
 weights = [{} for i in range(len(filename))]
 for i in range(len(filename)):
@@ -43,7 +43,7 @@ def format_name(name):
 
 
 def read_exectime():
-    fnames = [f"evalstall-exectime-{i}.csv" for i in ["noopt", "opt", "phantom"]]
+    fnames = [f"evalstall-exectime-{i}-{paramset}.csv" for i in ["noopt", "opt", "phantom"]]
     
     for idx in range(len(fnames)):
         exectime = {}
@@ -124,7 +124,7 @@ def read_stallreason():
 
 def filter_labels(data, labels):
     total = sum(data)
-    return [label if (value / total) * 100 >= 20 else '' for label, value in zip(labels, data)]
+    return [label if (value / total) * 100 >= 10 else '' for label, value in zip(labels, data)]
 
 def filter_autopct(pct):
     return f'{pct:.1f}%' if pct >= 10 else ''

@@ -8,17 +8,3 @@ NTT -> Mult[label="18_0_18"];
 Init -> Mult[label="18_0_18"];
 Mult -> End[label="18_0_18"];
 }
-
-def HMult(dst, a, b):
-    d0 = Mult(a.ax, b.ax)
-    d2 = Mult(a.bx, b.bx)
-    axbx = Mult(a.ax, b.bx)
-    bxax = Mult(a.bx, b.ax)
-    d1 = axax + bxax
-    d1_intt = NTT(d1)
-    dst.ax = d0 + d1_intt
-    dst.bx = d2 + d1_intt
-
-digraph G {
-    
-}

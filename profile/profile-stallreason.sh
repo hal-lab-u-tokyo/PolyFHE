@@ -11,24 +11,24 @@ do
 SNAME="evalstall-stallreason-noopt"
 TNAME="evalstall-exectime-noopt"
 ncu -f -o "${SNAME}" --csv --metrics "${METRICS}" ./build-for-eval/ckks_set${i}_noopt_once
-ncu --csv --import "${SNAME}".ncu-rep > profile/data/"${SNAME}".csv
+ncu --csv --import "${SNAME}".ncu-rep > profile/data/"${SNAME}"-set${i}.csv
 nsys profile -f true -w true -o "${TNAME}" ./build-for-eval/ckks_set${i}_noopt
-nsys stats --report cuda_gpu_kern_sum --format csv --force-export=true ./"${TNAME}".nsys-rep > profile/data/"${TNAME}".csv
+nsys stats --report cuda_gpu_kern_sum --format csv --force-export=true ./"${TNAME}".nsys-rep > profile/data/"${TNAME}"-set${i}.csv
 
 SNAME="evalstall-stallreason-opt"
 TNAME="evalstall-exectime-opt"
 ncu -f -o "${SNAME}" --csv --metrics "${METRICS}" ./build-for-eval/ckks_set${i}_opt_once
-ncu --csv --import "${SNAME}".ncu-rep > profile/data/"${SNAME}".csv
+ncu --csv --import "${SNAME}".ncu-rep > profile/data/"${SNAME}"-set${i}.csv
 nsys profile -f true -w true -o "${TNAME}" ./build-for-eval/ckks_set${i}_opt
-nsys stats --report cuda_gpu_kern_sum --format csv --force-export=true ./"${TNAME}".nsys-rep > profile/data/"${TNAME}".csv
+nsys stats --report cuda_gpu_kern_sum --format csv --force-export=true ./"${TNAME}".nsys-rep > profile/data/"${TNAME}"-set${i}.csv
 
 SNAME="evalstall-stallreason-phantom"
 TNAME="evalstall-exectime-phantom"
 BIN="./thirdparty/phantom-fhe/build-for-eval/ckks_set${i}"
 ncu -f -o "${SNAME}" --profile-from-start off --csv --metrics "${METRICS}" "${BIN}"
-ncu --csv --import "${SNAME}".ncu-rep > profile/data/"${SNAME}".csv
+ncu --csv --import "${SNAME}".ncu-rep > profile/data/"${SNAME}"-set${i}.csv
 nsys profile -f true -w true -o "${TNAME}" "${BIN}"
-nsys stats --report cuda_gpu_kern_sum --format csv --force-export=true ./"${TNAME}".nsys-rep > profile/data/"${TNAME}".csv
+nsys stats --report cuda_gpu_kern_sum --format csv --force-export=true ./"${TNAME}".nsys-rep > profile/data/"${TNAME}"-set${i}.csv
 
 python3 ./profile/plot-stallreason.py set${i}
 done
