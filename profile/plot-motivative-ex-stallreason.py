@@ -23,13 +23,12 @@ metrics = ["barrier",
          "tex_throttle",
          "wait"]
 
-datas = [0 for i in range(len(metrics))]
+#datas = [0 for i in range(len(metrics))]
 weight = {}
 
 def format_name(name):
     # eliminate after "("
     name = name.split("(")[0]
-    """
     # if there is "phantom::", eliminate it
     name = name.split("phantom::")[-1]
     # if name contains "fnwt", name = ntt
@@ -45,7 +44,6 @@ def format_name(name):
         name = "Mult"
     elif "add" in name:
         name = "Add"
-    """
     return name
 
 def read_exectime():
@@ -81,7 +79,7 @@ def read_exectime():
     for key in exectime:
         weight[key] = exectime[key] / total
 
-def read_stallreason():
+def read_stallreason(kernel, result):
     filename = "profile/data/phantom/phantom-L36-stallreason.csv"
     filepath = os.path.join(directory_path, filename)
     if not os.path.exists(filepath):
@@ -102,6 +100,10 @@ def read_stallreason():
             # Kernel name
             kernel_name = entry[kernel_name_idx]
             kernel_name = format_name(kernel_name)
+
+            if kernel_name != kernel:
+                continue
+
             w = weight[kernel_name]
 
             # Metric name
@@ -119,12 +121,19 @@ def read_stallreason():
             metric_value = float(entry[metric_value_idx])
 
             # Sum up
-            datas[metric_idx] += metric_value * w
+            result[metric_idx] += metric_value
 
+
+data_mult = [0 for i in range(len(metrics))]
+data_ntt = [0 for i in range(len(metrics))]
 read_exectime()
-read_stallreason()
+read_stallreason("Mult", data_mult)
+read_stallreason("NTT", data_ntt)
+datas = [data_mult, data_ntt]
 print(weight)
 print(datas)
+print(data_mult)
+print(data_ntt)
 
 def filter_labels(data, labels):
     total = sum(data)
@@ -133,6 +142,18 @@ def filter_labels(data, labels):
 def filter_autopct(pct):
     return f'{pct:.1f}%' if pct >= 5 else ''
 
+for idx in range(len(datas)):
+    data = datas[idx]
+    name = "Mult" if idx == 0 else "NTT"
+    fig,ax = plt.subplots(figsize=(18, 10))
+    #ax.pie(datas, startangle=90, colors=cm.tab20.colors, autopct=filter_autopct, textprops={'fontsize': 16})
+    ax.pie(data, startangle=90, colors=cm.tab20.colors, labels=filter_labels(data, metrics), autopct=filter_autopct, textprops={'fontsize': 24})
+    ax.axis('equal')
+    plt.tight_layout()
+    plt.savefig(f"{directory_path}/profile/figure/motivative-ex-stallreason-{name}.eps", dpi=500, bbox_inches='tight', pad_inches=0)
+    plt.savefig(f"{directory_path}/profile/figure/motivative-ex-stallreason-{name}.png", dpi=500, bbox_inches='tight', pad_inches=0)
+    print(f"Figure saved as {directory_path}/profile/figure/motivative-ex-stallreason-{name}.eps")
+"""
 # Plot pie chart
 fig,ax = plt.subplots(figsize=(18, 10))
 #ax.pie(datas, startangle=90, colors=cm.tab20.colors, autopct=filter_autopct, textprops={'fontsize': 16})
@@ -140,5 +161,7 @@ ax.pie(datas, startangle=90, colors=cm.tab20.colors, labels=filter_labels(datas,
 ax.axis('equal')
 #plt.legend(metrics, fontsize=16, loc='best')
 plt.tight_layout()
-plt.savefig(f"{directory_path}/profile/figure/motivative-ex-stallreason.png", dpi=500)
-print(f"Figure saved as {directory_path}/profile/figure/motivative-ex-stallreason.png")
+plt.savefig(f"{directory_path}/profile/figure/motivative-ex-stallreason.eps", dpi=500, bbox_inches='tight', pad_inches=0)
+plt.savefig(f"{directory_path}/profile/figure/motivative-ex-stallreason.eps", dpi=500, bbox_inches='tight', pad_inches=0)
+print(f"Figure saved as {directory_path}/profile/figure/motivative-ex-stallreason.eps")
+"""

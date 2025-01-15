@@ -6,10 +6,8 @@ directory_path = "/opt/mount/HiFive"
 benchmarks = ("Sobel Filter", "Linear Regression", "Multi-Layer Perceptron")
 
 works = {
-    'SEAL(CPU)': (18.35, 18.43, 14.98),
-    '100x(CPU)': (38.79, 48.83, 47.50),
-    'Phantom(GPU)': (189.95, 195.82, 217.19),
     'This Work(GPU)': (189.95, 195.82, 217.19),
+    'Phantom(GPU)': (189.95, 195.82, 217.19),
 }
 
 x = np.arange(len(benchmarks))

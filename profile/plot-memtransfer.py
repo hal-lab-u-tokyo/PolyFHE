@@ -82,6 +82,8 @@ result = [datas[i][metric] / num_iters[i] for i in range(len(datas))]
 print(metric)
 print(candidates)
 print(result)
+print("(ThisWork - Phantom) / Phantom = ", (result[0] - result[2]) / result[2]) 
+print("(ThisWork - ThisWork(Baseline)) / ThisWork(Baseline) = ", (result[0] - result[1]) / result[1])
 
 ax.bar(candidates, result, color='tab:blue')
 ax.set_ylabel("Data Transfer [MB]", fontsize=24)

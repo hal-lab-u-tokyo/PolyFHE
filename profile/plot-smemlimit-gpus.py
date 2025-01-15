@@ -51,5 +51,6 @@ ax.set_ylabel('Average time[us]', fontsize=24)
 # set font sizeof x and y axis
 ax.tick_params(axis='both', labelsize=20)
 ax.legend(fontsize=20)
-plt.savefig(f"{directory_path}/profile/figure/smem_limit_gpus.png", dpi=500)
+plt.savefig(f"{directory_path}/profile/figure/smem_limit_gpus.png", dpi=500, bbox_inches='tight', pad_inches=0)
+plt.savefig(f"{directory_path}/profile/figure/smem_limit_gpus.eps", dpi=500, bbox_inches='tight', pad_inches=0)
 print(f"Figure saved at {directory_path}/profile/figure/smem_limit_gpus.png")

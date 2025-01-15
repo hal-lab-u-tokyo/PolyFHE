@@ -15,10 +15,10 @@ root[0] : 3
 ### CPU
 ### Check
 ### Benchmark
-Elapsed time: 217us
-Elapsed time: 195us
-Elapsed time: 191us
-Elapsed time: 191us
-Elapsed time: 193us
-Average time[us]: 192.5
+Elapsed time: 116us
+Elapsed time: 96us
+Elapsed time: 111us
+Elapsed time: 102us
+Elapsed time: 99us
+Average time[us]: 102
 Finished Benchmarking...

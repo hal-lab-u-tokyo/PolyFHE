@@ -81,7 +81,7 @@ def print_diff():
         for d_idx in range(len(dnums)):
             phantom_v = phantom_datas[idx][d_idx]
             thiswork_v = thiswork_datas[idx][d_idx]
-            diff = phantom_v / thiswork_v
+            diff = (phantom_v - thiswork_v) / phantom_v * 100
             print(f"performance: {diff:.2f}")
             if diff > max_improve:
                 max_improve = diff

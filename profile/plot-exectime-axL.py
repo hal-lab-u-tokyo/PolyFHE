@@ -78,21 +78,18 @@ def print_diff():
         for l_idx in range(len(limbs)):
             phantom_v = phantom_datas[idx][l_idx]
             thiswork_v = thiswork_datas[idx][l_idx]
-            diff = phantom_v / thiswork_v
+            diff = (phantom_v - thiswork_v) / phantom_v * 100
+            print(f"Phantom: {phantom_v}, Thiswork: {thiswork_v}, Diff: {diff}")
             if diff > max_improve:
                 max_improve = diff
                 max_improve_logn = [15, 16][idx]
                 max_improve_limb = limbs[l_idx]
-            elif diff < max_overhead:
+            if diff < max_overhead:
                 max_overhead = diff
                 max_overhead_logn = [15, 16][idx]
                 max_overhead_limb = limbs[l_idx]
-            average_improve += diff
-            print(f"performance: {diff:.2f}")
-    print(f"Max performance: {max_improve} at {max_improve_logn} with {max_improve_limb} limbs")
-    print(f"Min performance: {max_overhead} at {max_overhead_logn} with {max_overhead_limb} limbs")
-    print(f"Average: {average_improve / (len(phantom_datas) * len(limbs))}")
-
+    print(f"Max improve: {max_improve:.2f} (logN: {max_improve_logn}, limb: {max_improve_limb})")
+    print(f"Max overhead: {max_overhead:.2f} (logN: {max_overhead_logn}, limb: {max_overhead_limb})")
 
 read_phantom()
 read_thiswork()
