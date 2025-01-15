@@ -29,10 +29,10 @@ cp build/bench build-for-eval/ckks_set${i}_opt
 nvcc -o build/bench build/generated.cu ${SRC_RUNTIME} ${CXXFLAGS_RUNTIME}
 cp build/bench build-for-eval/ckks_set${i}_noopt
 ncu -f -o memtransfer-opt --csv --metrics "${METRICS}" ./build-for-eval/ckks_set${i}_opt
-ncu --csv --import memtransfer-opt.ncu-rep > profile/data/memtransfer-opt.csv
+ncu --csv --import memtransfer-opt.ncu-rep > profile/data/memtransfer-opt-set${i}.csv
 ncu -f -o memtransfer-noopt --csv --metrics "${METRICS}" ./build-for-eval/ckks_set${i}_noopt
-ncu --csv --import memtransfer-noopt.ncu-rep > profile/data/memtransfer-noopt.csv
+ncu --csv --import memtransfer-noopt.ncu-rep > profile/data/memtransfer-noopt-set${i}.csv
 ncu -f -o memtransfer-phantom --profile-from-start off --csv --metrics "${METRICS}" ./thirdparty/phantom-fhe/build-for-eval/ckks_set${i}
-ncu --csv --import memtransfer-phantom.ncu-rep > profile/data/memtransfer-phantom.csv
+ncu --csv --import memtransfer-phantom.ncu-rep > profile/data/memtransfer-phantom-set${i}.csv
 python3 ./profile/plot-memtransfer.py set${i}
 done

@@ -20,9 +20,9 @@ datas = [data_opt, data_noopt, data_phantom]
 
 
 # Read CSV
-fname_opt = "profile/data/memtransfer-opt.csv"
-fname_noopt = "profile/data/memtransfer-noopt.csv"
-fname_phantom = "profile/data/memtransfer-phantom.csv"
+fname_opt = f"profile/data/memtransfer-opt-{paramset}.csv"
+fname_noopt = f"profile/data/memtransfer-noopt-{paramset}.csv"
+fname_phantom = f"profile/data/memtransfer-phantom-{paramset}.csv"
 files = [fname_opt, fname_noopt, fname_phantom]
 
 for idx in range(len(files)):
@@ -87,8 +87,10 @@ print(f"(Phantom - ThisWork) / Phantom = {(result[2] - result[0]) / result[2] * 
 print(f"(Baseline - ThisWork) / Baseline = {(result[1] - result[0]) / result[1] * 100:.2f}%")
 
 ax.bar(candidates, result, color='tab:blue')
+ax.bar_label(ax.containers[0], fmt='%.2f', label_type='edge', fontsize=24)
 ax.set_ylabel("Data Transfer [MB]", fontsize=24)
 ax.tick_params(axis='y', labelsize=24)
 ax.tick_params(axis='x', labelsize=24)
 plt.savefig(f"{directory_path}/profile/figure/memtransfer-{paramset}.eps", dpi=500,bbox_inches='tight', pad_inches=0)
+plt.savefig(f"{directory_path}/profile/figure/memtransfer-{paramset}.png", dpi=500,bbox_inches='tight', pad_inches=0)
 print(f"Figure saved at {directory_path}/profile/figure/memtransfer-{paramset}.eps")

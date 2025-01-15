@@ -80,7 +80,7 @@ print(f"(Phantom - ThisWork) / Phantom = {(result[2] - result[0]) / result[2] * 
 print(f"(Baseline - ThisWork) / Baseline = {(result[1] - result[0]) / result[1] * 100:.2f}%")
 
 ax.bar(candidates, result, color='tab:blue')
-ax.bar_label(ax.containers[0], fmt='%.2f')
+ax.bar_label(ax.containers[0], fmt='%.2f', fontsize=24)
 ax.set_ylabel("Shared Memory Conflict Count (Normalized)", fontsize=24)
 ax.tick_params(axis='y', labelsize=24)
 ax.tick_params(axis='x', labelsize=24)
