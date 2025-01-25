@@ -16,14 +16,16 @@ directory_path = "/opt/mount/HiFive"
 data_opt = {}
 data_noopt = {}
 data_phantom = {}
-datas = [data_opt, data_noopt, data_phantom]
+#datas = [data_opt, data_noopt, data_phantom]
+datas = [data_opt, data_phantom]
 
 
 # Read CSV
 fname_opt = f"profile/data/smem-conflict-opt-{paramset}.csv"
-fname_noopt = f"profile/data/smem-conflict-noopt-{paramset}.csv"
+#fname_noopt = f"profile/data/smem-conflict-noopt-{paramset}.csv"
 fname_phantom = f"profile/data/smem-conflict-phantom-{paramset}.csv"
-files = [fname_opt, fname_noopt, fname_phantom]
+#files = [fname_opt, fname_noopt, fname_phantom]
+files = [fname_opt, fname_phantom]
 
 for idx in range(len(files)):
     fname = files[idx]
@@ -60,13 +62,15 @@ print(datas[0])
 print("Non-optimized")
 print(datas[1])
 print("Phantom")
-print(datas[2])
+#print(datas[2])
 
 # Plot
 fig, ax = plt.subplots(figsize=(18, 10))
 metric = "l1tex__data_bank_conflicts_pipe_lsu_mem_shared_op_st.sum"
-candidates = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
-num_iters = [6, 6, 5]
+#candidates = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
+candidates = ["ThisWork", "Phantom"]
+#num_iters = [6, 6, 5]
+num_iters = [6, 5]
 result = [datas[i][metric] / num_iters[i] for i in range(len(datas))]
 
 # normalize to ThisWork
@@ -76,8 +80,8 @@ print(metric)
 print(candidates)
 print(result)
 
-print(f"(Phantom - ThisWork) / Phantom = {(result[2] - result[0]) / result[2] * 100:.2f}%")
-print(f"(Baseline - ThisWork) / Baseline = {(result[1] - result[0]) / result[1] * 100:.2f}%")
+#print(f"(Phantom - ThisWork) / Phantom = {(result[2] - result[0]) / result[2] * 100:.2f}%")
+#print(f"(Baseline - ThisWork) / Baseline = {(result[1] - result[0]) / result[1] * 100:.2f}%")
 
 ax.bar(candidates, result, color='tab:blue')
 ax.bar_label(ax.containers[0], fmt='%.2f', fontsize=24)
