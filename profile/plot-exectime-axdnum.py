@@ -6,7 +6,7 @@ import numpy as np
 
 directory_path = "/opt/mount/HiFive"
 
-dnums = [2, 3, 6]
+dnums = [2, 3, 6, 18]
 phantom_datas = [[0 for _ in range(len(dnums))] for _ in [15, 16]]
 thiswork_datas = [[0 for _ in range(len(dnums))] for _ in [15, 16]] 
 phantom_labels = [f"Phantom-logN{logn}" for logn in [15, 16]]
@@ -68,6 +68,33 @@ def read_thiswork():
                         data[idx_dnum] = float(line.split(":")[1].strip())
                         break
 
+def print_diff():
+    # max diff
+    max_improve = 0
+    max_improve_logn = 0
+    max_improve_dnum = 0
+    max_overhead = 1
+    max_overhead_logn = 0
+    max_overhead_dnum = 0
+    average_improve = 0
+    for idx in range(len(phantom_datas)):
+        for d_idx in range(len(dnums)):
+            phantom_v = phantom_datas[idx][d_idx]
+            thiswork_v = thiswork_datas[idx][d_idx]
+            diff = (phantom_v - thiswork_v) / phantom_v * 100
+            print(f"performance: {diff:.2f}")
+            if diff > max_improve:
+                max_improve = diff
+                max_improve_logn = [15, 16][idx]
+                max_improve_dnum = dnums[d_idx]
+            elif diff < max_overhead:
+                max_overhead = diff
+                max_overhead_logn = [15, 16][idx]
+                max_overhead_dnum = dnums[d_idx]
+            average_improve += diff
+    print(f"Max performance: {max_improve} at {max_improve_logn} with dnum {max_improve_dnum}")
+    print(f"Min performance: {max_overhead} at {max_overhead_logn} with dnum {max_overhead_dnum}")
+    print(f"Average: {average_improve / (len(phantom_datas) * len(dnums))}")
 
 read_phantom()
 read_thiswork()
@@ -76,12 +103,14 @@ print(phantom_datas)
 print("thiswork_datas")
 print(thiswork_datas)
 
+print_diff()
+
 def gen_marker(idx):
     if idx == 0:
         return "o"
     elif idx == 1:
         return "v"
-
+    
 # Plot
 fig, ax = plt.subplots(figsize=(18, 10))
 for idx in range(len(phantom_datas)):
@@ -94,7 +123,7 @@ ax.set_xlabel("dnum", fontsize=24)
 ax.set_ylabel("Latency [us]", fontsize=24)
 ax.tick_params(axis='both', labelsize=20)
 ax.legend(fontsize=20)
-plt.savefig(f"{directory_path}/profile/figure/exectime-dnum.png", dpi=500)
+plt.savefig(f"{directory_path}/profile/figure/exectime-dnum.png", dpi=500, bbox_inches='tight', pad_inches=0)
 print(f"Figure saved at {directory_path}/profile/figure/exectime-dnum.png")
 
 

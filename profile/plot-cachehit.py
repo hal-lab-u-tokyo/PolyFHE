@@ -4,13 +4,17 @@ import matplotlib.cm as cm
 import csv
 import numpy as np
 
+if len(os.sys.argv) != 2:
+    print("Usage: python plot-memtransfer.py <set1 or set2>")
+    exit(1)
+paramset = os.sys.argv[1]
 
 directory_path = "/opt/mount/HiFive"
 
 
-label = ["ThisWork(Baseline)", "ThisWork", "Phantom"]
+label = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
 metrics = ["L1 Cache Hit Rate", "L2 Cache Hit Rate"]
-row_metrics = ["l1tex__t_sector_hit_rate.pct", "l1tex__t_sector_hit_rate.pct"]
+row_metrics = ["l1tex__t_sector_hit_rate.pct", "lts__t_sector_hit_rate.pct"]
 
 data_opt = {}
 data_noopt = {}
@@ -78,5 +82,6 @@ ax.set_ylabel('Cache Hit Rate (%)', fontsize=24)
 ax.set_ylim(0, 100)
 ax.legend(loc='upper left', fontsize=14)
 ax.set_xticks(x + width * 1.5, metrics, fontsize=18)
-plt.savefig(f"{directory_path}/profile/figure/cachehit.png", dpi=500)
-print(f"Figure saved at {directory_path}/profile/figure/cachehit.png")
+plt.savefig(f"{directory_path}/profile/figure/cachehit-{paramset}.png", dpi=500, bbox_inches='tight', pad_inches=0)
+plt.savefig(f"{directory_path}/profile/figure/cachehit-{paramset}.eps", dpi=500, bbox_inches='tight', pad_inches=0)
+print(f"Figure saved at {directory_path}/profile/figure/cachehit-{paramset}.png,eps")
