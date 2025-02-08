@@ -193,23 +193,18 @@ void CudaCodegen::generate_kernel_defs(
 
                 std::string op = "";
                 if (op_type == core::OpType::Add) {
-                    op = "+";
+                    op = " + ";
                 } else if (op_type == core::OpType::Sub) {
-                    op = "+ q -";
+                    op = " + q - ";
                 } else if (op_type == core::OpType::Mult) {
-                    op = "*";
+                    op = " * ";
                 }
 
                 // Output to only first outedge
-                // out
-                auto edge = node->get_out_edges()[0];
-                w << gen_edge_access(
-                    edge, "n_idx",
-                    std::to_string(edge->get_offset_smem()) + "threadIdx.x");
-                w << " = (";
+                w << "uint64_t res = ";
 
                 // in0
-                edge = node->get_in_edges()[0];
+                auto edge = node->get_in_edges()[0];
                 w << gen_edge_access(
                     edge, "n_idx",
                     std::to_string(edge->get_offset_smem()) + "threadIdx.x");
@@ -221,7 +216,21 @@ void CudaCodegen::generate_kernel_defs(
                 w << gen_edge_access(
                     edge, "n_idx",
                     std::to_string(edge->get_offset_smem()) + "threadIdx.x");
-                w << ") % q;\n";
+                w << ";\n";
+
+                // out
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub) {
+                    w << "if (res >= q) res -= q;\n";
+                } else if (op_type == core::OpType::Mult) {
+                    w << "res = (res % q);\n";
+                }
+
+                edge = node->get_out_edges()[0];
+                w << gen_edge_access(
+                    edge, "n_idx",
+                    std::to_string(edge->get_offset_smem()) + "threadIdx.x");
+                w << " = res;\n";
                 w.block_end();
             }
         } else if (s_type == core::SubgraphType::ElemLimb1) {
@@ -717,7 +726,7 @@ void CudaCodegen::generate_call_kernels(
             // If subgraph contains only ONE node, we don't need to malloc
             // shared memory
             if (subgraph->get_nodes().size() == 1) {
-                w << subgraph->get_name() << "<<<2048, 128>>>";
+                w << subgraph->get_name() << "<<<4096, 256>>>";
             } else {
                 w << subgraph->get_name() << "<<<2048, 128,"
                   << subgraph->get_smem_size() << ">>>";

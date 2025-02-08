@@ -1,8 +1,12 @@
 digraph G {
 Init[label="Init"];
 End[label="End"];
-Mult[label="Mult"];
-Init -> Mult[label="18_0_18"];
-Init -> Mult[label="18_0_18"];
-Mult -> End[label="18_0_18"];
+Add[label="Add"];
+//Add2[label="Add"];
+Init -> Add[label="41_0_41"];
+Init -> Add[label="41_0_41"];
+//Init -> Add2[label="41_0_41"];
+//Init -> Add2[label="41_0_41"];
+Add -> End[label="41_0_41"];
+//Add2 -> End[label="41_0_41"];
 }

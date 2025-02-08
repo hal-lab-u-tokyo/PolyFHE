@@ -56,7 +56,7 @@ CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph -lboost_program_options
 BIN=build/cc-hifive
 
-CXXFLAGS_RUNTIME=-g -std=c++17 -I./  --relocatable-device-code true 
+CXXFLAGS_RUNTIME=-g -std=c++17 -I./  --relocatable-device-code true --generate-code arch=compute_80,code=sm_80
 LDFLAGS_RUNTIME=
 BIN_RUNTIME=build/bench
 
@@ -74,7 +74,7 @@ test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
 	./build/test
 
 TARGET=data/graph_poly.dot
-CONFIG=config/config-set2.csv
+CONFIG=config.csv
 
 run: $(BIN)
 	rm -f ./build/*.dot
@@ -135,6 +135,11 @@ dot:
 format:
 	find ./hifive ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i
 	find ./hifive ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
+
+estimate:
+	nvcc -o build/estimate hifive/estimator/dram.cu $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./build/estimate > data/dram_latency.csv
+	python3 data/plot_dram_latency.py
 
 clean:
 	rm -rf build
