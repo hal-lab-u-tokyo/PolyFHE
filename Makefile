@@ -56,7 +56,7 @@ CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph -lboost_program_options
 BIN=build/cc-hifive
 
-CXXFLAGS_RUNTIME=-g -std=c++17 -I./  --relocatable-device-code true --generate-code arch=compute_80,code=sm_80
+CXXFLAGS_RUNTIME=-g -std=c++17 -I./  --relocatable-device-code true
 LDFLAGS_RUNTIME=
 BIN_RUNTIME=build/bench
 
@@ -140,6 +140,9 @@ estimate:
 	nvcc -o build/estimate hifive/estimator/dram.cu $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./build/estimate > data/dram_latency.csv
 	python3 data/plot_dram_latency.py
+
+estimate-ptx:
+	nvcc --ptx -o build/estimate.ptx hifive/estimator/dram.cu $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 
 clean:
 	rm -rf build

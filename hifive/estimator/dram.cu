@@ -12,9 +12,12 @@ __global__ void memory_Queue(uint32_t *A, uint64_t *t_start, uint64_t *t_end,
 
     const uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-    uint32_t ret = 0;
+    uint32_t *a_ptr = A + idx;
+    int val = 0;
     t[0] = clock();
-    ret = A[idx];
+    val = *a_ptr;
+    asm volatile("membar.gl;");
+    //__threadfence();
     t[1] = clock();
 
     // Time recording
@@ -24,11 +27,11 @@ __global__ void memory_Queue(uint32_t *A, uint64_t *t_start, uint64_t *t_end,
     warpid[idx] = p_warpid;
 
     // dummy
-    A[idx] = ret + 1;
+    A[idx] = val;
 }
 
 int main() {
-    const int grid_size = 1;
+    const int grid_size = 48;
     const int block_size = 1024;
     dim3 grid(grid_size, 1, 1);
     dim3 block(block_size, 1, 1);
