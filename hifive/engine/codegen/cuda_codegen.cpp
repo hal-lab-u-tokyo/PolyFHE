@@ -159,8 +159,38 @@ void CudaCodegen::generate_kernel_defs(
             if (subgraph->get_nodes().size() > 1) {
                 w << "extern __shared__ uint64_t shared[];\n";
             }
+            std::cout << "number of nodes: " << subgraph->get_nodes().size()
+                      << std::endl;
+            auto node = subgraph->get_nodes()[0];
+
+            // Check if limb range is the same for all nodes
+            int start_limb = node->get_in_edges()[0]->get_start_limb();
+            int end_limb = node->get_in_edges()[0]->get_end_limb();
             for (auto node : subgraph->get_nodes()) {
-                w << "// " << node->get_op_name() << "\n";
+                if (node->get_in_edges()[0]->get_start_limb() != start_limb ||
+                    node->get_in_edges()[0]->get_end_limb() != end_limb) {
+                    LOG_ERROR("Limb range must be the same for all nodes\n");
+                    exit(1);
+                }
+            }
+
+            w << "const int start_limb = "
+              << node->get_in_edges()[0]->get_start_limb() << ";\n";
+            w << "const int end_limb = "
+              << node->get_in_edges()[0]->get_end_limb() << ";\n";
+            w << "for (int idx = threadIdx.x + blockIdx.x * "
+                 "blockDim.x;";
+            w << "idx < params->N * (end_limb - start_limb);";
+            w << "idx += blockDim.x * gridDim.x)";
+            w.block_begin();
+
+            w << "const int l_idx = idx / params->N + start_limb;\n";
+            w << "const int n_idx = l_idx * params->N + idx % params->N;\n";
+            w << "const uint64_t q = params->ntt_params->q[l_idx];\n";
+            w << "uint64_t res;\n";
+
+            for (auto node : subgraph->get_nodes()) {
+                std::cout << "node: " << node->get_op_name() << std::endl;
                 core::OpType op_type = node->get_op_type();
                 if (op_type != core::OpType::Add &&
                     op_type != core::OpType::Sub &&
@@ -171,20 +201,10 @@ void CudaCodegen::generate_kernel_defs(
                     std::cerr << "op_type: " << core::toStringOpType(op_type)
                               << std::endl;
                 }
-                w << "const int start_limb = "
-                  << node->get_in_edges()[0]->get_start_limb() << ";\n";
-                w << "const int end_limb = "
-                  << node->get_in_edges()[0]->get_end_limb() << ";\n";
-                w << "for (int idx = threadIdx.x + blockIdx.x * "
-                     "blockDim.x;";
-                w << "idx < params->N * (end_limb - start_limb);";
-                w << "idx += blockDim.x * gridDim.x)";
-                w.block_begin();
-                w << "const int l_idx = idx / params->N + start_limb;\n";
-                w << "const int n_idx = l_idx * params->N + idx % params->N;\n";
-                w << "const uint64_t q = params->ntt_params->q[l_idx];\n";
 
+                w << "// " << node->get_op_name() << "\n";
                 assert(node->get_in_edges().size() == 2);
+
                 // Make sure all levels of outedges are the same
                 for (auto edge : node->get_out_edges()) {
                     assert(edge->get_level() ==
@@ -201,13 +221,13 @@ void CudaCodegen::generate_kernel_defs(
                 }
 
                 // Output to only first outedge
-                w << "uint64_t res = ";
+                w << "res = ";
 
                 // in0
                 auto edge = node->get_in_edges()[0];
                 w << gen_edge_access(
                     edge, "n_idx",
-                    std::to_string(edge->get_offset_smem()) + "threadIdx.x");
+                    std::to_string(edge->get_offset_smem()) + " + threadIdx.x");
 
                 w << op;
 
@@ -215,7 +235,7 @@ void CudaCodegen::generate_kernel_defs(
                 edge = node->get_in_edges()[1];
                 w << gen_edge_access(
                     edge, "n_idx",
-                    std::to_string(edge->get_offset_smem()) + "threadIdx.x");
+                    std::to_string(edge->get_offset_smem()) + " + threadIdx.x");
                 w << ";\n";
 
                 // out
@@ -229,10 +249,10 @@ void CudaCodegen::generate_kernel_defs(
                 edge = node->get_out_edges()[0];
                 w << gen_edge_access(
                     edge, "n_idx",
-                    std::to_string(edge->get_offset_smem()) + "threadIdx.x");
+                    std::to_string(edge->get_offset_smem()) + " + threadIdx.x");
                 w << " = res;\n";
-                w.block_end();
             }
+            w.block_end();
         } else if (s_type == core::SubgraphType::ElemLimb1) {
             // ==============================
             // ElemLimb1
