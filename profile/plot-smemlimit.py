@@ -4,7 +4,7 @@ import matplotlib.cm as cm
 import csv
 import numpy as np
 
-directory_path = "/opt/mount/HiFive"
+directory_path = "/opt/mount/PolyFHE"
 
 # Read log *.txt file
 

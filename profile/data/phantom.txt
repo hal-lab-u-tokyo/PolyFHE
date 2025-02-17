@@ -23,8 +23,115 @@ decrypt,5,11.744,11.8464
 multiply,5,148.896,178.47
 Collecting data...
 Generating '/tmp/nsys-report-8438.qdstrm'
-[1/8] [0%                          ] report18.nsys-rep[1/8] [0%                          ] report18.nsys-rep[1/8] [===================79%      ] report18.nsys-rep[1/8] [========================100%] report18.nsys-rep[1/8] [========================100%] report18.nsys-rep
-[2/8] [0%                          ] report18.sqlite[2/8] [1%                          ] report18.sqlite[2/8] [2%                          ] report18.sqlite[2/8] [3%                          ] report18.sqlite[2/8] [4%                          ] report18.sqlite[2/8] [5%                          ] report18.sqlite[2/8] [6%                          ] report18.sqlite[2/8] [7%                          ] report18.sqlite[2/8] [8%                          ] report18.sqlite[2/8] [9%                          ] report18.sqlite[2/8] [10%                         ] report18.sqlite[2/8] [11%                         ] report18.sqlite[2/8] [12%                         ] report18.sqlite[2/8] [13%                         ] report18.sqlite[2/8] [14%                         ] report18.sqlite[2/8] [=15%                        ] report18.sqlite[2/8] [=16%                        ] report18.sqlite[2/8] [=17%                        ] report18.sqlite[2/8] [==18%                       ] report18.sqlite[2/8] [==19%                       ] report18.sqlite[2/8] [==20%                       ] report18.sqlite[2/8] [==21%                       ] report18.sqlite[2/8] [===22%                      ] report18.sqlite[2/8] [===23%                      ] report18.sqlite[2/8] [===24%                      ] report18.sqlite[2/8] [====25%                     ] report18.sqlite[2/8] [====26%                     ] report18.sqlite[2/8] [====27%                     ] report18.sqlite[2/8] [====28%                     ] report18.sqlite[2/8] [=====29%                    ] report18.sqlite[2/8] [=====30%                    ] report18.sqlite[2/8] [=====31%                    ] report18.sqlite[2/8] [=====32%                    ] report18.sqlite[2/8] [======33%                   ] report18.sqlite[2/8] [======34%                   ] report18.sqlite[2/8] [======35%                   ] report18.sqlite[2/8] [=======36%                  ] report18.sqlite[2/8] [=======37%                  ] report18.sqlite[2/8] [=======38%                  ] report18.sqlite[2/8] [=======39%                  ] report18.sqlite[2/8] [========40%                 ] report18.sqlite[2/8] [========41%                 ] report18.sqlite[2/8] [========42%                 ] report18.sqlite[2/8] [=========43%                ] report18.sqlite[2/8] [=========44%                ] report18.sqlite[2/8] [=========45%                ] report18.sqlite[2/8] [=========46%                ] report18.sqlite[2/8] [==========47%               ] report18.sqlite[2/8] [==========48%               ] report18.sqlite[2/8] [==========49%               ] report18.sqlite[2/8] [===========50%              ] report18.sqlite[2/8] [===========51%              ] report18.sqlite[2/8] [===========52%              ] report18.sqlite[2/8] [===========53%              ] report18.sqlite[2/8] [============54%             ] report18.sqlite[2/8] [============55%             ] report18.sqlite[2/8] [============56%             ] report18.sqlite[2/8] [============57%             ] report18.sqlite[2/8] [=============58%            ] report18.sqlite[2/8] [=============59%            ] report18.sqlite[2/8] [=============60%            ] report18.sqlite[2/8] [==============61%           ] report18.sqlite[2/8] [==============62%           ] report18.sqlite[2/8] [==============63%           ] report18.sqlite[2/8] [==============64%           ] report18.sqlite[2/8] [===============65%          ] report18.sqlite[2/8] [===============66%          ] report18.sqlite[2/8] [===============67%          ] report18.sqlite[2/8] [================68%         ] report18.sqlite[2/8] [================69%         ] report18.sqlite[2/8] [================70%         ] report18.sqlite[2/8] [================71%         ] report18.sqlite[2/8] [=================72%        ] report18.sqlite[2/8] [=================73%        ] report18.sqlite[2/8] [=================74%        ] report18.sqlite[2/8] [==================75%       ] report18.sqlite[2/8] [==================76%       ] report18.sqlite[2/8] [==================77%       ] report18.sqlite[2/8] [==================78%       ] report18.sqlite[2/8] [===================79%      ] report18.sqlite[2/8] [===================80%      ] report18.sqlite[2/8] [===================81%      ] report18.sqlite[2/8] [===================82%      ] report18.sqlite[2/8] [====================83%     ] report18.sqlite[2/8] [====================84%     ] report18.sqlite[2/8] [====================85%     ] report18.sqlite[2/8] [=====================86%    ] report18.sqlite[2/8] [=====================87%    ] report18.sqlite[2/8] [=====================88%    ] report18.sqlite[2/8] [=====================89%    ] report18.sqlite[2/8] [======================90%   ] report18.sqlite[2/8] [======================91%   ] report18.sqlite[2/8] [======================92%   ] report18.sqlite[2/8] [=======================93%  ] report18.sqlite[2/8] [=======================94%  ] report18.sqlite[2/8] [=======================95%  ] report18.sqlite[2/8] [=======================96%  ] report18.sqlite[2/8] [========================97% ] report18.sqlite[2/8] [========================98% ] report18.sqlite[2/8] [========================99% ] report18.sqlite[2/8] [========================100%] report18.sqlite[2/8] [========================100%] report18.sqlite
+
+[1/8] [0%                          ] report18.nsys-rep
+[1/8] [0%                          ] report18.nsys-rep
+[1/8] [===================79%      ] report18.nsys-rep
+[1/8] [========================100%] report18.nsys-rep
+[1/8] [========================100%] report18.nsys-rep
+
+[2/8] [0%                          ] report18.sqlite
+[2/8] [1%                          ] report18.sqlite
+[2/8] [2%                          ] report18.sqlite
+[2/8] [3%                          ] report18.sqlite
+[2/8] [4%                          ] report18.sqlite
+[2/8] [5%                          ] report18.sqlite
+[2/8] [6%                          ] report18.sqlite
+[2/8] [7%                          ] report18.sqlite
+[2/8] [8%                          ] report18.sqlite
+[2/8] [9%                          ] report18.sqlite
+[2/8] [10%                         ] report18.sqlite
+[2/8] [11%                         ] report18.sqlite
+[2/8] [12%                         ] report18.sqlite
+[2/8] [13%                         ] report18.sqlite
+[2/8] [14%                         ] report18.sqlite
+[2/8] [=15%                        ] report18.sqlite
+[2/8] [=16%                        ] report18.sqlite
+[2/8] [=17%                        ] report18.sqlite
+[2/8] [==18%                       ] report18.sqlite
+[2/8] [==19%                       ] report18.sqlite
+[2/8] [==20%                       ] report18.sqlite
+[2/8] [==21%                       ] report18.sqlite
+[2/8] [===22%                      ] report18.sqlite
+[2/8] [===23%                      ] report18.sqlite
+[2/8] [===24%                      ] report18.sqlite
+[2/8] [====25%                     ] report18.sqlite
+[2/8] [====26%                     ] report18.sqlite
+[2/8] [====27%                     ] report18.sqlite
+[2/8] [====28%                     ] report18.sqlite
+[2/8] [=====29%                    ] report18.sqlite
+[2/8] [=====30%                    ] report18.sqlite
+[2/8] [=====31%                    ] report18.sqlite
+[2/8] [=====32%                    ] report18.sqlite
+[2/8] [======33%                   ] report18.sqlite
+[2/8] [======34%                   ] report18.sqlite
+[2/8] [======35%                   ] report18.sqlite
+[2/8] [=======36%                  ] report18.sqlite
+[2/8] [=======37%                  ] report18.sqlite
+[2/8] [=======38%                  ] report18.sqlite
+[2/8] [=======39%                  ] report18.sqlite
+[2/8] [========40%                 ] report18.sqlite
+[2/8] [========41%                 ] report18.sqlite
+[2/8] [========42%                 ] report18.sqlite
+[2/8] [=========43%                ] report18.sqlite
+[2/8] [=========44%                ] report18.sqlite
+[2/8] [=========45%                ] report18.sqlite
+[2/8] [=========46%                ] report18.sqlite
+[2/8] [==========47%               ] report18.sqlite
+[2/8] [==========48%               ] report18.sqlite
+[2/8] [==========49%               ] report18.sqlite
+[2/8] [===========50%              ] report18.sqlite
+[2/8] [===========51%              ] report18.sqlite
+[2/8] [===========52%              ] report18.sqlite
+[2/8] [===========53%              ] report18.sqlite
+[2/8] [============54%             ] report18.sqlite
+[2/8] [============55%             ] report18.sqlite
+[2/8] [============56%             ] report18.sqlite
+[2/8] [============57%             ] report18.sqlite
+[2/8] [=============58%            ] report18.sqlite
+[2/8] [=============59%            ] report18.sqlite
+[2/8] [=============60%            ] report18.sqlite
+[2/8] [==============61%           ] report18.sqlite
+[2/8] [==============62%           ] report18.sqlite
+[2/8] [==============63%           ] report18.sqlite
+[2/8] [==============64%           ] report18.sqlite
+[2/8] [===============65%          ] report18.sqlite
+[2/8] [===============66%          ] report18.sqlite
+[2/8] [===============67%          ] report18.sqlite
+[2/8] [================68%         ] report18.sqlite
+[2/8] [================69%         ] report18.sqlite
+[2/8] [================70%         ] report18.sqlite
+[2/8] [================71%         ] report18.sqlite
+[2/8] [=================72%        ] report18.sqlite
+[2/8] [=================73%        ] report18.sqlite
+[2/8] [=================74%        ] report18.sqlite
+[2/8] [==================75%       ] report18.sqlite
+[2/8] [==================76%       ] report18.sqlite
+[2/8] [==================77%       ] report18.sqlite
+[2/8] [==================78%       ] report18.sqlite
+[2/8] [===================79%      ] report18.sqlite
+[2/8] [===================80%      ] report18.sqlite
+[2/8] [===================81%      ] report18.sqlite
+[2/8] [===================82%      ] report18.sqlite
+[2/8] [====================83%     ] report18.sqlite
+[2/8] [====================84%     ] report18.sqlite
+[2/8] [====================85%     ] report18.sqlite
+[2/8] [=====================86%    ] report18.sqlite
+[2/8] [=====================87%    ] report18.sqlite
+[2/8] [=====================88%    ] report18.sqlite
+[2/8] [=====================89%    ] report18.sqlite
+[2/8] [======================90%   ] report18.sqlite
+[2/8] [======================91%   ] report18.sqlite
+[2/8] [======================92%   ] report18.sqlite
+[2/8] [=======================93%  ] report18.sqlite
+[2/8] [=======================94%  ] report18.sqlite
+[2/8] [=======================95%  ] report18.sqlite
+[2/8] [=======================96%  ] report18.sqlite
+[2/8] [========================97% ] report18.sqlite
+[2/8] [========================98% ] report18.sqlite
+[2/8] [========================99% ] report18.sqlite
+[2/8] [========================100%] report18.sqlite
+[2/8] [========================100%] report18.sqlite
 [3/8] Executing 'nvtx_sum' stats report
 [4/8] Executing 'osrt_sum' stats report
 
@@ -37,8 +144,8 @@ Generating '/tmp/nsys-report-8438.qdstrm'
       0.2          1066887         32     33340.2     7593.0      1322    629475     109490.1  mmap64                
       0.1           631954         51     12391.3     3524.0      1100     88155      18138.4  fread                 
       0.1           598489          6     99748.2    38368.5     31997    230286      98346.2  pthread_create        
-      0.1           560940          9     62326.7    15029.0      7658    277161      96546.0  sem_timedwait         
-      0.1           241420         10     24142.0     4414.5      1213    177849      54896.0  mmap                  
+      0.1      PolyFHE60940          9     62326.7    15029.0      7658    277161      96546.0  sem_timedwait         
+      0.1      PolyFHE41420         10     24142.0     4414.5      1213    177849      54896.0  mmap                  
       0.0           202401          1    202401.0   202401.0    202401    202401          0.0  pthread_cond_wait     
       0.0           185820         49      3792.2     3182.0      1183      9292       2123.2  open64                
       0.0            27115          9      3012.8     3408.0      1233      4512       1227.3  fflush                

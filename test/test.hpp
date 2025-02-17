@@ -5,9 +5,9 @@
 #include <cstdint>
 #include <utility>
 
-#include "hifive/core/logger.hpp"
-#include "hifive/kernel/device_context.hpp"
-#include "hifive/kernel/polynomial.hpp"
+#include "polyfhe/core/logger.hpp"
+#include "polyfhe/kernel/device_context.hpp"
+#include "polyfhe/kernel/polynomial.hpp"
 
 // Test functions
 void test_poly_add(FHEContext &context, const int N, const int L,

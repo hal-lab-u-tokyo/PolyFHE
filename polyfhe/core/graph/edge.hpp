@@ -1,0 +1,87 @@
+#pragma once
+
+#include <vector>
+
+#include "polyfhe/core/graph/node.hpp"
+
+namespace polyfhe {
+namespace core {
+
+enum class EdgeLevel {
+    Shared,
+    Global,
+    YetToDetermine,
+};
+
+class Edge : public std::enable_shared_from_this<Edge> {
+public:
+    Edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst)
+        : m_src(src), m_dst(dst) {}
+
+    // src and dst nodes
+    std::shared_ptr<Node> get_src() { return m_src; }
+    std::shared_ptr<Node> get_dst() { return m_dst; }
+    void set_src(std::shared_ptr<Node> src) { m_src = src; }
+    void set_dst(std::shared_ptr<Node> dst) { m_dst = dst; }
+
+    // limb
+    void set_limb(int limb) { m_limb = limb; }
+    void set_start_limb(int limb) { m_start_limb = limb; }
+    void set_end_limb(int limb) { m_end_limb = limb; }
+    int get_limb() { return m_limb; }
+    int get_start_limb() { return m_start_limb; }
+    int get_end_limb() { return m_end_limb; }
+
+    // name
+    void update_name() {
+        const int src_id = m_src->get_idx_in_outedge(shared_from_this());
+        const int dst_id = m_dst->get_idx_in_inedge(shared_from_this());
+        m_name = "edge_" + m_src->get_op_name() + "_" + std::to_string(src_id) +
+                 "_" + m_dst->get_op_name() + "_" + std::to_string(dst_id);
+    }
+    std::string get_name() {
+        update_name();
+        return m_name;
+    }
+
+    // level
+    void set_level(EdgeLevel level) { m_level = level; }
+    EdgeLevel get_level() { return m_level; }
+
+    // Check if memory of this edge can be overwritten
+    bool can_overwrite() {
+        if (m_src->get_out_edges().size() > 1) {
+            return false;
+        }
+        return true;
+    }
+
+    // offset
+    void set_offset_smem(int offset) { m_offset_smem = offset; }
+    int get_offset_smem() { return m_offset_smem; }
+
+    // overwrite
+    void set_can_overwrite(bool can_overwrite) {
+        m_can_overwrite = can_overwrite;
+    }
+    bool get_can_overwrite() { return m_can_overwrite; }
+
+private:
+    std::shared_ptr<Node> m_src;
+    std::shared_ptr<Node> m_dst;
+
+    // Note that (current limb) != (end - start)
+    // range of limb which dst Node uses
+    int m_start_limb = 0;
+    int m_end_limb = 0;
+    // current limb
+    int m_limb = 0;
+
+    std::string m_name;
+    EdgeLevel m_level = EdgeLevel::Global;
+    int m_offset_smem = 0;
+    bool m_can_overwrite = false;
+};
+
+} // namespace core
+} // namespace polyfhe

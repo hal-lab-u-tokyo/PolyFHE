@@ -1,5 +1,5 @@
 Starting Benchmarking...
-[36m[INFO][hifive/kernel/device_context.cu][232][FHEContext][39m Initializing Params
+[36m[INFO][polyfhe/kernel/device_context.cu][232][FHEContext][39m Initializing Params
 ### Warm up and Test
 N : 32768
 n1: 256

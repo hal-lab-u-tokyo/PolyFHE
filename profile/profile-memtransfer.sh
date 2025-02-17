@@ -8,10 +8,10 @@ set -xe
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd $REPO_ROOT
 
-BIN="build-opt/cc-hifive"
+BIN="build-opt/cc-polyfhe"
 BIN_RUNTIME="build/bench"
 TARGET="data/graph_fhe.dot"
-SRC_RUNTIME="hifive/kernel/device_context.cu hifive/kernel/polynomial.cpp hifive/utils.cpp"
+SRC_RUNTIME="polyfhe/kernel/device_context.cu polyfhe/kernel/polynomial.cpp polyfhe/utils.cpp"
 CXXFLAGS_RUNTIME="-g -std=c++17 -I./  --relocatable-device-code true"
 
 METRICS="dram__bytes_read.sum"

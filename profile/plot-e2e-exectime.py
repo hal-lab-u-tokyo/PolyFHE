@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-directory_path = "/opt/mount/HiFive"
+directory_path = "/opt/mount/PolyFHE"
 
 benchmarks = ("Sobel Filter", "Linear Regression", "Multi-Layer Perceptron")
 

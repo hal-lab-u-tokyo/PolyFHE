@@ -9,7 +9,7 @@ if len(os.sys.argv) != 2:
     exit(1)
 paramset = os.sys.argv[1]
 
-directory_path = "/opt/mount/HiFive"
+directory_path = "/opt/mount/PolyFHE"
 
 
 label = ["ThisWork", "ThisWork(Baseline)", "Phantom"]

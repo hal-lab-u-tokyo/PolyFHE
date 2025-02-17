@@ -1,11 +1,7 @@
 digraph G {
 Init[label="Init"];
 End[label="End"];
-Add[label="Add"];
-Add2[label="Add"];
-Init -> Add[label="41_0_41"];
-Init -> Add[label="41_0_41"];
-Init -> Add2[label="41_0_41"];
-Add -> Add2[label="41_0_41"];
-Add2 -> End[label="41_0_41"];
+ModUp[label="ModUp"];
+Init -> ModUp[label="0_0_2"];
+ModUp -> End[label="0_0_4"];
 }
