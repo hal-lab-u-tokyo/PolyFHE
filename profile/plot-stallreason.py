@@ -10,7 +10,7 @@ if len(os.sys.argv) != 2:
     exit(1)
 paramset = os.sys.argv[1]
 
-directory_path = "/opt/mount/HiFive"
+directory_path = "/opt/mount/PolyFHE"
 filename = [f"evalstall-stallreason-{w}-{paramset}.csv" for w in ["opt", "noopt", "phantom"]]
 title = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
 metrics = ["barrier", 

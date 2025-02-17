@@ -4,7 +4,7 @@ import matplotlib.cm as cm
 import csv
 import numpy as np
 
-directory_path = "/opt/mount/HiFive"
+directory_path = "/opt/mount/PolyFHE"
 
 dnums = [2, 3, 6, 18]
 phantom_datas = [[0 for _ in range(len(dnums))] for _ in [15, 16]]

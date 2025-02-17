@@ -1,25 +1,25 @@
 SRC=\
-	hifive/core/graph/graph.cpp \
-	hifive/core/graph/node.cpp \
-	hifive/core/config.cpp \
-	hifive/engine/codegen/cuda_codegen.cpp \
-	hifive/engine/pass/analyze_intra_node_pass.cpp \
-	hifive/engine/pass/calculate_memory_traffic_pass.cpp \
-	hifive/engine/pass/calculate_smem_size_pass.cpp \
-	hifive/engine/pass/data_reuse_pass.cpp \
-	hifive/engine/pass/extract_subgraph_pass.cpp \
-	hifive/engine/pass/lowering_ckks_to_poly_pass.cpp \
-	hifive/engine/pass/rewrite_ntt_pass.cpp \
-	hifive/engine/pass/set_block_phase_pass.cpp \
-	hifive/frontend/exporter.cpp \
-	hifive/frontend/parser.cpp \
-	hifive/tools/hifive.cpp \
-	hifive/utils.cpp
+	polyfhe/core/graph/graph.cpp \
+	polyfhe/core/graph/node.cpp \
+	polyfhe/core/config.cpp \
+	polyfhe/engine/codegen/cuda_codegen.cpp \
+	polyfhe/engine/pass/analyze_intra_node_pass.cpp \
+	polyfhe/engine/pass/calculate_memory_traffic_pass.cpp \
+	polyfhe/engine/pass/calculate_smem_size_pass.cpp \
+	polyfhe/engine/pass/data_reuse_pass.cpp \
+	polyfhe/engine/pass/extract_subgraph_pass.cpp \
+	polyfhe/engine/pass/lowering_ckks_to_poly_pass.cpp \
+	polyfhe/engine/pass/rewrite_ntt_pass.cpp \
+	polyfhe/engine/pass/set_block_phase_pass.cpp \
+	polyfhe/frontend/exporter.cpp \
+	polyfhe/frontend/parser.cpp \
+	polyfhe/tools/polyfhe.cpp \
+	polyfhe/utils.cpp
 
 SRC_RUNTIME=\
-	hifive/kernel/device_context.cu \
-	hifive/kernel/polynomial.cpp \
-	hifive/utils.cpp
+	polyfhe/kernel/device_context.cu \
+	polyfhe/kernel/polynomial.cpp \
+	polyfhe/utils.cpp
 	
 SRC_TEST=\
 	test/test_ntt.cu \
@@ -27,36 +27,36 @@ SRC_TEST=\
 	test/util.cu
 
 HDR=\
-	hifive/core/graph/edge.hpp \
-	hifive/core/graph/graph.hpp \
-	hifive/core/graph/node.hpp \
-	hifive/core/logger.hpp \
-	hifive/core/config.hpp \
-	hifive/engine/codegen/codegen_base.hpp \
-	hifive/engine/codegen/codegen_manager.hpp \
-	hifive/engine/codegen/codegen_writer.hpp \
-	hifive/engine/codegen/cuda_codegen.hpp \
-	hifive/engine/pass/analyze_intra_node_pass.hpp \
-	hifive/engine/pass/calculate_memory_traffic_pass.hpp \
-	hifive/engine/pass/calculate_smem_size_pass.hpp \
-	hifive/engine/pass/data_reuse_pass.hpp \
-	hifive/engine/pass/extract_subgraph_pass.hpp \
-	hifive/engine/pass/lowering_ckks_to_poly_pass.hpp \
-	hifive/engine/pass/pass_base.hpp \
-	hifive/engine/pass/pass_manager.hpp \
-	hifive/engine/pass/rewrite_ntt_pass.hpp \
-	hifive/engine/pass/set_block_phase_pass.hpp \
-	hifive/frontend/exporter.hpp \
-	hifive/frontend/parser.hpp \
-	hifive/utils.hpp
+	polyfhe/core/graph/edge.hpp \
+	polyfhe/core/graph/graph.hpp \
+	polyfhe/core/graph/node.hpp \
+	polyfhe/core/logger.hpp \
+	polyfhe/core/config.hpp \
+	polyfhe/engine/codegen/codegen_base.hpp \
+	polyfhe/engine/codegen/codegen_manager.hpp \
+	polyfhe/engine/codegen/codegen_writer.hpp \
+	polyfhe/engine/codegen/cuda_codegen.hpp \
+	polyfhe/engine/pass/analyze_intra_node_pass.hpp \
+	polyfhe/engine/pass/calculate_memory_traffic_pass.hpp \
+	polyfhe/engine/pass/calculate_smem_size_pass.hpp \
+	polyfhe/engine/pass/data_reuse_pass.hpp \
+	polyfhe/engine/pass/extract_subgraph_pass.hpp \
+	polyfhe/engine/pass/lowering_ckks_to_poly_pass.hpp \
+	polyfhe/engine/pass/pass_base.hpp \
+	polyfhe/engine/pass/pass_manager.hpp \
+	polyfhe/engine/pass/rewrite_ntt_pass.hpp \
+	polyfhe/engine/pass/set_block_phase_pass.hpp \
+	polyfhe/frontend/exporter.hpp \
+	polyfhe/frontend/parser.hpp \
+	polyfhe/utils.hpp
 
 OBJ=$(SRC:.cpp=.o)
 
 CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph -lboost_program_options
-BIN=build/cc-hifive
+BIN=build/cc-polyfhe
 
-CXXFLAGS_RUNTIME=-g -std=c++17 -I./  --relocatable-device-code true 
+CXXFLAGS_RUNTIME=-g -std=c++17 -I./  --relocatable-device-code true
 LDFLAGS_RUNTIME=
 BIN_RUNTIME=build/bench
 
@@ -74,7 +74,7 @@ test: $(SRC_TEST) $(SRC_RUNTIME) $(SRC) $(HDR)
 	./build/test
 
 TARGET=data/graph_poly.dot
-CONFIG=config/config-set2.csv
+CONFIG=config.csv
 
 run: $(BIN)
 	rm -f ./build/*.dot
@@ -133,8 +133,16 @@ dot:
 	find ./data -iname *.dot -exec dot -Tpng -o {}.png {} \;
 
 format:
-	find ./hifive ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i
-	find ./hifive ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
+	find ./polyfhe ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs clang-format -i
+	find ./polyfhe ./test -iname *.hpp -o -iname *.cpp -o -iname *.cu | xargs chmod 666
+
+estimate:
+	nvcc -o build/estimate polyfhe/estimator/dram.cu $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	./build/estimate > data/dram_latency.csv
+	python3 data/plot_dram_latency.py
+
+estimate-ptx:
+	nvcc --ptx -o build/estimate.ptx polyfhe/estimator/dram.cu $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 
 clean:
 	rm -rf build

@@ -1,6 +1,6 @@
 Starting Benchmarking...
-==PROF== Connected to process 807836 (/opt/mount/HiFive/build-opt/bench)
-[36m[INFO][hifive/kernel/device_context.cu][231][FHEContext][39m Initializing Params
+==PROF== Connected to process 807836 (/opt/mount/PolyFHE/build-opt/bench)
+[36m[INFO][polyfhe/kernel/device_context.cu][231][FHEContext][39m Initializing Params
 ### Warm up and Test
 N : 65536
 n1: 256

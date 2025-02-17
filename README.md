@@ -1,8 +1,8 @@
-# HiFive: Fully Homomorphic Encryption Compiler for GPUs
+# PolyFHE: Fully Homomorphic Encryption Compiler for GPUs
 
 ## Build and Run
 
-HiFive requirements: boost
+PolyFHE requirements: boost
 
 ```
 Hifive Options:
@@ -26,5 +26,5 @@ make run TARGET=./data/graph_poly_hadd.dot
 
 ## Memo
 ```
-nvcc -o ./build/bench build/generated.cu hifive/kernel/device_context.cu hifive/kernel/polynomial.cu -g -std=c++17 -O2 -I./  --relocatable-device-code true
+nvcc -o ./build/bench build/generated.cu polyfhe/kernel/device_context.cu polyfhe/kernel/polynomial.cu -g -std=c++17 -O2 -I./  --relocatable-device-code true
 ```

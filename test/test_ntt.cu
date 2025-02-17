@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <iostream>
 
-#include "hifive/kernel/ntt.hpp"
+#include "polyfhe/kernel/ntt.hpp"
 #include "test/test.hpp"
 
 void ntt_radix2_cpu(uint64_t *a, NTTParams &params, const int batch_idx) {
