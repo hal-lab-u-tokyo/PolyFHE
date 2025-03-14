@@ -926,6 +926,16 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     w << "std::cout << \"root[0] : \" << params_h->ntt_params->root[0] << "
          "std::endl;\n";
     w << "std::cout << \"------------------------------\" << std::endl;\n";
+
+    // TODO: cudaFuncSetAttribute based on DeviceProp
+    // w << "cudaDeviceProp prop;\n";
+    // w << "cudaGetDeviceProperties(&prop, 0);\n";
+    for (auto subgraph : graph->get_subgraphs()) {
+        w << "cudaFuncSetAttribute(" << subgraph->get_name() << ", "
+          << "cudaFuncAttributeMaxDynamicSharedMemorySize, "
+          << subgraph->get_smem_size() << ");\n";
+    }
+
     w.block_begin();
 
     w << "std::cout << \"### GPU\" << std::endl;\n";
@@ -990,7 +1000,6 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                     w << inedge->get_end_limb() << ");\n";
                 }
             } else if (op_type == core::OpType::ModUp) {
-                /*
                 assert(node->get_out_edges().size() == 1);
                 assert(node->get_in_edges().size() == 1);
                 w << node->get_op_type_str() << "_h";
@@ -1003,7 +1012,6 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                 }
                 w << node->get_in_edges()[0]->get_start_limb() << ", ";
                 w << node->get_in_edges()[0]->get_end_limb() << ");\n";
-                */
             }
         }
     }
