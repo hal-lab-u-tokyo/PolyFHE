@@ -105,7 +105,11 @@ void CudaCodegen::generate_NTT(std::shared_ptr<polyfhe::core::Node>& node,
                  "params->n1];\n";
         }
     } else {
-        LOG_ERROR("Not implemented\n");
+        if (if_phase1) {
+            w << "uint64_t *shared_i = shared + batch_idx * params->n1;\n";
+        } else {
+            w << "uint64_t *shared_i = shared + batch_idx * params->n2;\n";
+        }
     }
 
     if (if_ntt) {
@@ -140,7 +144,7 @@ void CudaCodegen::generate_NTT(std::shared_ptr<polyfhe::core::Node>& node,
                  "shared_i[threadIdx.x + blockDim.x];\n";
         }
     } else {
-        LOG_ERROR("Not implemented\n");
+        // Do nothing for shared memory
     }
     w.block_end();
 }
@@ -1074,7 +1078,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                 assert(node->get_in_edges().size() == 1);
                 auto outedge = node->get_out_edges()[0];
                 auto inedge = node->get_in_edges()[0];
-                w << "NTTPhase2_h(params_h,";
+                w << "iNTTPhase2_h(params_h,";
                 w << outedge->get_name() << "_h, ";
                 w << inedge->get_name() << "_h, ";
                 w << inedge->get_start_limb() << ", ";
@@ -1083,7 +1087,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                 assert(node->get_in_edges().size() == 1);
                 auto inedge = node->get_in_edges()[0];
                 for (auto outedge : node->get_out_edges()) {
-                    w << "NTTPhase1_h(params_h,";
+                    w << "iNTTPhase1_h(params_h,";
                     w << outedge->get_name() << "_h, ";
                     w << inedge->get_name() << "_h, ";
                     w << inedge->get_start_limb() << ", ";

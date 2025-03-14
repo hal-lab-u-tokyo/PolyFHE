@@ -251,8 +251,9 @@ __device__ __forceinline__ void NTTPhase2Op(uint64_t* buffer, NTTParams* params,
     }
 }
 
-__device__ void iNTTPhase2(uint64_t* buffer, NTTParams* params,
-                           const size_t batch_idx) {
+__device__ __forceinline__ void iNTTPhase2Op(uint64_t* buffer,
+                                             NTTParams* params,
+                                             const size_t batch_idx) {
     uint64_t q = params->q[batch_idx];
     uint64_t t, step;
     for (int m = params->n2 / 2; m >= 1; m /= 2) {
@@ -273,8 +274,9 @@ __device__ void iNTTPhase2(uint64_t* buffer, NTTParams* params,
     }
 }
 
-__device__ void iNTTPhase1(uint64_t* buffer, NTTParams* params,
-                           const size_t batch_idx) {
+__device__ __forceinline__ void iNTTPhase1Op(uint64_t* buffer,
+                                             NTTParams* params,
+                                             const size_t batch_idx) {
     uint64_t q = params->q[batch_idx];
     uint64_t t, step;
     for (int m = params->n1 / 2; m >= 1; m /= 2) {
