@@ -84,10 +84,10 @@ Params::Params(const int logN, const int L, const int dnum)
     qVec = new uint64_t[L + K];
     pVec = qVec + L;
     for (int i = 0; i < L; i++) {
-        qVec[i] = 998244353; // 51-bit
+        qVec[i] = 998244353; // 30-bit
     }
     for (int i = 0; i < K; i++) {
-        pVec[i] = 998244353; // 51-bit
+        pVec[i] = 998244353; // 30-bit
     }
 
     ntt_params = new NTTParams();
@@ -153,21 +153,22 @@ void FHEContext::CopyParamsToDevice() {
     memcpy(&ntt_params_tmp, h_params->ntt_params, sizeof(NTTParams));
     ntt_params_tmp.q = d_qVec;
     ntt_params_tmp.p = d_qVec + L;
-    uint64_t *d_root;
-    uint64_t *d_root_inv;
-    uint64_t *d_N_inv;
-    checkCudaErrors(cudaMalloc(&d_root, (L + K) * sizeof(uint64_t)));
-    checkCudaErrors(cudaMalloc(&d_root_inv, (L + K) * sizeof(uint64_t)));
-    checkCudaErrors(cudaMalloc(&d_N_inv, (L + K) * sizeof(uint64_t)));
-    checkCudaErrors(cudaMemcpy(d_root, h_params->ntt_params->root,
+    checkCudaErrors(
+        cudaMalloc(&ntt_params_tmp.root, (L + K) * sizeof(uint64_t)));
+    checkCudaErrors(
+        cudaMalloc(&ntt_params_tmp.root_inv, (L + K) * sizeof(uint64_t)));
+    checkCudaErrors(
+        cudaMalloc(&ntt_params_tmp.N_inv, (L + K) * sizeof(uint64_t)));
+    checkCudaErrors(cudaMemcpy(ntt_params_tmp.root, h_params->ntt_params->root,
                                (L + K) * sizeof(uint64_t),
                                cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_root_inv, h_params->ntt_params->root_inv,
-                               (L + K) * sizeof(uint64_t),
-                               cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_N_inv, h_params->ntt_params->N_inv,
-                               (L + K) * sizeof(uint64_t),
-                               cudaMemcpyHostToDevice));
+    checkCudaErrors(
+        cudaMemcpy(ntt_params_tmp.root_inv, h_params->ntt_params->root_inv,
+                   (L + K) * sizeof(uint64_t), cudaMemcpyHostToDevice));
+    checkCudaErrors(
+        cudaMemcpy(ntt_params_tmp.N_inv, h_params->ntt_params->N_inv,
+                   (L + K) * sizeof(uint64_t), cudaMemcpyHostToDevice));
+
     uint64_t **d_roots_pow = new uint64_t *[L + K];
     uint64_t **d_roots_pow_inv = new uint64_t *[L + K];
     uint64_t **d_roots_pow_shoup = new uint64_t *[L + K];

@@ -72,6 +72,79 @@ std::string GenerateN(const polyfhe::core::BlockPhase phase) {
     return n;
 }
 
+void CudaCodegen::generate_NTT(std::shared_ptr<polyfhe::core::Node>& node,
+                               CodeWriter& w, bool if_ntt, bool if_phase1) {
+    // TODO: add limb range to Node?
+
+    // IN-edge must be only one
+    // OUT-edge can be multiple but not supported yet
+    assert(node->get_in_edges().size() == 1);
+    assert(node->get_out_edges().size() == 1);
+
+    auto inedge = node->get_in_edges()[0];
+    w << "#pragma unroll\n";
+    w << "for (int batch_idx = " << inedge->get_start_limb() << "; ";
+    w << "batch_idx < " << inedge->get_end_limb() << "; ";
+    w << "batch_idx++)";
+    w.block_begin();
+    if (inedge->get_level() == polyfhe::core::EdgeLevel::Global) {
+        w << "uint64_t *in_i = " << inedge->get_name()
+          << " + batch_idx * params->N;\n";
+        if (if_phase1) {
+            w << "uint64_t *shared_i = shared + batch_idx * params->n1;\n";
+            w << "shared_i[threadIdx.x] ="
+              << "in_i[blockIdx.x * params->n1 + threadIdx.x];\n";
+            w << "shared_i[threadIdx.x + blockDim.x] ="
+              << "in_i[blockIdx.x * params->n1 + threadIdx.x + blockDim.x];\n";
+        } else {
+            w << "uint64_t *shared_i = shared + batch_idx * params->n2;\n";
+            w << "shared_i[threadIdx.x] ="
+              << "in_i[blockIdx.x + threadIdx.x * params->n1];\n";
+            w << "shared_i[threadIdx.x + blockDim.x] ="
+              << "in_i[blockIdx.x + (threadIdx.x + blockDim.x) * "
+                 "params->n1];\n";
+        }
+    } else {
+        LOG_ERROR("Not implemented\n");
+    }
+
+    if (if_ntt) {
+        if (if_phase1) {
+            w << "NTTPhase1Op(shared, params->ntt_params, batch_idx);\n";
+        } else {
+            w << "NTTPhase2Op(shared, params->ntt_params, batch_idx);\n";
+        }
+    } else {
+        if (if_phase1) {
+            w << "iNTTPhase1Op(shared, params->ntt_params, batch_idx);\n";
+        } else {
+            w << "iNTTPhase2Op(shared, params->ntt_params, batch_idx);\n";
+        }
+    }
+
+    // TODO: multiple outedges
+    auto outedge = node->get_out_edges()[0];
+    if (outedge->get_level() == polyfhe::core::EdgeLevel::Global) {
+        w << "uint64_t *out_i = " << outedge->get_name()
+          << " + batch_idx * params->N;\n";
+        if (if_phase1) {
+            w << "out_i[blockIdx.x * params->n1 + threadIdx.x] = "
+                 "shared[threadIdx.x];\n";
+            w << "out_i[blockIdx.x * params->n1 + threadIdx.x + blockDim.x] = "
+                 "shared[threadIdx.x + blockDim.x];\n";
+        } else {
+            w << "out_i[blockIdx.x + threadIdx.x * params->n1] = "
+                 "shared[threadIdx.x];\n";
+            w << "out_i[blockIdx.x + (threadIdx.x + blockDim.x) * params->n1] "
+                 "= "
+                 "shared[threadIdx.x + blockDim.x];\n";
+        }
+    } else {
+        LOG_ERROR("Not implemented\n");
+    }
+    w.block_end();
+}
+
 void CudaCodegen::generate_modup(std::shared_ptr<polyfhe::core::Node>& node,
                                  CodeWriter& w, std::string sPoly_x,
                                  std::string n_gidx, std::string n_sidx) {
@@ -258,9 +331,7 @@ void CudaCodegen::generate_kernel_defs(
             // ElemLimb1
             // ==============================
             w << "extern __shared__ uint64_t shared[];\n";
-            w << "for (int idx = blockIdx.x;";
-            w << "idx < params->n2 * params->limb;";
-            w << "idx += gridDim.x)";
+            w << "if (blockIdx.x < params->n2)";
             w.block_begin();
             bool defined_l_idx = false;
             for (auto node : subgraph->get_nodes()) {
@@ -325,49 +396,53 @@ void CudaCodegen::generate_kernel_defs(
                     w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
                     w << "n_gidx += params->n1 * blockDim.x;\n";
                     w.block_end();
-                } else if (op_type == core::OpType::NTTPhase1 ||
-                           op_type == core::OpType::iNTTPhase1) {
-                    // If inedge is Global, load from global at first
-                    if (node->get_in_edges()[0]->get_level() ==
-                        polyfhe::core::EdgeLevel::Global) {
-                        std::vector<std::string> args_load;
-                        args_load.push_back(
-                            node->get_in_edges()[0]->get_name());
-                        // TODO: shared memory offset for NTTPhase1
-                        args_load.push_back("shared");
-                        args_load.push_back("params->N");
-                        args_load.push_back("params->n1");
-                        args_load.push_back("params->n2");
-                        w << "load_g2s_phase1(" << GenerateArgs(args_load)
-                          << ");\n";
-                    }
-                    // Call NTTPhase1
-                    std::vector<std::string> args;
-                    args.push_back("shared");
-                    args.push_back("params->ntt_params");
-                    args.push_back("idx/params->n2");
-                    args.push_back("threadIdx.x");
-                    w << "NTTPhase1Op(" << GenerateArgs(args) << ");\n";
-                    if (op_type == core::OpType::NTTPhase1) {
-                        // Outedge must be Global
-                        assert(node->get_out_edges().size() == 1);
-                        assert(node->get_out_edges()[0]->get_level() ==
-                               polyfhe::core::EdgeLevel::Global);
-                    }
-                    for (auto outedge : node->get_out_edges()) {
-                        if (outedge->get_level() ==
-                            polyfhe::core::EdgeLevel::Global) {
-                            // Store to global
-                            std::vector<std::string> args_store;
-                            args_store.push_back(outedge->get_name());
-                            args_store.push_back("shared");
-                            args_store.push_back("params->N");
-                            args_store.push_back("params->n1");
-                            args_store.push_back("params->n2");
-                            w << "store_s2g_phase1(" << GenerateArgs(args_store)
-                              << ");\n";
-                        }
-                    }
+                } else if (op_type == core::OpType::NTTPhase1) {
+                    generate_NTT(node, w, true, true);
+                } else if (op_type == core::OpType::iNTTPhase1) {
+                    generate_NTT(node, w, false, true);
+                    /*
+            // If inedge is Global, load from global at first
+            if (node->get_in_edges()[0]->get_level() ==
+                polyfhe::core::EdgeLevel::Global) {
+                std::vector<std::string> args_load;
+                args_load.push_back(
+                    node->get_in_edges()[0]->get_name());
+                // TODO: shared memory offset for NTTPhase1
+                args_load.push_back("shared");
+                args_load.push_back("params->N");
+                args_load.push_back("params->n1");
+                args_load.push_back("params->n2");
+                w << "load_g2s_phase1(" << GenerateArgs(args_load)
+                  << ");\n";
+            }
+            // Call NTTPhase1
+            std::vector<std::string> args;
+            args.push_back("shared");
+            args.push_back("params->ntt_params");
+            args.push_back("idx/params->n2");
+            args.push_back("threadIdx.x");
+            w << "NTTPhase1Op(" << GenerateArgs(args) << ");\n";
+            if (op_type == core::OpType::NTTPhase1) {
+                // Outedge must be Global
+                assert(node->get_out_edges().size() == 1);
+                assert(node->get_out_edges()[0]->get_level() ==
+                       polyfhe::core::EdgeLevel::Global);
+            }
+            for (auto outedge : node->get_out_edges()) {
+                if (outedge->get_level() ==
+                    polyfhe::core::EdgeLevel::Global) {
+                    // Store to global
+                    std::vector<std::string> args_store;
+                    args_store.push_back(outedge->get_name());
+                    args_store.push_back("shared");
+                    args_store.push_back("params->N");
+                    args_store.push_back("params->n1");
+                    args_store.push_back("params->n2");
+                    w << "store_s2g_phase1(" << GenerateArgs(args_store)
+                      << ");\n";
+                }
+            }
+            */
                 } else {
                     LOG_ERROR(
                         "Only ElementWiseOp, NTTPhase1 and iNTTPhase1 are "
@@ -382,9 +457,7 @@ void CudaCodegen::generate_kernel_defs(
             // ElemLimb2
             // ==============================
             w << "extern __shared__ uint64_t shared[];\n";
-            w << "for (int idx = blockIdx.x;";
-            w << "idx < params->n1 * params->limb;";
-            w << "idx += gridDim.x)";
+            w << "if (blockIdx.x < params->n1)";
             w.block_begin();
             bool defined_l_idx = false;
             for (auto node : subgraph->get_nodes()) {
@@ -443,57 +516,61 @@ void CudaCodegen::generate_kernel_defs(
                     }
                     w << "n_idx += params->n2/8;\n";
                     w.block_end();
-                } else if (op_type == core::OpType::NTTPhase2 ||
-                           op_type == core::OpType::iNTTPhase2) {
-                    w.block_begin();
-                    if (op_type == core::OpType::NTTPhase2) {
-                        // Inedge must be Global
-                        assert(node->get_in_edges()[0]->get_level() ==
-                               polyfhe::core::EdgeLevel::Global);
-                    }
-                    assert(node->get_in_edges().size() == 1);
+                } else if (op_type == core::OpType::NTTPhase2) {
+                    generate_NTT(node, w, true, false);
+                } else if (op_type == core::OpType::iNTTPhase2) {
+                    generate_NTT(node, w, false, false);
+                    /*
+            w.block_begin();
+            if (op_type == core::OpType::NTTPhase2) {
+                // Inedge must be Global
+                assert(node->get_in_edges()[0]->get_level() ==
+                       polyfhe::core::EdgeLevel::Global);
+            }
+            assert(node->get_in_edges().size() == 1);
 
-                    for (auto inedge : node->get_in_edges()) {
-                        if (inedge->get_level() ==
-                            polyfhe::core::EdgeLevel::Global) {
-                            // Load from global
-                            std::vector<std::string> args_load;
-                            args_load.push_back(inedge->get_name());
-                            args_load.push_back("shared");
-                            args_load.push_back("params->N");
-                            args_load.push_back("params->n1");
-                            args_load.push_back("params->n2");
-                            w << "load_g2s_phase2(" << GenerateArgs(args_load)
-                              << ");\n";
-                        }
-                    }
+            for (auto inedge : node->get_in_edges()) {
+                if (inedge->get_level() ==
+                    polyfhe::core::EdgeLevel::Global) {
+                    // Load from global
+                    std::vector<std::string> args_load;
+                    args_load.push_back(inedge->get_name());
+                    args_load.push_back("shared");
+                    args_load.push_back("params->N");
+                    args_load.push_back("params->n1");
+                    args_load.push_back("params->n2");
+                    w << "load_g2s_phase2(" << GenerateArgs(args_load)
+                      << ");\n";
+                }
+            }
 
-                    // Call NTTPhase2
-                    std::vector<std::string> args;
-                    args.push_back("shared");
-                    args.push_back("params->ntt_params");
-                    args.push_back("idx/params->n1");
-                    args.push_back("threadIdx.x");
-                    args.push_back("tid % (params->N / 8)");
-                    w << "size_t tid = blockIdx.x * blockDim.x + "
-                         "threadIdx.x;\n";
-                    w << "NTTPhase2Op(" << GenerateArgs(args) << ");\n";
+            // Call NTTPhase2
+            std::vector<std::string> args;
+            args.push_back("shared");
+            args.push_back("params->ntt_params");
+            args.push_back("idx/params->n1");
+            args.push_back("threadIdx.x");
+            args.push_back("tid % (params->N / 8)");
+            w << "size_t tid = blockIdx.x * blockDim.x + "
+                 "threadIdx.x;\n";
+            w << "NTTPhase2Op(" << GenerateArgs(args) << ");\n";
 
-                    // Store to global if required
-                    for (auto edge : node->get_out_edges()) {
-                        if (edge->get_level() ==
-                            polyfhe::core::EdgeLevel::Global) {
-                            std::vector<std::string> args_store;
-                            args_store.push_back(edge->get_name());
-                            args_store.push_back("shared");
-                            args_store.push_back("params->N");
-                            args_store.push_back("params->n1");
-                            args_store.push_back("params->n2");
-                            w << "store_s2g_phase2(" << GenerateArgs(args_store)
-                              << ");\n";
-                        }
-                    }
-                    w.block_end();
+            // Store to global if required
+            for (auto edge : node->get_out_edges()) {
+                if (edge->get_level() ==
+                    polyfhe::core::EdgeLevel::Global) {
+                    std::vector<std::string> args_store;
+                    args_store.push_back(edge->get_name());
+                    args_store.push_back("shared");
+                    args_store.push_back("params->N");
+                    args_store.push_back("params->n1");
+                    args_store.push_back("params->n2");
+                    w << "store_s2g_phase2(" << GenerateArgs(args_store)
+                      << ");\n";
+                }
+            }
+            w.block_end();
+            */
                 } else {
                     LOG_ERROR(
                         "Only ElementWiseOp, NTTPhase2 and iNTTPhase2 are "
@@ -753,15 +830,16 @@ void CudaCodegen::generate_call_kernels(
             }
         } else if (s_type == core::SubgraphType::ElemLimb1) {
             // NTTPhase1 uses shared memory even if it has only one node
+            // TODO: shared memory size
             w << subgraph->get_name()
-              << "<<<params_h->n2 * params_h->limb, params_h->n1/8, "
-              << subgraph->get_smem_size() << ">>>";
-
+              << "<<<params_h->n2, params_h->n1/2, "
+              // << subgraph->get_smem_size() << ">>>";
+              << "params_h->n1 * sizeof(uint64_t) * params_h->L>>>";
         } else if (s_type == core::SubgraphType::ElemLimb2) {
             // NTTPhase2 uses shared memory even if it has only one node
-            w << subgraph->get_name()
-              << "<<<params_h->n1 * params_h->limb, params_h->n2/8, "
-              << subgraph->get_smem_size() << ">>>";
+            w << subgraph->get_name() << "<<<params_h->n1, params_h->n2/2, "
+              << "params_h->n2 * sizeof(uint64_t) * params_h->L>>>";
+            //<< subgraph->get_smem_size() << ">>>";
         } else if (s_type == core::SubgraphType::ElemSlot) {
             w << subgraph->get_name() << "<<< params_h->N / 128, 128, "
               << subgraph->get_smem_size() << ">>>";

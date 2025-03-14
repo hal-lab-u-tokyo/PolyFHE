@@ -21,6 +21,8 @@ public:
     void generate_call_kernels(std::shared_ptr<polyfhe::core::Graph>& graph,
                                CodeWriter& w);
 
+    void generate_NTT(std::shared_ptr<polyfhe::core::Node>& node, CodeWriter& w,
+                      bool if_ntt, bool if_phase1);
     void generate_modup(std::shared_ptr<polyfhe::core::Node>& node,
                         CodeWriter& w, std::string sPoly_x, std::string n_gidx,
                         std::string n_sidx);
