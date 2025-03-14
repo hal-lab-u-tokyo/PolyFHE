@@ -218,9 +218,9 @@ __device__ __forceinline__ void NTTPhase1Op(uint64_t* buffer, NTTParams* params,
         buffer[k + j + m] = tmp >= q ? tmp - q : tmp;
         if (debug) {
             printf(
-                "m:%d, (a[%d],a[%d]) = (%ld,%ld), "
+                "m:%d, block:%d, (a[%d],a[%d]) = (%ld,%ld), "
                 "U=%ld,V=%ld,S=%ld,rootidx=%d\n",
-                m, blockIdx.x * params->n1 + (k + j),
+                m, blockIdx.x, blockIdx.x * params->n1 + (k + j),
                 blockIdx.x * params->n1 + (k + j + m), buffer[k + j],
                 buffer[k + j + m], U, V_, S, rootidx);
         }
