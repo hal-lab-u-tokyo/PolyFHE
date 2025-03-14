@@ -148,8 +148,6 @@ Params::Params(const int logN, const int L, const int dnum)
                 ntt_params->roots_pow_inv[i][j], ntt_params->q[i]);
         }
     }
-    std::cout << "roots_pow[0][4]: " << ntt_params->roots_pow[0][4]
-              << std::endl;
 }
 
 void FHEContext::CopyParamsToDevice() {

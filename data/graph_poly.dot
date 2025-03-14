@@ -2,6 +2,10 @@ digraph G {
 Init[label="Init"];
 End[label="End"];
 NTT[label="NTT"];
-Init -> NTT[label="2_0_2"];
-NTT -> End[label="2_0_2"];
+iNTT[label="iNTT"];
+ModUp[label="ModUp"];
+Init -> NTT[label="20_0_20"];
+NTT -> ModUp[label="20_0_6"];
+ModUp -> iNTT[label="20_0_20"];
+iNTT -> End[label="20_0_20"];
 }

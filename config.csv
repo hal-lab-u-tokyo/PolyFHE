@@ -1,4 +1,4 @@
-logN,4
-L,2
-dnum,1
-SharedMemKB,60
+logN,16
+L,20
+dnum,3
+SharedMemKB,100
