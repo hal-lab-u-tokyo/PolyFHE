@@ -72,6 +72,68 @@ std::string GenerateN(const polyfhe::core::BlockPhase phase) {
     return n;
 }
 
+std::string gen_edge_access(std::shared_ptr<polyfhe::core::Edge> edge,
+                            std::string g_idx, std::string s_idx) {
+    std::string m = "";
+    if (edge->get_level() == polyfhe::core::EdgeLevel::Global) {
+        m = edge->get_name() + "[" + g_idx + "]";
+    } else {
+        m = "shared[" + s_idx + "]";
+    }
+    return m;
+}
+
+std::string gen_ElemWiseOp_internal(polyfhe::core::OpType op_type,
+                                    std::string out, std::string in0,
+                                    std::string in1) {
+    std::string op = "";
+    if (op_type == polyfhe::core::OpType::Add) {
+        op = out + " = (" + in0 + " + " + in1 + ") % q;\n";
+    } else if (op_type == polyfhe::core::OpType::Sub) {
+        op = out + " = (" + in0 + " + q - " + in1 + ") % q;\n";
+    } else if (op_type == polyfhe::core::OpType::Mult) {
+        op = out + " = (" + in0 + " * " + in1 + ") % q;\n";
+    }
+    return op;
+}
+
+void CudaCodegen::generate_ElemWiseOp(
+    std::shared_ptr<polyfhe::core::Node>& node, CodeWriter& w,
+    std::shared_ptr<polyfhe::core::Edge> out,
+    std::shared_ptr<polyfhe::core::Edge> in0,
+    std::shared_ptr<polyfhe::core::Edge> in1,
+    polyfhe::core::SubgraphType s_type) {
+    auto op_type = node->get_op_type();
+    if (op_type == core::OpType::Add) {
+        w << "// Add\n";
+    } else if (op_type == core::OpType::Sub) {
+        w << "// Sub\n";
+    } else if (op_type == core::OpType::Mult) {
+        w << "// Mult\n";
+    }
+
+    if (s_type == polyfhe::core::SubgraphType::ElemLimb1) {
+        std::vector<std::string> args;
+        for (auto edge : {out, in0, in1}) {
+            args.push_back(gen_edge_access(
+                edge, "batch_idx * params->N + n_idx",
+                std::to_string(edge->get_offset_smem()) + " + threadIdx.x"));
+        }
+        w << gen_ElemWiseOp_internal(op_type, args[0], args[1], args[2]);
+
+        args.clear();
+        for (auto edge : {out, in0, in1}) {
+            args.push_back(gen_edge_access(
+                edge, "batch_idx * params->N + n_idx + blockDim.x",
+                std::to_string(edge->get_offset_smem()) + " + threadIdx.x + "
+                                                          "blockDim.x"));
+        }
+        w << gen_ElemWiseOp_internal(op_type, args[0], args[1], args[2]);
+    } else {
+        LOG_ERROR("Not supported yet\n");
+    }
+}
+
 void CudaCodegen::generate_NTT(std::shared_ptr<polyfhe::core::Node>& node,
                                CodeWriter& w, bool if_ntt, bool if_phase1) {
     // TODO: add limb range to Node?
@@ -249,17 +311,6 @@ void CudaCodegen::generate_modup(std::shared_ptr<polyfhe::core::Node>& node,
     w << "ModUpOp(" << GenerateArgs(args) << ");\n";
 }
 
-std::string gen_edge_access(std::shared_ptr<polyfhe::core::Edge> edge,
-                            std::string g_idx, std::string s_idx) {
-    std::string m = "";
-    if (edge->get_level() == polyfhe::core::EdgeLevel::Global) {
-        m = edge->get_name() + "[" + g_idx + "]";
-    } else {
-        m = "shared[" + s_idx + "]";
-    }
-    return m;
-}
-
 void CudaCodegen::generate_kernel_defs(
     std::shared_ptr<polyfhe::core::Graph>& graph, const std::string& filename,
     const bool if_append) {
@@ -405,68 +456,20 @@ void CudaCodegen::generate_kernel_defs(
             w.block_begin();
             w << "const int batch_idx = blockIdx.x / params->n2;\n";
             w << "const int block_idx = blockIdx.x % params->n2;\n";
-            bool defined_l_idx = false;
+            w << "const int n_idx = block_idx * params->n1 + threadIdx.x;\n";
+            w << "const uint64_t q = params->ntt_params->q[batch_idx];\n";
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
-                    std::vector<std::string> args;
-                    std::vector<std::string> args_if_gmem;
-                    if (op_type == core::OpType::Add) {
-                        args.push_back("ElemWiseOp::Add");
-                    } else if (op_type == core::OpType::Sub) {
-                        args.push_back("ElemWiseOp::Sub");
-                    } else if (op_type == core::OpType::Mult) {
-                        args.push_back("ElemWiseOp::Mult");
-                    }
-                    args.push_back("params");
+                    w.block_begin();
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 2);
-                    for (auto edge : node->get_out_edges()) {
-                        if (edge->get_level() ==
-                            polyfhe::core::EdgeLevel::Global) {
-                            args.push_back(edge->get_name());
-                            args_if_gmem.push_back("1");
-                        } else {
-                            args.push_back(
-                                "shared + " +
-                                std::to_string(edge->get_offset_smem()));
-                            args_if_gmem.push_back("0");
-                        }
-                    }
-                    for (auto edge : node->get_in_edges()) {
-                        if (edge->get_level() ==
-                            polyfhe::core::EdgeLevel::Global) {
-                            args.push_back(edge->get_name());
-                            args_if_gmem.push_back("1");
-                        } else {
-                            args.push_back(
-                                "shared + " +
-                                std::to_string(edge->get_offset_smem()));
-                            args_if_gmem.push_back("0");
-                        }
-                    }
-                    args.insert(args.end(), args_if_gmem.begin(),
-                                args_if_gmem.end());
-                    args.push_back("params->n2");
-                    args.push_back("l_idx");
-                    args.push_back("n_gidx");
-                    args.push_back("threadIdx.x + i * params->n1 / 8");
-
-                    if (!defined_l_idx) {
-                        w << "const int l_idx = idx / params->n2;\n";
-                        w << "const int n_idx = idx % params->n2;\n";
-                        w << "int n_gidx = n_idx + threadIdx.x * params->n1;\n";
-                        defined_l_idx = true;
-                    } else {
-                        w << "n_gidx = n_idx + threadIdx.x * params->n1;\n";
-                    }
-                    w << "for (int i = 0; i < 1; i++)";
-                    w.block_begin();
-                    w << "ElemWiseOp_Elem(" << GenerateArgs(args) << ");\n";
-                    w << "n_gidx += params->n1 * blockDim.x;\n";
+                    generate_ElemWiseOp(node, w, node->get_out_edges()[0],
+                                        node->get_in_edges()[0],
+                                        node->get_in_edges()[1], s_type);
                     w.block_end();
                 } else if (op_type == core::OpType::NTTPhase1) {
                     generate_NTT_ElemLimb(node, w, true, true);

@@ -3,7 +3,10 @@ Init[label="Init"];
 End[label="End"];
 NTT[label="NTT"];
 iNTT[label="iNTT"];
+Add[label="Add"];
 Init -> NTT[label="2_0_2"];
 NTT -> iNTT[label="2_0_2"];
-iNTT -> End[label="2_0_2"];
+iNTT -> Add[label="2_0_2"];
+Init -> Add[label="2_0_2"];
+Add -> End[label="2_0_2"];
 }
