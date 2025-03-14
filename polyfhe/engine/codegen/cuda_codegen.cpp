@@ -110,15 +110,15 @@ void CudaCodegen::generate_NTT(std::shared_ptr<polyfhe::core::Node>& node,
 
     if (if_ntt) {
         if (if_phase1) {
-            w << "NTTPhase1Op(shared, params->ntt_params, batch_idx);\n";
+            w << "NTTPhase1Op(shared_i, params->ntt_params, batch_idx);\n";
         } else {
-            w << "NTTPhase2Op(shared, params->ntt_params, batch_idx);\n";
+            w << "NTTPhase2Op(shared_i, params->ntt_params, batch_idx);\n";
         }
     } else {
         if (if_phase1) {
-            w << "iNTTPhase1Op(shared, params->ntt_params, batch_idx);\n";
+            w << "iNTTPhase1Op(shared_i, params->ntt_params, batch_idx);\n";
         } else {
-            w << "iNTTPhase2Op(shared, params->ntt_params, batch_idx);\n";
+            w << "iNTTPhase2Op(shared_i, params->ntt_params, batch_idx);\n";
         }
     }
 
@@ -129,15 +129,15 @@ void CudaCodegen::generate_NTT(std::shared_ptr<polyfhe::core::Node>& node,
           << " + batch_idx * params->N;\n";
         if (if_phase1) {
             w << "out_i[blockIdx.x * params->n1 + threadIdx.x] = "
-                 "shared[threadIdx.x];\n";
+                 "shared_i[threadIdx.x];\n";
             w << "out_i[blockIdx.x * params->n1 + threadIdx.x + blockDim.x] = "
-                 "shared[threadIdx.x + blockDim.x];\n";
+                 "shared_i[threadIdx.x + blockDim.x];\n";
         } else {
             w << "out_i[blockIdx.x + threadIdx.x * params->n1] = "
-                 "shared[threadIdx.x];\n";
+                 "shared_i[threadIdx.x];\n";
             w << "out_i[blockIdx.x + (threadIdx.x + blockDim.x) * params->n1] "
                  "= "
-                 "shared[threadIdx.x + blockDim.x];\n";
+                 "shared_i[threadIdx.x + blockDim.x];\n";
         }
     } else {
         LOG_ERROR("Not implemented\n");

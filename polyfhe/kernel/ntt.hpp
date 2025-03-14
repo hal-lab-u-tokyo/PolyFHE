@@ -199,27 +199,33 @@ __device__ __forceinline__ void store_s2g_phase2_blocked(uint64_t* gmem,
 
 __device__ __forceinline__ void NTTPhase1Op(uint64_t* buffer, NTTParams* params,
                                             size_t batch_idx) {
+    bool debug = false;
     uint64_t q = params->q[batch_idx];
-    uint64_t t, step;
-    for (int m = params->n1 / 2; m >= 1; m /= 2) {
-        step = m * 2;
-        t = params->n1 / step;
+    uint64_t t = params->n1;
+    for (int m = 1; m < params->n1; m *= 2) {
+        t = t / 2;
         int j = threadIdx.x & (m - 1);
         int k = 2 * m * (threadIdx.x / m);
         const int rootidx = t * j * params->n2;
-
-        uint64_t S = params->roots_pow_inv[batch_idx][rootidx];
+        uint64_t S = params->roots_pow[batch_idx][rootidx];
+        __syncthreads();
         uint64_t U = buffer[k + j];
-        uint64_t V = buffer[k + j + m];
+        uint64_t V_ = buffer[k + j + m];
+        uint64_t V = (buffer[k + j + m] * S) % q;
         uint64_t tmp = U + V;
         buffer[k + j] = tmp >= q ? tmp - q : tmp;
-        buffer[k + j + m] = (((U - V + q) % q) * S) % q;
+        tmp = U + q - V;
+        buffer[k + j + m] = tmp >= q ? tmp - q : tmp;
+        if (debug) {
+            printf(
+                "m:%d, (a[%d],a[%d]) = (%ld,%ld), "
+                "U=%ld,V=%ld,S=%ld,rootidx=%d\n",
+                m, blockIdx.x * params->n1 + (k + j),
+                blockIdx.x * params->n1 + (k + j + m), buffer[k + j],
+                buffer[k + j + m], U, V_, S, rootidx);
+        }
         __syncthreads();
     }
-    const uint64_t Ninv = params->N_inv[batch_idx];
-    buffer[threadIdx.x] = (buffer[threadIdx.x] * Ninv) % q;
-    buffer[threadIdx.x + blockDim.x] =
-        (buffer[threadIdx.x + blockDim.x] * Ninv) % q;
 }
 
 __device__ __forceinline__ void NTTPhase2Op(uint64_t* buffer, NTTParams* params,

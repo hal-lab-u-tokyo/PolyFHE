@@ -118,7 +118,7 @@ void iNTT_h(Params *params, uint64_t *dst, uint64_t *src, const int start_limb,
 // N2 * N1-point NTT
 void NTTPhase1_h(Params *params, uint64_t *dst, uint64_t *src,
                  const int start_limb, const int end_limb) {
-    bool debug = true;
+    bool debug = false;
     if (debug) {
         printf("NTTPhase1_h\n");
     }
@@ -172,7 +172,7 @@ void NTTPhase1_h(Params *params, uint64_t *dst, uint64_t *src,
 // N1 * N2-point NTT
 void NTTPhase2_h(Params *params, uint64_t *dst, uint64_t *src,
                  const int start_limb, const int end_limb) {
-    bool debug = true;
+    bool debug = false;
     if (debug) {
         printf("NTTPhase2_h\n");
     }
