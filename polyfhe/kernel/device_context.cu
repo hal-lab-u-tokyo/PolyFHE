@@ -1,4 +1,5 @@
 #include <cstring>
+#include <iostream>
 #include <vector>
 
 #include "device_context.hpp"
@@ -62,6 +63,20 @@ uint64_t findPrimitiveRoot(uint64_t modulus) {
     throw "Cannot find the primitive root of unity";
 }
 
+uint64_t findPrimitiveNthRoot(uint64_t modulus, uint64_t N) {
+    uint64_t root = findPrimitiveRoot(modulus);
+    uint64_t phi = modulus - 1;
+    uint64_t root0 = powMod(root, phi / N, modulus);
+    uint64_t min_root = root0;
+    for (uint64_t i = 2; i < N; i++) {
+        uint64_t rooti = powMod(root0, i, modulus);
+        if (rooti < min_root) {
+            min_root = rooti;
+        }
+    }
+    return min_root;
+}
+
 uint64_t compute_shoup(const uint64_t operand, const uint64_t modulus) {
     if (operand >= modulus) {
         throw "Operand must be less than modulus";
@@ -102,7 +117,7 @@ Params::Params(const int logN, const int L, const int dnum)
     ntt_params->root_inv = new uint64_t[L + K];
     ntt_params->N_inv = new uint64_t[L + K];
     for (int i = 0; i < L + K; i++) {
-        ntt_params->root[i] = findPrimitiveRoot(qVec[i]);
+        ntt_params->root[i] = findPrimitiveNthRoot(qVec[i], N);
         ntt_params->root_inv[i] =
             powMod(ntt_params->root[i], qVec[i] - 2, qVec[i]);
         ntt_params->N_inv[i] = powMod(N, qVec[i] - 2, qVec[i]);
@@ -133,6 +148,8 @@ Params::Params(const int logN, const int L, const int dnum)
                 ntt_params->roots_pow_inv[i][j], ntt_params->q[i]);
         }
     }
+    std::cout << "roots_pow[0][4]: " << ntt_params->roots_pow[0][4]
+              << std::endl;
 }
 
 void FHEContext::CopyParamsToDevice() {

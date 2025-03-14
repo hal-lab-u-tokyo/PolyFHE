@@ -840,6 +840,7 @@ void CudaCodegen::generate_call_kernels(
             w << subgraph->get_name() << "<<<params_h->n1, params_h->n2/2, "
               << "params_h->n2 * sizeof(uint64_t) * params_h->L>>>";
             //<< subgraph->get_smem_size() << ">>>";
+
         } else if (s_type == core::SubgraphType::ElemSlot) {
             w << subgraph->get_name() << "<<< params_h->N / 128, 128, "
               << subgraph->get_smem_size() << ">>>";
@@ -913,8 +914,11 @@ void define_edge(CodeWriter& w, std::shared_ptr<polyfhe::core::Edge>& edge,
     w << edge->get_name() << "_d,";
     w << "N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
     if (initialize) {
-        w << "for (int i = 0; i < N * " << edge->get_limb() << "; i++) {";
-        w << edge->get_name() << "_h[i] = i % 10;}\n";
+        w << "for (int i = 0; i < " << edge->get_limb() << "; i++) {";
+        w << "for (int j = 0; j < N; j++) {";
+        w << edge->get_name() << "_h[i * N + j] = j;";
+        w << "}\n";
+        w << "}\n";
         w << "cudaMemcpy(" << edge->get_name() << "_d, ";
         w << edge->get_name() << "_h,";
         w << "N * " << edge->get_limb() << " * sizeof(uint64_t),";

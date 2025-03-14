@@ -2,6 +2,6 @@ digraph G {
 Init[label="Init"];
 End[label="End"];
 NTT[label="NTT"];
-Init -> NTT[label="16_0_16"];
-NTT -> End[label="16_0_16"];
+Init -> NTT[label="2_0_2"];
+NTT -> End[label="2_0_2"];
 }
