@@ -1,7 +1,8 @@
 digraph G {
 Init[label="Init"];
 End[label="End"];
-ModUp[label="ModUp"];
-Init -> ModUp[label="0_0_2"];
-ModUp -> End[label="0_0_4"];
+Mult[label="Mult"];
+Init -> Mult[label="16_0_16"];
+Init -> Mult[label="16_0_16"];
+Mult -> End[label="16_0_16"];
 }
