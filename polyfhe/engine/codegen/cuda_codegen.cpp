@@ -149,6 +149,27 @@ void CudaCodegen::generate_ElemWiseOp(
                                                           "blockDim.x"));
         }
         w << gen_ElemWiseOp_internal(op_type, args[0], args[1], args[2]);
+    } else if (s_type == polyfhe::core::SubgraphType::ElemLimb2Slot) {
+        std::vector<std::string> args;
+        for (auto edge : {out, in0, in1}) {
+            args.push_back(gen_edge_access(
+                edge,
+                "batch_idx * params->N + blockIdx.x + threadIdx.x * params->n1",
+                std::to_string(edge->get_offset_smem()) +
+                    " + batch_idx * params->n2 + threadIdx.x"));
+        }
+        w << gen_ElemWiseOp_internal(op_type, args[0], args[1], args[2]);
+
+        args.clear();
+        for (auto edge : {out, in0, in1}) {
+            args.push_back(gen_edge_access(
+                edge,
+                "batch_idx * params->N + blockIdx.x + (threadIdx.x + "
+                "blockDim.x) * params->n1",
+                std::to_string(edge->get_offset_smem()) +
+                    " + batch_idx * params->n2 + threadIdx.x + blockDim.x"));
+        }
+        w << gen_ElemWiseOp_internal(op_type, args[0], args[1], args[2]);
     } else {
         LOG_ERROR("Not supported yet\n");
     }
@@ -637,69 +658,20 @@ void CudaCodegen::generate_kernel_defs(
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
-                    w.block_begin();
-                    w << "const int start_limb = "
-                      << node->get_in_edges()[0]->get_start_limb() << ";\n";
-                    w << "const int end_limb = "
-                      << node->get_in_edges()[0]->get_end_limb() << ";\n";
-                    w << "for (int idx = threadIdx.x;";
-                    w << "idx < params->n2 * (end_limb - start_limb);";
-                    w << "idx += blockDim.x)";
-                    w.block_begin();
-
-                    std::vector<std::string> args;
-                    std::vector<std::string> args_if_gmem;
-                    if (op_type == core::OpType::Add) {
-                        args.push_back("ElemWiseOp::Add");
-                    } else if (op_type == core::OpType::Sub) {
-                        args.push_back("ElemWiseOp::Sub");
-                    } else if (op_type == core::OpType::Mult) {
-                        args.push_back("ElemWiseOp::Mult");
-                    }
-                    args.push_back("params");
+                    assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 2);
-                    // Make sure all levels of outedges are the same
-                    for (auto edge : node->get_out_edges()) {
-                        assert(edge->get_level() ==
-                               node->get_out_edges()[0]->get_level());
-                    }
-                    // Output to only first outedge
-                    auto outedge = node->get_out_edges()[0];
-                    if (outedge->get_level() ==
-                        polyfhe::core::EdgeLevel::Global) {
-                        args.push_back(outedge->get_name());
-                        args_if_gmem.push_back("1");
-                    } else {
-                        args.push_back(
-                            "shared + " +
-                            std::to_string(outedge->get_offset_smem()));
-                        args_if_gmem.push_back("0");
-                    }
-                    for (auto edge : node->get_in_edges()) {
-                        if (edge->get_level() ==
-                            polyfhe::core::EdgeLevel::Global) {
-                            args.push_back(edge->get_name());
-                            args_if_gmem.push_back("1");
-                        } else {
-                            args.push_back(
-                                "shared + " +
-                                std::to_string(edge->get_offset_smem()));
-                            args_if_gmem.push_back("0");
-                        }
-                    }
-                    args.insert(args.end(), args_if_gmem.begin(),
-                                args_if_gmem.end());
-                    args.push_back("sPoly_x");
-                    args.push_back("l_idx");
-                    args.push_back("n_gidx");
-                    args.push_back("n_sidx");
-                    w << "const int sPoly_x = params->n2;\n";
-                    w << "const int l_idx = idx / sPoly_x;\n";
-                    w << "const int n_gidx = blockIdx.x * params->n2 + idx % "
-                         "sPoly_x;\n";
-                    w << "const int n_sidx = idx % sPoly_x;\n";
-                    w << "ElemWiseOp_Elem_v2(" << GenerateArgs(args) << ");\n";
-                    w.block_end();
+                    // TODO: limb range
+                    w << "for (int batch_idx = "
+                      << node->get_in_edges()[0]->get_start_limb() << "; ";
+                    w << "batch_idx < "
+                      << node->get_in_edges()[0]->get_end_limb() << "; ";
+                    w << "batch_idx++)";
+                    w.block_begin();
+                    w << "const uint64_t q = "
+                         "params->ntt_params->q[batch_idx];\n";
+                    generate_ElemWiseOp(node, w, node->get_out_edges()[0],
+                                        node->get_in_edges()[0],
+                                        node->get_in_edges()[1], s_type);
                     w.block_end();
                 } else if (op_type == core::OpType::NTTPhase2) {
                     assert(node->get_out_edges().size() == 1);
@@ -710,6 +682,8 @@ void CudaCodegen::generate_kernel_defs(
                     assert(node->get_in_edges().size() == 1);
                     generate_NTT(node, w, false, false);
                 } else if (op_type == core::OpType::ModUp) {
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_in_edges().size() == 1);
                     /*
                     w << "for (int idx = threadIdx.x; ";
                     w << "idx < params->n2; ";

@@ -4,8 +4,11 @@ End[label="End"];
 NTT[label="NTT"];
 iNTT[label="iNTT"];
 ModUp[label="ModUp"];
+Add[label="Add"];
 Init -> NTT[label="20_0_20"];
 NTT -> ModUp[label="20_0_6"];
-ModUp -> iNTT[label="20_0_20"];
+ModUp -> Add[label="20_0_20"];
+Init -> Add[label="20_0_20"];
+Add -> iNTT[label="20_0_20"];
 iNTT -> End[label="20_0_20"];
 }
