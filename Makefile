@@ -8,6 +8,7 @@ SRC=\
 	polyfhe/engine/pass/calculate_smem_size_pass.cpp \
 	polyfhe/engine/pass/data_reuse_pass.cpp \
 	polyfhe/engine/pass/extract_subgraph_pass.cpp \
+	polyfhe/engine/pass/kernel_launch_config_pass.cpp \
 	polyfhe/engine/pass/lowering_ckks_to_poly_pass.cpp \
 	polyfhe/engine/pass/rewrite_ntt_pass.cpp \
 	polyfhe/engine/pass/set_block_phase_pass.cpp \
@@ -41,6 +42,7 @@ HDR=\
 	polyfhe/engine/pass/calculate_smem_size_pass.hpp \
 	polyfhe/engine/pass/data_reuse_pass.hpp \
 	polyfhe/engine/pass/extract_subgraph_pass.hpp \
+	polyfhe/engine/pass/kernel_launch_config_pass.hpp \
 	polyfhe/engine/pass/lowering_ckks_to_poly_pass.hpp \
 	polyfhe/engine/pass/pass_base.hpp \
 	polyfhe/engine/pass/pass_manager.hpp \

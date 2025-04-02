@@ -28,7 +28,7 @@ public:
                              std::shared_ptr<polyfhe::core::Edge> in1,
                              polyfhe::core::SubgraphType s_type);
     void generate_NTT(std::shared_ptr<polyfhe::core::Node>& node, CodeWriter& w,
-                      bool if_ntt, bool if_phase1);
+                      bool if_ntt, bool if_phase1, bool has_defined);
     void generate_NTT_ElemLimb(std::shared_ptr<polyfhe::core::Node>& node,
                                CodeWriter& w, bool if_ntt, bool if_phase1);
     void generate_modup(std::shared_ptr<polyfhe::core::Node>& node,

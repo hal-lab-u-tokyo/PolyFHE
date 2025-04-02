@@ -28,6 +28,12 @@ enum class SubgraphType {
     ElemLimb2Slot,
 };
 
+struct KernelLaunchConfig {
+    std::string grid_size;
+    std::string block_size;
+    std::string shared_mem_size;
+};
+
 std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type);
 std::string to_string(SubgraphType subgraph_type);
 
@@ -76,6 +82,14 @@ public:
     // max limb
     int get_max_limb();
 
+    // Kernel launch config
+    void set_kernel_launch_config(KernelLaunchConfig c) {
+        m_kernel_launch_config = c;
+    }
+    KernelLaunchConfig get_kernel_launch_config() {
+        return m_kernel_launch_config;
+    }
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;
@@ -89,6 +103,8 @@ private:
     int m_gridX;
     int m_blockX;
     int m_smem_size;
+
+    KernelLaunchConfig m_kernel_launch_config;
 };
 
 class Graph {

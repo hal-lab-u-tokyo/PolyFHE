@@ -9,6 +9,7 @@
 #include "polyfhe/engine/pass/calculate_smem_size_pass.hpp"
 #include "polyfhe/engine/pass/data_reuse_pass.hpp"
 #include "polyfhe/engine/pass/extract_subgraph_pass.hpp"
+#include "polyfhe/engine/pass/kernel_launch_config_pass.hpp"
 #include "polyfhe/engine/pass/lowering_ckks_to_poly_pass.hpp"
 #include "polyfhe/engine/pass/pass_manager.hpp"
 #include "polyfhe/engine/pass/rewrite_ntt_pass.hpp"
@@ -122,6 +123,8 @@ int main(int argc, char** argv) {
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::CalculateSmemSizePass>());
     }
+    pass_manager.push_back(
+        std::make_shared<polyfhe::engine::KernelLaunchConfigPass>());
 
     // Run PassManager
     std::cout << "==================================================\n";

@@ -154,9 +154,9 @@ void CudaCodegen::generate_ElemWiseOp(
         for (auto edge : {out, in0, in1}) {
             args.push_back(gen_edge_access(
                 edge,
-                "batch_idx * params->N + blockIdx.x + threadIdx.x * params->n1",
-                std::to_string(edge->get_offset_smem()) +
-                    " + batch_idx * params->n2 + threadIdx.x"));
+                "batch_idx * params->N + blockIdx.x + thread_idx * params->n1",
+                "batch_idx * params->n2 + " +
+                    std::to_string(edge->get_offset_smem()) + " + thread_idx"));
         }
         w << gen_ElemWiseOp_internal(op_type, args[0], args[1], args[2]);
 
@@ -164,10 +164,11 @@ void CudaCodegen::generate_ElemWiseOp(
         for (auto edge : {out, in0, in1}) {
             args.push_back(gen_edge_access(
                 edge,
-                "batch_idx * params->N + blockIdx.x + (threadIdx.x + "
-                "blockDim.x) * params->n1",
-                std::to_string(edge->get_offset_smem()) +
-                    " + batch_idx * params->n2 + threadIdx.x + blockDim.x"));
+                "batch_idx * params->N + blockIdx.x + (thread_idx + "
+                "n_threads) * params->n1",
+                "batch_idx * params->n2 + " +
+                    std::to_string(edge->get_offset_smem()) +
+                    " + thread_idx + n_threads"));
         }
         w << gen_ElemWiseOp_internal(op_type, args[0], args[1], args[2]);
     } else {
@@ -176,7 +177,8 @@ void CudaCodegen::generate_ElemWiseOp(
 }
 
 void CudaCodegen::generate_NTT(std::shared_ptr<polyfhe::core::Node>& node,
-                               CodeWriter& w, bool if_ntt, bool if_phase1) {
+                               CodeWriter& w, bool if_ntt, bool if_phase1,
+                               bool has_defined) {
     // TODO: add limb range to Node?
 
     // IN-edge must be only one
@@ -185,27 +187,38 @@ void CudaCodegen::generate_NTT(std::shared_ptr<polyfhe::core::Node>& node,
     assert(node->get_out_edges().size() == 1);
 
     auto inedge = node->get_in_edges()[0];
+    if (!has_defined) {
+        if (if_phase1) {
+            w << "const int n_threads = params->n1 / 2;\n";
+        } else {
+            w << "const int n_threads = params->n2 / 2;\n";
+        }
+        w << "const int n_group = blockDim.x / n_threads;\n";
+        w << "const uint64_t thread_idx = threadIdx.x % n_threads;\n";
+    }
     w << "#pragma unroll\n";
-    w << "for (int batch_idx = " << inedge->get_start_limb() << "; ";
+    w << "for (int batch_idx = " << inedge->get_start_limb()
+      << " + threadIdx.x / n_threads; ";
     w << "batch_idx < " << inedge->get_end_limb() << "; ";
-    w << "batch_idx++)";
+    w << "batch_idx += n_group)";
     w.block_begin();
     if (inedge->get_level() == polyfhe::core::EdgeLevel::Global) {
         w << "uint64_t *in_i = " << inedge->get_name()
           << " + batch_idx * params->N;\n";
         if (if_phase1) {
             w << "uint64_t *shared_i = shared + batch_idx * params->n1;\n";
-            w << "shared_i[threadIdx.x] ="
-              << "in_i[blockIdx.x * params->n1 + threadIdx.x];\n";
-            w << "shared_i[threadIdx.x + blockDim.x] ="
-              << "in_i[blockIdx.x * params->n1 + threadIdx.x + blockDim.x];\n";
+            w << "const uint64_t idx_base = blockIdx.x * params->n1 + "
+                 "thread_idx;\n";
+            w << "shared_i[thread_idx] ="
+              << "in_i[idx_base];\n";
+            w << "shared_i[thread_idx + n_threads] ="
+              << "in_i[idx_base + n_threads];\n";
         } else {
             w << "uint64_t *shared_i = shared + batch_idx * params->n2;\n";
-            w << "shared_i[threadIdx.x] ="
-              << "in_i[blockIdx.x + threadIdx.x * params->n1];\n";
-            w << "shared_i[threadIdx.x + blockDim.x] ="
-              << "in_i[blockIdx.x + (threadIdx.x + blockDim.x) * "
-                 "params->n1];\n";
+            w << "shared_i[thread_idx] ="
+              << "in_i[blockIdx.x + thread_idx * params->n1];\n";
+            w << "shared_i[thread_idx + n_threads] ="
+              << "in_i[blockIdx.x + (thread_idx + n_threads) * params->n1];\n";
         }
     } else {
         if (if_phase1) {
@@ -217,17 +230,21 @@ void CudaCodegen::generate_NTT(std::shared_ptr<polyfhe::core::Node>& node,
 
     if (if_ntt) {
         if (if_phase1) {
-            w << "NTTPhase1Op(shared_i, params->ntt_params, batch_idx);\n";
+            w << "NTTPhase1BlockedInternal(shared_i, params->ntt_params, "
+                 "batch_idx, thread_idx);\n";
         } else {
-            w << "NTTPhase2Op(shared_i, params->ntt_params, batch_idx, "
-                 "blockIdx.x);\n";
+            w << "NTTPhase2BlockedInternal(shared_i, params->ntt_params, "
+                 "batch_idx, "
+                 "thread_idx);\n";
         }
     } else {
         if (if_phase1) {
-            w << "iNTTPhase1Op(shared_i, params->ntt_params, batch_idx);\n";
+            w << "iNTTPhase1BlockedInternal(shared_i, params->ntt_params, "
+                 "batch_idx, thread_idx);\n";
         } else {
-            w << "iNTTPhase2Op(shared_i, params->ntt_params, batch_idx, "
-                 "blockIdx.x);\n";
+            w << "iNTTPhase2BlockedInternal(shared_i, params->ntt_params, "
+                 "batch_idx, "
+                 "thread_idx);\n";
         }
     }
 
@@ -237,16 +254,16 @@ void CudaCodegen::generate_NTT(std::shared_ptr<polyfhe::core::Node>& node,
         w << "uint64_t *out_i = " << outedge->get_name()
           << " + batch_idx * params->N;\n";
         if (if_phase1) {
-            w << "out_i[blockIdx.x * params->n1 + threadIdx.x] = "
-                 "shared_i[threadIdx.x];\n";
-            w << "out_i[blockIdx.x * params->n1 + threadIdx.x + blockDim.x] = "
-                 "shared_i[threadIdx.x + blockDim.x];\n";
+            w << "out_i[idx_base] = "
+                 "shared_i[thread_idx];\n";
+            w << "out_i[idx_base + n_threads] = "
+                 "shared_i[thread_idx + n_threads];\n";
         } else {
-            w << "out_i[blockIdx.x + threadIdx.x * params->n1] = "
-                 "shared_i[threadIdx.x];\n";
-            w << "out_i[blockIdx.x + (threadIdx.x + blockDim.x) * params->n1] "
+            w << "out_i[blockIdx.x + thread_idx * params->n1] = "
+                 "shared_i[thread_idx];\n";
+            w << "out_i[blockIdx.x + (thread_idx + n_threads) * params->n1] "
                  "= "
-                 "shared_i[threadIdx.x + blockDim.x];\n";
+                 "shared_i[thread_idx + n_threads];\n";
         }
     } else {
         // Do nothing for shared memory
@@ -270,10 +287,9 @@ void CudaCodegen::generate_NTT_ElemLimb(
         w << "uint64_t *in_i = " << inedge->get_name()
           << " + batch_idx * params->N;\n";
         if (if_phase1) {
-            w << "shared[threadIdx.x] ="
-              << "in_i[block_idx * params->n1 + threadIdx.x];\n";
+            w << "shared[threadIdx.x] = in_i[n_idx];\n";
             w << "shared[threadIdx.x + blockDim.x] ="
-              << "in_i[block_idx * params->n1 + threadIdx.x + blockDim.x];\n";
+              << "in_i[n_idx + blockDim.x];\n";
         } else {
             w << "shared[threadIdx.x] ="
               << "in_i[block_idx + threadIdx.x * params->n1];\n";
@@ -285,17 +301,19 @@ void CudaCodegen::generate_NTT_ElemLimb(
 
     if (if_ntt) {
         if (if_phase1) {
-            w << "NTTPhase1Op(shared, params->ntt_params, batch_idx);\n";
+            w << "NTTPhase1Internal(shared, params->ntt_params, batch_idx, "
+                 "threadIdx.x);\n";
         } else {
-            w << "NTTPhase2Op(shared, params->ntt_params, batch_idx, "
-                 "block_idx);\n";
+            w << "NTTPhase2Internal(shared, params->ntt_params, batch_idx, "
+                 "threadIdx.x);\n";
         }
     } else {
         if (if_phase1) {
-            w << "iNTTPhase1Op(shared, params->ntt_params, batch_idx);\n";
+            w << "iNTTPhase1Internal(shared, params->ntt_params, batch_idx, "
+                 "threadIdx.x);\n";
         } else {
-            w << "iNTTPhase2Op(shared, params->ntt_params, batch_idx, "
-                 "block_idx);\n";
+            w << "iNTTPhase2Internal(shared, params->ntt_params, batch_idx, "
+                 "threadIdx.x);\n";
         }
     }
 
@@ -305,9 +323,8 @@ void CudaCodegen::generate_NTT_ElemLimb(
         w << "uint64_t *out_i = " << outedge->get_name()
           << " + batch_idx * params->N;\n";
         if (if_phase1) {
-            w << "out_i[block_idx * params->n1 + threadIdx.x] = "
-                 "shared[threadIdx.x];\n";
-            w << "out_i[block_idx * params->n1 + threadIdx.x + blockDim.x] = "
+            w << "out_i[n_idx] = shared[threadIdx.x];\n";
+            w << "out_i[n_idx + blockDim.x] = "
                  "shared[threadIdx.x + blockDim.x];\n";
         } else {
             w << "out_i[block_idx + threadIdx.x * params->n1] = "
@@ -502,13 +519,18 @@ void CudaCodegen::generate_kernel_defs(
             w << "const int batch_idx = blockIdx.x / params->n2;\n";
             w << "const int block_idx = blockIdx.x % params->n2;\n";
             w << "const int n_idx = block_idx * params->n1 + threadIdx.x;\n";
-            w << "const uint64_t q = params->ntt_params->q[batch_idx];\n";
+            bool if_defined_q = false;
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
+                    if (!if_defined_q) {
+                        w << "const uint64_t q = params->ntt_params->q["
+                             "batch_idx];\n";
+                        if_defined_q = true;
+                    }
                     w.block_begin();
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 2);
@@ -539,7 +561,7 @@ void CudaCodegen::generate_kernel_defs(
             w.block_begin();
             w << "const int batch_idx = blockIdx.x / params->n1;\n";
             w << "const int block_idx = blockIdx.x % params->n1;\n";
-            w << "const uint64_t q = params->ntt_params->q[batch_idx];\n";
+            bool if_defined_q = false;
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
@@ -548,6 +570,11 @@ void CudaCodegen::generate_kernel_defs(
                     op_type == core::OpType::Mult) {
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 2);
+                    if (!if_defined_q) {
+                        w << "const uint64_t q = params->ntt_params->q["
+                             "batch_idx];\n";
+                        if_defined_q = true;
+                    }
                     w.block_begin();
                     generate_ElemWiseOp(node, w, node->get_out_edges()[0],
                                         node->get_in_edges()[0],
@@ -619,6 +646,7 @@ void CudaCodegen::generate_kernel_defs(
             // ElemLimb2Slot
             // ==============================
             w << "extern __shared__ uint64_t shared[];\n";
+            bool has_defined_ntt = false;
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
@@ -628,11 +656,14 @@ void CudaCodegen::generate_kernel_defs(
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 2);
                     // TODO: limb range
-                    w << "for (int batch_idx = "
-                      << node->get_in_edges()[0]->get_start_limb() << "; ";
-                    w << "batch_idx < "
-                      << node->get_in_edges()[0]->get_end_limb() << "; ";
-                    w << "batch_idx++)";
+                    //
+                    auto inedge = node->get_in_edges()[0];
+                    w << "#pragma unroll\n";
+                    w << "for (int batch_idx = " << inedge->get_start_limb()
+                      << " + threadIdx.x / n_threads; ";
+                    w << "batch_idx < " << inedge->get_end_limb() << "; ";
+                    w << "batch_idx += n_group)";
+
                     w.block_begin();
                     w << "const uint64_t q = "
                          "params->ntt_params->q[batch_idx];\n";
@@ -643,11 +674,13 @@ void CudaCodegen::generate_kernel_defs(
                 } else if (op_type == core::OpType::NTTPhase2) {
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 1);
-                    generate_NTT(node, w, true, false);
+                    generate_NTT(node, w, true, false, has_defined_ntt);
+                    has_defined_ntt = true;
                 } else if (op_type == core::OpType::iNTTPhase2) {
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 1);
-                    generate_NTT(node, w, false, false);
+                    generate_NTT(node, w, false, false, has_defined_ntt);
+                    has_defined_ntt = true;
                 } else if (op_type == core::OpType::ModUp) {
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 1);
@@ -685,43 +718,9 @@ void CudaCodegen::generate_call_kernels(
     w << "// Timer start\n";
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
     for (auto subgraph : graph->get_subgraphs()) {
-        core::SubgraphType s_type = subgraph->get_subgraph_type();
-        if (s_type == core::SubgraphType::Elem) {
-            // If subgraph contains only ONE node, we don't need to malloc
-            // shared memory
-            if (subgraph->get_nodes().size() == 1) {
-                w << subgraph->get_name() << "<<<4096, 256>>>";
-            } else {
-                w << subgraph->get_name() << "<<<2048, 128,"
-                  << subgraph->get_smem_size() << ">>>";
-            }
-        } else if (s_type == core::SubgraphType::ElemLimb1) {
-            // NTTPhase1 uses shared memory even if it has only one node
-            // TODO: shared memory size
-            w << subgraph->get_name()
-              << "<<<params_h->L * params_h->n2, params_h->n1/2, "
-              << "params_h->n1 * sizeof(uint64_t)>>>";
-        } else if (s_type == core::SubgraphType::ElemLimb2) {
-            // NTTPhase2 uses shared memory even if it has only one node
-            w << subgraph->get_name()
-              << "<<<params_h->L * params_h->n1, params_h->n2/2, "
-              << "params_h->n2 * sizeof(uint64_t)>>>";
-        } else if (s_type == core::SubgraphType::ElemSlot) {
-            w << subgraph->get_name()
-              << "<<< params_h->n1 * params_h->L, params_h->n2, "
-              << subgraph->get_smem_size() << ">>>";
-        } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
-            w << subgraph->get_name() << "<<<params_h->n1, ";
-            w << "params_h->n2/2, ";
-            w << subgraph->get_smem_size() << ">>>";
-        } else if (s_type == core::SubgraphType::ElemLimb2Slot) {
-            w << subgraph->get_name() << "<<<params_h->n2, ";
-            w << "params_h->n1/2, ";
-            w << subgraph->get_smem_size() << ">>>";
-        } else {
-            LOG_ERROR("Not implemented subgraph %s\n",
-                      core::to_string(s_type).c_str());
-        }
+        core::KernelLaunchConfig kconfig = subgraph->get_kernel_launch_config();
+        w << subgraph->get_name() << "<<<" << kconfig.grid_size << ", "
+          << kconfig.block_size << ", " << kconfig.shared_mem_size << ">>>";
         w << "(params_d";
         if (subgraph->get_block_phase() !=
             polyfhe::core::BlockPhase::NTTPhase0) {
