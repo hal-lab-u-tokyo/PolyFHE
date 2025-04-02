@@ -581,57 +581,24 @@ void CudaCodegen::generate_kernel_defs(
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
-                    std::vector<std::string> args;
-                    std::vector<std::string> args_if_gmem;
-                    if (op_type == core::OpType::Add) {
-                        args.push_back("ElemWiseOp::Add");
-                    } else if (op_type == core::OpType::Sub) {
-                        args.push_back("ElemWiseOp::Sub");
-                    } else if (op_type == core::OpType::Mult) {
-                        args.push_back("ElemWiseOp::Mult");
-                    }
-                    args.push_back("params");
-                    assert(node->get_in_edges().size() == 2);
-                    // Make sure all levels of outedges are the same
-                    for (auto edge : node->get_out_edges()) {
-                        assert(edge->get_level() ==
-                               node->get_out_edges()[0]->get_level());
-                    }
-                    // Output to only first outedge
-                    auto outedge = node->get_out_edges()[0];
-                    if (outedge->get_level() ==
-                        polyfhe::core::EdgeLevel::Global) {
-                        args.push_back(outedge->get_name());
-                        args_if_gmem.push_back("1");
-                    } else {
-                        args.push_back(
-                            "shared + " +
-                            std::to_string(outedge->get_offset_smem()));
-                        args_if_gmem.push_back("0");
-                    }
-                    for (auto edge : node->get_in_edges()) {
-                        if (edge->get_level() ==
-                            polyfhe::core::EdgeLevel::Global) {
-                            args.push_back(edge->get_name());
-                            args_if_gmem.push_back("1");
-                        } else {
-                            args.push_back(
-                                "shared + " +
-                                std::to_string(edge->get_offset_smem()));
-                            args_if_gmem.push_back("0");
-                        }
-                    }
-                    args.insert(args.end(), args_if_gmem.begin(),
-                                args_if_gmem.end());
-                    args.push_back("blockDim.x");
-                    int start_limb = node->get_in_edges()[0]->get_start_limb();
-                    int end_limb = node->get_in_edges()[0]->get_end_limb();
-                    args.push_back(std::to_string(start_limb));
-                    args.push_back(std::to_string(end_limb));
-                    args.push_back("idx");
-                    args.push_back("threadIdx.x");
-                    w << "ElemWiseOp_ElemSlot(" << GenerateArgs(args) << ");\n";
+                    LOG_ERROR("Not implemented\n");
                 } else if (op_type == core::OpType::ModUp) {
+                    // TODO: impl
+                    w << "for (int batch_idx = 0; ";
+                    w << "batch_idx < params->L; ";
+                    w << "batch_idx++)";
+                    w.block_begin();
+                    assert(node->get_out_edges().size() == 1);
+                    assert(node->get_in_edges().size() == 1);
+                    auto outedge = node->get_out_edges()[0];
+                    auto inedge = node->get_in_edges()[0];
+                    w << "const int idx = blockIdx.x * blockDim.x + "
+                         "threadIdx.x;\n";
+                    w << outedge->get_name()
+                      << "[batch_idx * params->N + idx] = "
+                      << inedge->get_name()
+                      << "[batch_idx * params->N + idx];\n";
+                    w.block_end();
                     // generate_modup(node, w, "blockDim.x", "idx",
                     // "threadIdx.x");
                 } else if (op_type == core::OpType::ModDown) {
@@ -740,7 +707,8 @@ void CudaCodegen::generate_call_kernels(
               << "<<<params_h->L * params_h->n1, params_h->n2/2, "
               << "params_h->n2 * sizeof(uint64_t)>>>";
         } else if (s_type == core::SubgraphType::ElemSlot) {
-            w << subgraph->get_name() << "<<< params_h->N / 128, 128, "
+            w << subgraph->get_name()
+              << "<<< params_h->n1 * params_h->L, params_h->n2, "
               << subgraph->get_smem_size() << ">>>";
         } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
             w << subgraph->get_name() << "<<<params_h->n1, ";

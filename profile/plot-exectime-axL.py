@@ -107,17 +107,17 @@ def gen_marker(idx):
         return "v"
     
 # Plot
-fig, ax = plt.subplots(figsize=(18, 10))
+fig, ax = plt.subplots(figsize=(14, 8))
 for idx in range(len(phantom_datas)):
     ax.plot(limbs, phantom_datas[idx], label=f"{phantom_labels[idx]}", marker=gen_marker(idx), color=phantom_colors[idx], markersize=10)
 
 for idx in range(len(thiswork_datas)):
     ax.plot(limbs, thiswork_datas[idx], label=f"{thiswork_labels[idx]}", marker=gen_marker(idx), color=thiswork_colors[idx], markersize=10)
 
-ax.set_xlabel("Limbs", fontsize=24)
-ax.set_ylabel("Latency [us]", fontsize=24)
-ax.tick_params(axis='both', labelsize=20)
-ax.legend(fontsize=20)
+ax.set_xlabel("Limbs", fontsize=38)
+ax.set_ylabel("Latency [us]", fontsize=38)
+ax.tick_params(axis='both', labelsize=28)
+ax.legend(fontsize=28)
 plt.savefig(f"{directory_path}/profile/figure/exectime-L.png", dpi=500,bbox_inches='tight', pad_inches=0)
 print(f"Figure saved at {directory_path}/profile/figure/exectime-L.png")
 
