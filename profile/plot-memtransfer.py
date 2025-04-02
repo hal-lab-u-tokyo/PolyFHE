@@ -73,9 +73,9 @@ print("Phantom")
 print(datas[2])
 
 # Plot
-fig, ax = plt.subplots(figsize=(18, 10))
+fig, ax = plt.subplots(figsize=(14, 8))
 metric = "dram__bytes_read.sum"
-candidates = ["ThisWork", "ThisWork(Baseline)", "Phantom"]
+candidates = ["ThisWork", "ThisWork(NoOpt)", "Phantom"]
 num_iters = [6, 6, 5]
 result = [datas[i][metric] / num_iters[i] for i in range(len(datas))]
 
@@ -87,10 +87,11 @@ print(f"(Phantom - ThisWork) / Phantom = {(result[2] - result[0]) / result[2] * 
 print(f"(Baseline - ThisWork) / Baseline = {(result[1] - result[0]) / result[1] * 100:.2f}%")
 
 ax.bar(candidates, result, color='tab:blue')
-ax.bar_label(ax.containers[0], fmt='%.2f', label_type='edge', fontsize=24)
-ax.set_ylabel("Data Transfer [MB]", fontsize=24)
-ax.tick_params(axis='y', labelsize=24)
-ax.tick_params(axis='x', labelsize=24)
+ax.bar_label(ax.containers[0], fmt='%.2f', label_type='edge', fontsize=28, bbox=dict(facecolor='white', edgecolor='none', boxstyle='round,pad=0'))
+ax.set_ylabel("Data Transfer [MB]", fontsize=38)
+ax.tick_params(axis='y', labelsize=32)
+ax.tick_params(axis='x', labelsize=32)
 plt.savefig(f"{directory_path}/profile/figure/memtransfer-{paramset}.eps", dpi=500,bbox_inches='tight', pad_inches=0)
 plt.savefig(f"{directory_path}/profile/figure/memtransfer-{paramset}.png", dpi=500,bbox_inches='tight', pad_inches=0)
+plt.savefig(f"{directory_path}/profile/figure/memtransfer-{paramset}.pdf", dpi=500,bbox_inches='tight', pad_inches=0)
 print(f"Figure saved at {directory_path}/profile/figure/memtransfer-{paramset}.eps")

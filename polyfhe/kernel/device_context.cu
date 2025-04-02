@@ -1,4 +1,5 @@
 #include <cstring>
+#include <iostream>
 #include <vector>
 
 #include "device_context.hpp"
@@ -62,6 +63,20 @@ uint64_t findPrimitiveRoot(uint64_t modulus) {
     throw "Cannot find the primitive root of unity";
 }
 
+uint64_t findPrimitiveNthRoot(uint64_t modulus, uint64_t N) {
+    uint64_t root = findPrimitiveRoot(modulus);
+    uint64_t phi = modulus - 1;
+    uint64_t root0 = powMod(root, phi / N, modulus);
+    uint64_t min_root = root0;
+    for (uint64_t i = 2; i < N; i++) {
+        uint64_t rooti = powMod(root0, i, modulus);
+        if (rooti < min_root) {
+            min_root = rooti;
+        }
+    }
+    return min_root;
+}
+
 uint64_t compute_shoup(const uint64_t operand, const uint64_t modulus) {
     if (operand >= modulus) {
         throw "Operand must be less than modulus";
@@ -84,10 +99,10 @@ Params::Params(const int logN, const int L, const int dnum)
     qVec = new uint64_t[L + K];
     pVec = qVec + L;
     for (int i = 0; i < L; i++) {
-        qVec[i] = 998244353; // 51-bit
+        qVec[i] = 998244353; // 30-bit
     }
     for (int i = 0; i < K; i++) {
-        pVec[i] = 998244353; // 51-bit
+        pVec[i] = 998244353; // 30-bit
     }
 
     ntt_params = new NTTParams();
@@ -102,7 +117,7 @@ Params::Params(const int logN, const int L, const int dnum)
     ntt_params->root_inv = new uint64_t[L + K];
     ntt_params->N_inv = new uint64_t[L + K];
     for (int i = 0; i < L + K; i++) {
-        ntt_params->root[i] = findPrimitiveRoot(qVec[i]);
+        ntt_params->root[i] = findPrimitiveNthRoot(qVec[i], N);
         ntt_params->root_inv[i] =
             powMod(ntt_params->root[i], qVec[i] - 2, qVec[i]);
         ntt_params->N_inv[i] = powMod(N, qVec[i] - 2, qVec[i]);
@@ -153,21 +168,22 @@ void FHEContext::CopyParamsToDevice() {
     memcpy(&ntt_params_tmp, h_params->ntt_params, sizeof(NTTParams));
     ntt_params_tmp.q = d_qVec;
     ntt_params_tmp.p = d_qVec + L;
-    uint64_t *d_root;
-    uint64_t *d_root_inv;
-    uint64_t *d_N_inv;
-    checkCudaErrors(cudaMalloc(&d_root, (L + K) * sizeof(uint64_t)));
-    checkCudaErrors(cudaMalloc(&d_root_inv, (L + K) * sizeof(uint64_t)));
-    checkCudaErrors(cudaMalloc(&d_N_inv, (L + K) * sizeof(uint64_t)));
-    checkCudaErrors(cudaMemcpy(d_root, h_params->ntt_params->root,
+    checkCudaErrors(
+        cudaMalloc(&ntt_params_tmp.root, (L + K) * sizeof(uint64_t)));
+    checkCudaErrors(
+        cudaMalloc(&ntt_params_tmp.root_inv, (L + K) * sizeof(uint64_t)));
+    checkCudaErrors(
+        cudaMalloc(&ntt_params_tmp.N_inv, (L + K) * sizeof(uint64_t)));
+    checkCudaErrors(cudaMemcpy(ntt_params_tmp.root, h_params->ntt_params->root,
                                (L + K) * sizeof(uint64_t),
                                cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_root_inv, h_params->ntt_params->root_inv,
-                               (L + K) * sizeof(uint64_t),
-                               cudaMemcpyHostToDevice));
-    checkCudaErrors(cudaMemcpy(d_N_inv, h_params->ntt_params->N_inv,
-                               (L + K) * sizeof(uint64_t),
-                               cudaMemcpyHostToDevice));
+    checkCudaErrors(
+        cudaMemcpy(ntt_params_tmp.root_inv, h_params->ntt_params->root_inv,
+                   (L + K) * sizeof(uint64_t), cudaMemcpyHostToDevice));
+    checkCudaErrors(
+        cudaMemcpy(ntt_params_tmp.N_inv, h_params->ntt_params->N_inv,
+                   (L + K) * sizeof(uint64_t), cudaMemcpyHostToDevice));
+
     uint64_t **d_roots_pow = new uint64_t *[L + K];
     uint64_t **d_roots_pow_inv = new uint64_t *[L + K];
     uint64_t **d_roots_pow_shoup = new uint64_t *[L + K];

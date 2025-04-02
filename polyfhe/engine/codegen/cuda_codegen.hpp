@@ -21,6 +21,16 @@ public:
     void generate_call_kernels(std::shared_ptr<polyfhe::core::Graph>& graph,
                                CodeWriter& w);
 
+    void generate_ElemWiseOp(std::shared_ptr<polyfhe::core::Node>& node,
+                             CodeWriter& w,
+                             std::shared_ptr<polyfhe::core::Edge> out,
+                             std::shared_ptr<polyfhe::core::Edge> in0,
+                             std::shared_ptr<polyfhe::core::Edge> in1,
+                             polyfhe::core::SubgraphType s_type);
+    void generate_NTT(std::shared_ptr<polyfhe::core::Node>& node, CodeWriter& w,
+                      bool if_ntt, bool if_phase1);
+    void generate_NTT_ElemLimb(std::shared_ptr<polyfhe::core::Node>& node,
+                               CodeWriter& w, bool if_ntt, bool if_phase1);
     void generate_modup(std::shared_ptr<polyfhe::core::Node>& node,
                         CodeWriter& w, std::string sPoly_x, std::string n_gidx,
                         std::string n_sidx);

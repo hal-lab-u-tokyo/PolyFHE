@@ -198,153 +198,118 @@ __device__ __forceinline__ void store_s2g_phase2_blocked(uint64_t* gmem,
 }
 
 __device__ __forceinline__ void NTTPhase1Op(uint64_t* buffer, NTTParams* params,
-                                            const size_t batch_idx,
-                                            const size_t thread_idx) {
-    size_t group = params->n1 / 8;
-    uint64_t samples[8];
-
-    // base address
-    const uint64_t* psi = params->roots_pow[batch_idx];
-    const uint64_t* psi_shoup = params->roots_pow_shoup[batch_idx];
-    uint64_t modulus = params->q[batch_idx];
-
-    for (size_t j = 0; j < 8; j++) {
-        samples[j] = buffer[thread_idx + group * j];
-    }
-    size_t tw_idx = 1;
-    fntt8(samples, psi, psi_shoup, tw_idx, modulus);
-    for (size_t j = 0; j < 8; j++) {
-        buffer[thread_idx + group * j] = samples[j];
-    }
-
-    size_t remain_iters = 0;
-    __syncthreads();
-    for (size_t j = 8, k = group / 2; j < group + 1; j *= 8, k >>= 3) {
-        size_t m_idx2 = thread_idx / (k / 4);
-        size_t t_idx2 = thread_idx % (k / 4);
-        for (size_t l = 0; l < 8; l++) {
-            samples[l] = buffer[2 * m_idx2 * k + t_idx2 + (k / 4) * l];
+                                            size_t batch_idx) {
+    bool debug = false;
+    uint64_t q = params->q[batch_idx];
+    uint64_t t = params->n1;
+    for (int m = 1; m < params->n1; m *= 2) {
+        t = t / 2;
+        int j = threadIdx.x & (m - 1);
+        int k = 2 * m * (threadIdx.x / m);
+        const int rootidx = t * j * params->n2;
+        uint64_t S = params->roots_pow[batch_idx][rootidx];
+        __syncthreads();
+        uint64_t U = buffer[k + j];
+        uint64_t V_ = buffer[k + j + m];
+        uint64_t V = (buffer[k + j + m] * S) % q;
+        uint64_t tmp = U + V;
+        buffer[k + j] = tmp >= q ? tmp - q : tmp;
+        tmp = U + q - V;
+        buffer[k + j + m] = tmp >= q ? tmp - q : tmp;
+        if (debug) {
+            printf(
+                "m:%d, block:%d, (a[%d],a[%d]) = (%ld,%ld), "
+                "U=%ld,V=%ld,S=%ld,rootidx=%d\n",
+                m, blockIdx.x, blockIdx.x * params->n1 + (k + j),
+                blockIdx.x * params->n1 + (k + j + m), buffer[k + j],
+                buffer[k + j + m], U, V_, S, rootidx);
         }
-        size_t tw_idx2 = j * tw_idx + m_idx2;
-        fntt8(samples, psi, psi_shoup, tw_idx2, modulus);
-        for (size_t l = 0; l < 8; l++) {
-            buffer[2 * m_idx2 * k + t_idx2 + (k / 4) * l] = samples[l];
-        }
-        if (j == group / 2)
-            remain_iters = 1;
-        if (j == group / 4)
-            remain_iters = 2;
         __syncthreads();
     }
-
-    if (group < 8)
-        remain_iters = (group == 4) ? 2 : 1;
-    for (size_t l = 0; l < 8; l++) {
-        samples[l] = buffer[8 * thread_idx + l];
-    }
-    if (remain_iters == 1) {
-        size_t tw_idx2 = 4 * group * tw_idx + 4 * thread_idx;
-        ct_butterfly(samples[0], samples[1], psi[tw_idx2], psi_shoup[tw_idx2],
-                     modulus);
-        ct_butterfly(samples[2], samples[3], psi[tw_idx2 + 1],
-                     psi_shoup[tw_idx2 + 1], modulus);
-        ct_butterfly(samples[4], samples[5], psi[tw_idx2 + 2],
-                     psi_shoup[tw_idx2 + 2], modulus);
-        ct_butterfly(samples[6], samples[7], psi[tw_idx2 + 3],
-                     psi_shoup[tw_idx2 + 3], modulus);
-    } else if (remain_iters == 2) {
-        size_t tw_idx2 = 2 * group * tw_idx + 2 * thread_idx;
-        fntt4(samples, psi, psi_shoup, tw_idx2, modulus);
-        fntt4(samples + 4, psi, psi_shoup, tw_idx2 + 1, modulus);
-    }
-    for (size_t l = 0; l < 8; l++) {
-        buffer[8 * thread_idx + l] = samples[l];
-    }
-
-    __syncthreads();
 }
 
 __device__ __forceinline__ void NTTPhase2Op(uint64_t* buffer, NTTParams* params,
-                                            size_t batch_idx, size_t thread_idx,
-                                            size_t n_idx) {
-    size_t n2 = params->n2;
-    size_t group = params->n2 / 8;
-    size_t set = thread_idx / group;
-    // size of a block
-    uint64_t samples[8];
-    size_t t = n2 / 2;
+                                            size_t batch_idx,
+                                            size_t block_idx) {
+    bool debug = false;
+    uint64_t q = params->q[batch_idx];
+    uint64_t t = params->n2;
+    for (int m = 1; m < params->n2; m *= 2) {
+        t = t / 2;
+        int j = threadIdx.x & (m - 1);
+        int k = 2 * m * (threadIdx.x / m);
+        const int rootidx =
+            t * j * params->n1 + block_idx * params->n2 / (2 * m);
 
-    // tid'th block
-    size_t m_idx = n_idx / (t / 4);
-    size_t t_idx = n_idx % (t / 4);
-
-    uint64_t modulus = params->q[batch_idx];
-    const uint64_t* psi = params->roots_pow[batch_idx];
-    const uint64_t* psi_shoup = params->roots_pow_shoup[batch_idx];
-    for (size_t j = 0; j < 8; j++) {
-        samples[j] = buffer[set * n2 + t_idx + t / 4 * j];
-    }
-    size_t tw_idx = params->n1 + m_idx;
-    fntt8(samples, psi, psi_shoup, tw_idx, modulus);
-    for (size_t j = 0; j < 8; j++) {
-        buffer[set * n2 + t_idx + t / 4 * j] = samples[j];
-    }
-
-    size_t tail = 0;
-    __syncthreads();
-
-    for (size_t j = 8, k = t / 8; j < t / 4 + 1; j *= 8, k >>= 3) {
-        size_t m_idx2 = t_idx / (k / 4);
-        size_t t_idx2 = t_idx % (k / 4);
-        for (size_t l = 0; l < 8; l++) {
-            samples[l] =
-                buffer[set * n2 + 2 * m_idx2 * k + t_idx2 + (k / 4) * l];
+        uint64_t S = params->roots_pow[batch_idx][rootidx];
+        __syncthreads();
+        uint64_t U = buffer[k + j];
+        uint64_t V = (buffer[k + j + m] * S) % q;
+        uint64_t V_ = buffer[k + j + m];
+        uint64_t tmp = U + V;
+        buffer[k + j] = tmp >= q ? tmp - q : tmp;
+        tmp = U + q - V;
+        buffer[k + j + m] = tmp >= q ? tmp - q : tmp;
+        if (debug) {
+            printf(
+                "m:%d, block:%ld, (a[%ld],a[%ld]) = (%ld,%ld), "
+                "U=%ld,V=%ld,S=%ld,rootidx=%d\n",
+                m, block_idx, block_idx * params->n2 + (k + j),
+                block_idx * params->n2 + (k + j + m), buffer[k + j],
+                buffer[k + j + m], U, V_, S, rootidx);
         }
-        size_t tw_idx2 = j * tw_idx + m_idx2;
-        fntt8(samples, psi, psi_shoup, tw_idx2, modulus);
-        for (size_t l = 0; l < 8; l++) {
-            buffer[set * n2 + 2 * m_idx2 * k + t_idx2 + (k / 4) * l] =
-                samples[l];
-        }
-        if (j == t / 8)
-            tail = 1;
-        if (j == t / 16)
-            tail = 2;
         __syncthreads();
     }
+}
 
-    for (size_t l = 0; l < 8; l++) {
-        samples[l] = buffer[set * n2 + 8 * t_idx + l];
-    }
-    if (tail == 1) {
-        size_t tw_idx2 = t * tw_idx + 4 * t_idx;
-        ct_butterfly(samples[0], samples[1], psi[tw_idx2], psi_shoup[tw_idx2],
-                     modulus);
-        ct_butterfly(samples[2], samples[3], psi[tw_idx2 + 1],
-                     psi_shoup[tw_idx2 + 1], modulus);
-        ct_butterfly(samples[4], samples[5], psi[tw_idx2 + 2],
-                     psi_shoup[tw_idx2 + 2], modulus);
-        ct_butterfly(samples[6], samples[7], psi[tw_idx2 + 3],
-                     psi_shoup[tw_idx2 + 3], modulus);
-    } else if (tail == 2) {
-        size_t tw_idx2 = (t / 2) * tw_idx + 2 * t_idx;
-        fntt4(samples, psi, psi_shoup, tw_idx2, modulus);
-        fntt4(samples + 4, psi, psi_shoup, tw_idx2 + 1, modulus);
-    }
-    for (size_t l = 0; l < 8; l++) {
-        buffer[set * n2 + 8 * t_idx + l] = samples[l];
-    }
-    __syncthreads();
+__device__ __forceinline__ void iNTTPhase2Op(uint64_t* buffer,
+                                             NTTParams* params,
+                                             const size_t batch_idx,
+                                             size_t block_idx) {
+    uint64_t q = params->q[batch_idx];
+    uint64_t t, step;
+    for (int m = params->n2 / 2; m >= 1; m /= 2) {
+        step = m * 2;
+        t = params->n2 / step;
+        int j = threadIdx.x & (m - 1);
+        int k = 2 * m * (threadIdx.x / m);
+        const int rootidx =
+            t * j * params->n1 + block_idx * params->n2 / (2 * m);
 
-    uint64_t modulus2 = modulus << 1;
-    // final reduction
-    for (size_t j = 0; j < 8; j++) {
-        samples[j] = buffer[set * n2 + t_idx + t / 4 * j];
-        csub_q(samples[j], modulus2);
-        csub_q(samples[j], modulus);
-    }
-    for (size_t j = 0; j < 8; j++) {
-        buffer[set * n2 + t_idx + t / 4 * j] = samples[j];
+        uint64_t S = params->roots_pow_inv[batch_idx][rootidx];
+        uint64_t U = buffer[k + j];
+        uint64_t V = buffer[k + j + m];
+        uint64_t tmp = U + V;
+        buffer[k + j] = tmp >= q ? tmp - q : tmp;
+        buffer[k + j + m] = (((U - V + q) % q) * S) % q;
+        __syncthreads();
     }
 }
+
+__device__ __forceinline__ void iNTTPhase1Op(uint64_t* buffer,
+                                             NTTParams* params,
+                                             const size_t batch_idx) {
+    uint64_t q = params->q[batch_idx];
+    uint64_t t, step;
+    for (int m = params->n1 / 2; m >= 1; m /= 2) {
+        step = m * 2;
+        t = params->n1 / step;
+        int j = threadIdx.x & (m - 1);
+        int k = 2 * m * (threadIdx.x / m);
+        const int rootidx = t * j * params->n2;
+
+        uint64_t S = params->roots_pow_inv[batch_idx][rootidx];
+        uint64_t U = buffer[k + j];
+        uint64_t V = buffer[k + j + m];
+        uint64_t tmp = U + V;
+        buffer[k + j] = tmp >= q ? tmp - q : tmp;
+        buffer[k + j + m] = (((U - V + q) % q) * S) % q;
+        __syncthreads();
+    }
+    const uint64_t Ninv = params->N_inv[batch_idx];
+    buffer[threadIdx.x] = (buffer[threadIdx.x] * Ninv) % q;
+    buffer[threadIdx.x + blockDim.x] =
+        (buffer[threadIdx.x + blockDim.x] * Ninv) % q;
 }
+
+} // extern "C"

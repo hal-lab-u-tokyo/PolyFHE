@@ -126,4 +126,8 @@ void NTTPhase1_h(Params *params, uint64_t *dst, uint64_t *src,
                  const int start_limb, const int end_limb);
 void NTTPhase2_h(Params *params, uint64_t *dst, uint64_t *src,
                  const int start_limb, const int end_limb);
+void iNTTPhase1_h(Params *params, uint64_t *dst, uint64_t *src,
+                  const int start_limb, const int end_limb);
+void iNTTPhase2_h(Params *params, uint64_t *dst, uint64_t *src,
+                  const int start_limb, const int end_limb);
 }

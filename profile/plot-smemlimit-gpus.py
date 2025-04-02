@@ -4,13 +4,15 @@ import matplotlib.cm as cm
 import csv
 import numpy as np
 
-directory_path = "/opt/mount/PolyFHE"
+directory_path = os.path.dirname(os.path.realpath(__file__))
+print(f"Directory path: {directory_path}")
 
 # Read log *.txt file
 
 smem_limit = [i * 10 for i in range(1, 11)]
 gpus = ["brisket", "iwashi", "rump"]
-files = [["profile/data/smem_limit/" + str(gpus[i_gpus]) + "/" + str(i) + "0KB.txt" for i in range(1, 11)] for i_gpus in range(len(gpus))]
+
+files = [["data/smem_limit/" + str(gpus[i_gpus]) + "/" + str(i) + "0KB.txt" for i in range(1, 11)] for i_gpus in range(len(gpus))]
 datas = [[0 for i in range(1, 11)] for i in range(len(gpus))]
 
 for i_gpus in range(len(gpus)):
@@ -43,15 +45,15 @@ def gen_label(gpu):
         return "A100"
 
 # Plot
-fig, ax = plt.subplots(figsize=(18, 10))
+fig, ax = plt.subplots(figsize=(16, 8))
 for i_gpus in range(len(gpus)):
     ax.plot(smem_limit, datas[i_gpus], marker='o', label=f'{gen_label(gpus[i_gpus])}', linewidth=2)
 
-ax.set_xlabel('Limit Size of Shared Memory [KB]', fontsize=24)
-ax.set_ylabel('Execution time[us]', fontsize=24)
+ax.set_xlabel('Limit Size of Shared Memory / Block [KB]', fontsize=38)
+ax.set_ylabel('Exec time on A100[us]', fontsize=38)
 # set font sizeof x and y axis
-ax.tick_params(axis='both', labelsize=20)
-ax.legend(fontsize=20)
-plt.savefig(f"{directory_path}/profile/figure/smem_limit_gpus.png", dpi=500, bbox_inches='tight', pad_inches=0)
-plt.savefig(f"{directory_path}/profile/figure/smem_limit_gpus.eps", dpi=500, bbox_inches='tight', pad_inches=0)
-print(f"Figure saved at {directory_path}/profile/figure/smem_limit_gpus.png")
+ax.tick_params(axis='both', labelsize=28)
+ax.legend(fontsize=32)
+plt.savefig(f"{directory_path}/figure/smem_limit_gpus.png", dpi=500, bbox_inches='tight', pad_inches=0)
+plt.savefig(f"{directory_path}/figure/smem_limit_gpus.eps", dpi=500, bbox_inches='tight', pad_inches=0)
+print(f"Figure saved at {directory_path}/figure/smem_limit_gpus.png")

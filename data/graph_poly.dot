@@ -1,7 +1,14 @@
 digraph G {
 Init[label="Init"];
 End[label="End"];
+NTT[label="NTT"];
+iNTT[label="iNTT"];
+Add[label="Add"];
 ModUp[label="ModUp"];
-Init -> ModUp[label="0_0_2"];
-ModUp -> End[label="0_0_4"];
+Init -> NTT[label="20_0_20"];
+NTT -> ModUp[label="20_0_20"];
+ModUp -> Add[label="20_0_20"];
+Init -> Add[label="20_0_20"];
+Add -> iNTT[label="20_0_20"];
+iNTT -> End[label="20_0_20"];
 }
