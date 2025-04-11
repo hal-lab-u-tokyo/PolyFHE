@@ -4,7 +4,12 @@ import matplotlib.cm as cm
 import csv
 import numpy as np
 
-directory_path = "/opt/mount/PolyFHE"
+directory_path = os.path.dirname(os.path.abspath(__file__))
+# fname = "stallreason-logN16_L36_K1_Q1480_brisket"
+# fname_exectime = "exectime-logN16_L36_K1_Q1480_brisket"
+fname = "stallreason-logN16_L36_K6_Q1580_brisket"
+fname_exectime = "exectime-logN16_L36_K6_Q1580_brisket"
+
 metrics = ["barrier", 
          "dispatch_stall",
          "drain",
@@ -24,7 +29,6 @@ metrics = ["barrier",
          "wait"]
 
 #datas = [0 for i in range(len(metrics))]
-weight = {}
 
 def format_name(name):
     # eliminate after "("
@@ -46,45 +50,58 @@ def format_name(name):
         name = "Add"
     return name
 
-def read_exectime():
-    fname = "profile/data/phantom/phantom-L36.csv"
-    exectime = {}
+def read_exectime(fname):
     filepath = os.path.join(directory_path, fname)
     if not os.path.exists(filepath):
         print(f"File {filepath} does not exist")
         exit(1)
 
+    data = {}
+
     with open(filepath) as f:
         inputs = csv.reader(f)
         l = [i for i in inputs]
+        
+        idx = -1
+        for i in range(len(l)):
+            if "Time (%)" in l[i]:
+                idx = i
+                break
+            idx += 1
+
+        if idx == -1:
+            print("No header found")
+            exit(1)
 
         # CSV: Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
-        time_idx = l[0].index("Time (%)")
-        name_idx = l[0].index("Name")
-        
-        for i in range(1, len(l)):
+        time_idx = l[idx].index("Time (%)")
+        name_idx = l[idx].index("Name")
+
+        for i in range(idx + 1, len(l)):
             entry = l[i]
+            
+            if len(entry) < 1:
+                break
+
             time = float(entry[time_idx])
             name = entry[name_idx]
             
             # format name
             name = format_name(name)
 
-            if name not in exectime:
-                exectime[name] = time
+            if name not in data:
+                data[name] = time
             else:
-                exectime[name] += time
-    
-    total = sum(exectime.values())
-    for key in exectime:
-        weight[key] = exectime[key] / total
+                data[name] += time
+    return data        
 
-def read_stallreason(kernel, result):
-    filename = "profile/data/phantom/phantom-L36-stallreason.csv"
-    filepath = os.path.join(directory_path, filename)
+def read_stallreason(fname, data_exectime):
+    filepath = os.path.join(directory_path, fname)
     if not os.path.exists(filepath):
         print(f"File {filepath} does not exist")
         exit(1)
+
+    data = {}
 
     with open(filepath) as f:
         inputs = csv.reader(f)
@@ -100,11 +117,7 @@ def read_stallreason(kernel, result):
             # Kernel name
             kernel_name = entry[kernel_name_idx]
             kernel_name = format_name(kernel_name)
-
-            if kernel_name != kernel:
-                continue
-
-            w = weight[kernel_name]
+            kenrel_weight = data_exectime[kernel_name] / sum(data_exectime.values())
 
             # Metric name
             # Remove "smsp__warp_issue_stalled_" prefix and "_per_warp_active.pct" suffix
@@ -118,50 +131,33 @@ def read_stallreason(kernel, result):
             metric_idx = metrics.index(metric_name)
 
             # Metric value
-            metric_value = float(entry[metric_value_idx])
+            metric_value = float(entry[metric_value_idx]) * kenrel_weight
 
             # Sum up
-            result[metric_idx] += metric_value
+            if metric_name not in data:
+                data[metric_name] = metric_value
+            else:
+                data[metric_name] += metric_value
 
+    return data
 
-data_mult = [0 for i in range(len(metrics))]
-data_ntt = [0 for i in range(len(metrics))]
-read_exectime()
-read_stallreason("Mult", data_mult)
-read_stallreason("NTT", data_ntt)
-datas = [data_mult, data_ntt]
-print(weight)
-print(datas)
-print(data_mult)
-print(data_ntt)
 
 def filter_labels(data, labels):
     total = sum(data)
-    return [label if (value / total) * 100 >= 5 else '' for label, value in zip(labels, data)]
+    return [label if (value / total) * 100 >= 4.5 else '' for label, value in zip(labels, data)]
 
 def filter_autopct(pct):
-    return f'{pct:.1f}%' if pct >= 5 else ''
+    return f'{pct:.1f}%' if pct >= 4.5 else ''
 
-for idx in range(len(datas)):
-    data = datas[idx]
-    name = "Mult" if idx == 0 else "NTT"
-    fig,ax = plt.subplots(figsize=(18, 10))
-    #ax.pie(datas, startangle=90, colors=cm.tab20.colors, autopct=filter_autopct, textprops={'fontsize': 16})
-    ax.pie(data, startangle=90, colors=cm.tab20.colors, labels=filter_labels(data, metrics), autopct=filter_autopct, textprops={'fontsize': 24})
-    ax.axis('equal')
-    plt.tight_layout()
-    plt.savefig(f"{directory_path}/profile/figure/motivative-ex-stallreason-{name}.eps", dpi=500, bbox_inches='tight', pad_inches=0)
-    plt.savefig(f"{directory_path}/profile/figure/motivative-ex-stallreason-{name}.png", dpi=500, bbox_inches='tight', pad_inches=0)
-    print(f"Figure saved as {directory_path}/profile/figure/motivative-ex-stallreason-{name}.eps")
-"""
-# Plot pie chart
-fig,ax = plt.subplots(figsize=(18, 10))
-#ax.pie(datas, startangle=90, colors=cm.tab20.colors, autopct=filter_autopct, textprops={'fontsize': 16})
-ax.pie(datas, startangle=90, colors=cm.tab20.colors, labels=filter_labels(datas, metrics), autopct=filter_autopct, textprops={'fontsize': 24})
+data_exectime = read_exectime(f"data/phantom/{fname_exectime}.csv")
+data = read_stallreason(f"data/phantom/{fname}.csv", data_exectime)
+
+print("exectime: ", data_exectime)
+print("stall-reason: ", data)
+
+fig,ax = plt.subplots(figsize=(10, 10))
+ax.pie(data.values(), startangle=90, colors=cm.tab20.colors, labels=filter_labels(list(data.values()), metrics), autopct=filter_autopct, textprops={'fontsize': 28})
 ax.axis('equal')
-#plt.legend(metrics, fontsize=16, loc='best')
 plt.tight_layout()
-plt.savefig(f"{directory_path}/profile/figure/motivative-ex-stallreason.eps", dpi=500, bbox_inches='tight', pad_inches=0)
-plt.savefig(f"{directory_path}/profile/figure/motivative-ex-stallreason.eps", dpi=500, bbox_inches='tight', pad_inches=0)
-print(f"Figure saved as {directory_path}/profile/figure/motivative-ex-stallreason.eps")
-"""
+plt.savefig(f"{directory_path}/figure/{fname}.pdf", dpi=500, bbox_inches='tight', pad_inches=0)
+print(f"Figure saved as {directory_path}/figure/{fname}.pdf")
