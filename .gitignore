@@ -7,4 +7,3 @@ build-*
 log.txt
 *.log
 *.ncu-rep
-thirdparty/*
