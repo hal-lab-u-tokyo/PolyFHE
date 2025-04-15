@@ -58,12 +58,11 @@ CXXFLAGS=-g -std=c++2a -Wall -Wextra -pedantic -O2 -I./
 LDFLAGS=-lboost_graph -lboost_program_options
 BIN=build/cc-polyfhe
 
-CXXFLAGS_RUNTIME=-g -std=c++17 -I./  --relocatable-device-code true
+CXXFLAGS_RUNTIME=-g -std=c++17 -I./ -I./thirdparty/ -I./thirdparty/phantom-fhe/include --relocatable-device-code true
 LDFLAGS_RUNTIME=
 BIN_RUNTIME=build/bench
 
 $(BIN): $(SRC) $(HDR) $(OBJ)
-	rm -rf ./build
 	mkdir -p build
 	$(CXX) $(OBJ) -o $(BIN) $(LDFLAGS)
 
@@ -82,12 +81,16 @@ run: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png
 	./$(BIN) -i $(TARGET) -p -c $(CONFIG)
-	make dot
-	nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	# make dot
+	# nvcc -o $(BIN_RUNTIME) build/generated.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
+	# ./$(BIN_RUNTIME)
+	# rm -rf build-opt
+	# mv build build-opt
+
+compile:
+	nvcc -o $(BIN_RUNTIME) build/generated.cu example/example.cu $(SRC_RUNTIME) $(CXXFLAGS_RUNTIME) $(LDFLAGS_RUNTIME)
 	./$(BIN_RUNTIME)
-	rm -rf build-opt
-	mv build build-opt
-	
+
 run-noopt: $(BIN)
 	rm -f ./build/*.dot
 	rm -f ./build/*.png

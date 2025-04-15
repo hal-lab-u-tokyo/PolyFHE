@@ -89,20 +89,35 @@ std::shared_ptr<polyfhe::core::Graph> ConvertDotToGraph(
             LOG_ERROR("Node %d not visited\n", i);
             exit(1);
         }
+
+        std::vector<bool> visited_edges(n, false);
         for (auto it = boost::adjacent_vertices(i, g_dot);
              it.first != it.second; ++it.first) {
             // Get destination node
             int j = *it.first;
+            if (visited_edges[j]) {
+                continue;
+            }
+            visited_edges[j] = true;
             std::shared_ptr<polyfhe::core::Node> dst = visited[j];
             if (!dst) {
                 LOG_ERROR("Node %d not visited\n", j);
                 exit(1);
             }
+            std::cout << "src: " << src->get_op_name()
+                      << ", dst: " << dst->get_op_name() << std::endl;
 
             // Get DotEdge
-            graph_t::edge_descriptor e = boost::edge(i, *it.first, g_dot).first;
-            DotEdge edge = g_dot[e];
-            graph_polyfhe->add_edge(src, dst, edge.label);
+            auto i_node = boost::vertex(i, g_dot);
+            auto j_node = boost::vertex(j, g_dot);
+            auto [ei, ei_end] = boost::out_edges(i_node, g_dot);
+            for (; ei != ei_end; ++ei) {
+                if (boost::target(*ei, g_dot) != j_node) {
+                    continue;
+                }
+                DotEdge edge = g_dot[*ei];
+                graph_polyfhe->add_edge(src, dst, edge.label);
+            }
         }
     }
 

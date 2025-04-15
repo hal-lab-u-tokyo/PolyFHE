@@ -1,6 +1,7 @@
 #include "polyfhe/core/graph/graph.hpp"
 
 #include <iostream>
+#include <sstream>
 
 #include "graph.hpp"
 #include "polyfhe/core/logger.hpp"
@@ -96,21 +97,40 @@ void Graph::add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
     dst->add_incoming(edge);
     edge->update_name();
 
-    if (!label.empty()) {
-        // label is {current_limb}_{start_limb}_{end_limb}
-        const std::string delimiter = "_";
-        std::string limb_str = label.substr(0, label.find(delimiter));
-        std::string start_str =
-            label.substr(label.find(delimiter) + 1, label.rfind(delimiter) - 2);
-        std::string end_str =
-            label.substr(label.rfind(delimiter) + 1, label.length());
-        if (start_str.empty() || end_str.empty() || limb_str.empty()) {
+    // TODO: more nice way to specify init edge from user
+    std::vector<std::string> vec;
+    std::stringstream ss(label);
+    std::string token;
+    while (std::getline(ss, token, '_')) {
+        vec.push_back(token);
+    }
+
+    if (src->get_op_type() == core::OpType::Init ||
+        dst->get_op_type() == core::OpType::End) {
+        // label is {current_limb}_{start_limb}_{end_limb}_{idx_argc}_{offset}
+        if (vec.size() != 5) {
             LOG_ERROR("Invalid label: %s\n", label.c_str());
             exit(1);
         }
-        const int limb = std::stoi(limb_str);
-        const int start = std::stoi(start_str);
-        const int end = std::stoi(end_str);
+        const int limb = std::stoi(vec[0]);
+        const int start = std::stoi(vec[1]);
+        const int end = std::stoi(vec[2]);
+        const int idx = std::stoi(vec[3]);
+        const int offset = std::stoi(vec[4]);
+        edge->set_limb(limb);
+        edge->set_start_limb(start);
+        edge->set_end_limb(end);
+        edge->set_idx_argc(idx);
+        edge->set_offset_smem(offset);
+    } else if (!label.empty()) {
+        // label is {current_limb}_{start_limb}_{end_limb}
+        if (vec.size() != 3) {
+            LOG_ERROR("Invalid label: %s\n", label.c_str());
+            exit(1);
+        }
+        const int limb = std::stoi(vec[0]);
+        const int start = std::stoi(vec[1]);
+        const int end = std::stoi(vec[2]);
         edge->set_limb(limb);
         edge->set_start_limb(start);
         edge->set_end_limb(end);

@@ -93,7 +93,7 @@ Params::Params(const int logN, const int L, const int dnum)
     N = 1 << logN;
     alpha = std::ceil((L + 1) / dnum);
     K = alpha;
-    n1 = polyfhe::NTTSampleSize(logN);
+    n1 = 1 << (logN / 2);
     n2 = N / n1;
     sigma = 3.2;
     qVec = new uint64_t[L + K];

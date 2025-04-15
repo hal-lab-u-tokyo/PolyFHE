@@ -383,6 +383,11 @@ void CudaCodegen::generate_kernel_defs(
         w << "// Define kernel for subgraph[" << subgraph->get_idx() << "]\n";
         w << "__global__ void " << subgraph->get_name() << "(Params *params";
 
+        if (subgraph->get_block_phase() !=
+            polyfhe::core::BlockPhase::NTTPhase0) {
+            w << ", int nxBatch, int nyBatch";
+        }
+
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == polyfhe::core::EdgeLevel::Global) {
@@ -437,7 +442,7 @@ void CudaCodegen::generate_kernel_defs(
 
             w << "const int l_idx = idx / params->N + start_limb;\n";
             w << "const int n_idx = l_idx * params->N + idx % params->N;\n";
-            w << "const uint64_t q = params->qVec[l_idx];\n";
+            w << "const uint64_t q = params->ntt_params->q[l_idx];\n";
             w << "uint64_t res;\n";
 
             for (auto node : subgraph->get_nodes()) {
@@ -522,7 +527,7 @@ void CudaCodegen::generate_kernel_defs(
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
                     if (!if_defined_q) {
-                        w << "const uint64_t q = params->qVec["
+                        w << "const uint64_t q = params->ntt_params->q["
                              "batch_idx];\n";
                         if_defined_q = true;
                     }
@@ -717,6 +722,11 @@ void CudaCodegen::generate_call_kernels(
         w << subgraph->get_name() << "<<<" << kconfig.grid_size << ", "
           << kconfig.block_size << ", " << kconfig.shared_mem_size << ">>>";
         w << "(params_d";
+        if (subgraph->get_block_phase() !=
+            polyfhe::core::BlockPhase::NTTPhase0) {
+            w << ", " << subgraph->get_nx_batch();
+            w << ", " << subgraph->get_ny_batch();
+        }
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == polyfhe::core::EdgeLevel::Global) {
@@ -761,15 +771,25 @@ void define_edge(CodeWriter& w, std::shared_ptr<polyfhe::core::Edge>& edge,
                  const bool initialize) {
     w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
       << edge->get_dst()->get_op_name() << "\n";
-
-    if (edge->get_src()->get_op_type() == polyfhe::core::OpType::Init) {
-        w << "uint64_t *" << edge->get_name() << "_d = in"
-          << edge->get_idx_argc() << " + " << edge->get_offset_smem() << ";\n";
-    } else if (edge->get_dst()->get_op_type() == polyfhe::core::OpType::End) {
-        w << "uint64_t *" << edge->get_name() << "_d = out"
-          << edge->get_idx_argc() << " + " << edge->get_offset_smem() << ";\n";
-    } else {
-        w << "uint64_t *" << edge->get_name() << "_d;\n";
+    w << "uint64_t *" << edge->get_name() << "_h;\n";
+    w << "uint64_t *" << edge->get_name() << "_d;\n";
+    std::vector<std::string> args;
+    w << "cudaMallocHost((void **)&";
+    w << edge->get_name() << "_h,";
+    w << "N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
+    w << "cudaMalloc((void **)&";
+    w << edge->get_name() << "_d,";
+    w << "N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
+    if (initialize) {
+        w << "for (int i = 0; i < " << edge->get_limb() << "; i++) {";
+        w << "for (int j = 0; j < N; j++) {";
+        w << edge->get_name() << "_h[i * N + j] = j;";
+        w << "}\n";
+        w << "}\n";
+        w << "cudaMemcpy(" << edge->get_name() << "_d, ";
+        w << edge->get_name() << "_h,";
+        w << "N * " << edge->get_limb() << " * sizeof(uint64_t),";
+        w << "cudaMemcpyHostToDevice);\n";
     }
 }
 
@@ -779,11 +799,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     LOG_INFO("Start Generate entry kernel\n");
     CodeWriter w;
 
-    w << "void entry_kernel(Params *params_d, Params *params_h, uint64_t *in0, "
-         "uint64_t *in1, "
-         "uint64_t *out0, bool if_benchmark)";
+    w << "void entry_kernel(FHEContext &context)";
     w.block_begin();
 
+    w << "Params *params_d = context.get_d_params();\n";
+    w << "Params *params_h = context.get_h_params().get();\n";
     w << "const long N = params_h->N;\n";
 
     w << "\n";
@@ -812,20 +832,67 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     }
     for (auto edge : output_node->get_in_edges()) {
         define_edge(w, edge, false);
+        w << "uint64_t *" << edge->get_name() << "_h_from_d;\n";
+        w << "cudaMallocHost((void **)&" << edge->get_name()
+          << "_h_from_d, N * " << edge->get_limb() << " * sizeof(uint64_t));\n";
+    }
+
+    // Define Global edge of each subgraph
+    w << "\n";
+    w << "// =====================================\n";
+    w << "// Define edges\n";
+    w << "// Define global edges for GPU and CPU test\n";
+    w << "// Define shared edges for CPU test\n";
+    w << "// =====================================\n";
+    for (auto subgraph : graph->get_subgraphs()) {
+        for (auto node : subgraph->get_nodes()) {
+            for (auto edge : node->get_out_edges()) {
+                // TODO: treat Init as a alone subgraph
+                if (edge->get_src()->get_op_type() == core::OpType::Init) {
+                    continue;
+                }
+                if (edge->get_dst()->get_op_type() == core::OpType::End) {
+                    continue;
+                }
+                if (edge->get_level() == polyfhe::core::EdgeLevel::Global) {
+                    /*
+                    // TODO: Why we need to define global edge only once?
+                    if (has_global_edge) {
+                        continue;
+                    }
+                    */
+                    define_edge(w, edge, false);
+                } else if (edge->get_level() ==
+                           polyfhe::core::EdgeLevel::Shared) {
+                    w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
+                      << edge->get_dst()->get_op_name() << "\n";
+                    w << "uint64_t *" << edge->get_name() << "_h;\n";
+                    w << "cudaMallocHost((void **)&" << edge->get_name()
+                      << "_h, N * " << edge->get_limb()
+                      << " * sizeof(uint64_t));\n";
+                }
+            }
+        }
     }
     w << "\n";
 
     // Warm up and Test
     w << "// =====================================\n";
+    w << "// Test\n";
+    w << "// =====================================\n";
     w << "std::cout << \"### Warm up and Test\" << std::endl;\n";
     w << "std::cout << \"N : \" << params_h->N << std::endl;\n";
-    // w << "std::cout << \"n1: \" << params_h->n1 << std::endl;\n";
-    // w << "std::cout << \"n2: \" << params_h->n2 << std::endl;\n";
+    w << "std::cout << \"n1: \" << params_h->n1 << std::endl;\n";
+    w << "std::cout << \"n2: \" << params_h->n2 << std::endl;\n";
     w << "std::cout << \"L : \" << params_h->L << std::endl;\n";
-    // w << "std::cout << \"dnum : \" << params_h->dnum << std::endl;\n";
-    // w << "std::cout << \"K : \" << params_h->K << std::endl;\n";
-    // w << "std::cout << \"alpha : \" << params_h->alpha << std::endl;\n";
-    // w << "std::cout << \"------------------------------\" << std::endl;\n";
+    w << "std::cout << \"dnum : \" << params_h->dnum << std::endl;\n";
+    w << "std::cout << \"K : \" << params_h->K << std::endl;\n";
+    w << "std::cout << \"alpha : \" << params_h->alpha << std::endl;\n";
+    w << "std::cout << \"q[0] : \" << params_h->ntt_params->q[0] << "
+         "std::endl;\n";
+    w << "std::cout << \"root[0] : \" << params_h->ntt_params->root[0] << "
+         "std::endl;\n";
+    w << "std::cout << \"------------------------------\" << std::endl;\n";
 
     // TODO: cudaFuncSetAttribute based on DeviceProp
     // w << "cudaDeviceProp prop;\n";
@@ -835,23 +902,123 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
           << "cudaFuncAttributeMaxDynamicSharedMemorySize, "
           << subgraph->get_smem_size() << ");\n";
     }
-    w << "\n";
 
-    w << "// =====================================\n";
-    w << "// Warm up\n";
-    w << "// =====================================\n";
     w.block_begin();
+
+    w << "std::cout << \"### GPU\" << std::endl;\n";
     generate_call_kernels(graph, w);
-    w.block_end();
+
     w << "\n";
+    w << "// Call CPU\n";
+    w << "std::cout << \"### CPU\" << std::endl;\n";
+    for (auto subgraph : graph->get_subgraphs()) {
+        for (auto node : subgraph->get_nodes()) {
+            core::OpType op_type = node->get_op_type();
+            if (op_type == core::OpType::Add || op_type == core::OpType::Mult ||
+                op_type == core::OpType::Sub) {
+                assert(node->get_in_edges().size() == 2);
+                for (auto outedge : node->get_out_edges()) {
+                    w << node->get_op_type_str() << "_h";
+                    w << "(params_h, ";
+                    w << outedge->get_name() << "_h, ";
+                    w << node->get_in_edges()[0]->get_name() << "_h, ";
+                    w << node->get_in_edges()[1]->get_name() << "_h, ";
+                    w << node->get_in_edges()[0]->get_start_limb() << ", ";
+                    w << node->get_in_edges()[0]->get_end_limb() << ");\n";
+                }
+            } else if (op_type == core::OpType::NTTPhase1) {
+                assert(node->get_in_edges().size() == 1);
+                assert(node->get_out_edges().size() == 1);
+                auto outedge = node->get_out_edges()[0];
+                auto inedge = node->get_in_edges()[0];
+                w << "NTTPhase1_h(params_h,";
+                w << outedge->get_name() << "_h, ";
+                w << inedge->get_name() << "_h, ";
+                w << inedge->get_start_limb() << ", ";
+                w << inedge->get_end_limb() << ");\n";
+            } else if (op_type == core::OpType::NTTPhase2) {
+                assert(node->get_in_edges().size() == 1);
+                auto inedge = node->get_in_edges()[0];
+                for (auto outedge : node->get_out_edges()) {
+                    w << "NTTPhase2_h(params_h,";
+                    w << outedge->get_name() << "_h, ";
+                    w << inedge->get_name() << "_h, ";
+                    w << inedge->get_start_limb() << ", ";
+                    w << inedge->get_end_limb() << ");\n";
+                }
+            } else if (op_type == core::OpType::iNTTPhase2) {
+                assert(node->get_out_edges().size() == 1);
+                assert(node->get_in_edges().size() == 1);
+                auto outedge = node->get_out_edges()[0];
+                auto inedge = node->get_in_edges()[0];
+                w << "iNTTPhase2_h(params_h,";
+                w << outedge->get_name() << "_h, ";
+                w << inedge->get_name() << "_h, ";
+                w << inedge->get_start_limb() << ", ";
+                w << inedge->get_end_limb() << ");\n";
+            } else if (op_type == core::OpType::iNTTPhase1) {
+                assert(node->get_in_edges().size() == 1);
+                auto inedge = node->get_in_edges()[0];
+                for (auto outedge : node->get_out_edges()) {
+                    w << "iNTTPhase1_h(params_h,";
+                    w << outedge->get_name() << "_h, ";
+                    w << inedge->get_name() << "_h, ";
+                    w << inedge->get_start_limb() << ", ";
+                    w << inedge->get_end_limb() << ");\n";
+                }
+            } else if (op_type == core::OpType::ModUp) {
+                assert(node->get_out_edges().size() == 1);
+                assert(node->get_in_edges().size() == 1);
+                w << node->get_op_type_str() << "_h";
+                w << "(params_h, ";
+                for (auto edge : node->get_out_edges()) {
+                    w << edge->get_name() << "_h, ";
+                }
+                for (auto edge : node->get_in_edges()) {
+                    w << edge->get_name() << "_h, ";
+                }
+                w << node->get_in_edges()[0]->get_start_limb() << ", ";
+                w << node->get_in_edges()[0]->get_end_limb() << ");\n";
+            }
+        }
+    }
+
+    w << "\n";
+    w << "// Copy back to host and check\n";
+    w << "std::cout << \"### Check\" << std::endl;\n";
+    w << "bool if_fail = false;\n";
+    for (auto edge : output_node->get_in_edges()) {
+        w << "cudaMemcpy(" << edge->get_name() << "_h_from_d, "
+          << edge->get_name() << "_d, N * " << edge->get_limb()
+          << "* sizeof(uint64_t), cudaMemcpyDeviceToHost);\n";
+        w << "for (int i = 0; i < " << edge->get_limb() << "; i++)";
+        w.block_begin();
+        w << "for (int j = 0; j < N; j++)";
+        w.block_begin();
+        w << "if (";
+        w << edge->get_name() << "_h[i * N + j] != ";
+        w << edge->get_name() << "_h_from_d[i * N + j])";
+        w.block_begin();
+        w << "std::cout << \"Error[\" << i << \"][\" << j << \"] : \" << "
+          << edge->get_name() << "_h_from_d[i * N + j] << \" vs ";
+        w << "expected: \" << " << edge->get_name()
+          << "_h[i * N + j] << std::endl;\n";
+        w << "std::cout << \"Check failed\" << std::endl;\n";
+        w << "if_fail = true;\n";
+        w << "break;\n";
+        w.block_end();
+        w.block_end();
+        w.block_end();
+        w << "if (!if_fail) {std::cout << \"Check passed\" << "
+             "std::endl;\n}else{std::cout << \"Check failed\" << std::endl;}\n";
+    }
+    w.block_end(); // warm up
 
     // Timer
     w << "\n";
     w << "// =====================================\n";
     w << "// Benchmark\n";
     w << "// =====================================\n";
-    w << "if (if_benchmark)";
-    w.block_begin();
     w << "std::cout << \"### Benchmark\" << std::endl;\n";
     w << "std::vector<double> elapsed_times;\n";
     w << "for (int i = 0; i < 10; i++)\n";
@@ -874,8 +1041,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
          "std::accumulate(elapsed_times.begin(), elapsed_times.end(), 0.0) "
          "/ elapsed_times.size() << std::endl;\n";
 
-    w.block_end(); // if benchmark end
-    w.block_end(); // function end
+    w.block_end(); // funcion end
     w.write_to_file(filename, if_append);
 }
 
@@ -907,6 +1073,22 @@ bool CudaCodegen::run_on_graph(std::shared_ptr<polyfhe::core::Graph>& graph) {
     generate_kernel_defs(graph, output_filename, /*append=*/true);
     generate_entry(graph, output_filename, /*append=*/true);
 
+    CodeWriter w;
+    w << "int main(int argc, char *argv[])";
+    w.block_begin();
+    w << "std::cout << \"Starting Benchmarking...\" << std::endl;\n";
+    w << "FHEContext context(";
+    w << graph->m_config->logN << ", ";
+    w << graph->m_config->L << ",";
+    w << graph->m_config->dnum << ");\n";
+
+    w << "\n// Run the graph\n";
+    w << "entry_kernel(context);\n";
+    w << "\n";
+    w << "std::cout << \"Finished Benchmarking...\" << std::endl;\n";
+
+    w.block_end();
+    w.write_to_file(output_filename, true);
     return true;
 }
 } // namespace engine
