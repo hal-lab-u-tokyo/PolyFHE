@@ -32,7 +32,7 @@ class PolyFHE:
     def mul(self, a, b):
         return PolyOp("Mul", [a, b])
     
-    def compile(self, result, filename="data/output"):
+    def compile(self, result, filename="build/output"):
         print("Compiling PolyFHE graph...")
         dot = Digraph(comment='PolyFHE Graph')
 
@@ -47,6 +47,7 @@ class PolyFHE:
             dot.node(op.id, label=f"{op.op_type}({', '.join(map(str, op.inputs))})")
 
             # Add input edges
+            """
             for input_op in op.inputs:
                 if isinstance(input_op, PolyOp):
                     add_node(input_op)
@@ -55,6 +56,7 @@ class PolyFHE:
                     const_id = f"const_{hash(input_op)}"
                     dot.node(const_id, label=str(input_op))
                     dot.edge(const_id, op.id)
+            """        
         
         add_node(result)
         dot.render(filename, format='dot', cleanup=True)

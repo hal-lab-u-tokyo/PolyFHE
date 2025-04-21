@@ -1,4 +1,4 @@
-from polyfhe import PolyFHE
+from pypolyfhe import PolyFHE
 
 pf = PolyFHE()
 

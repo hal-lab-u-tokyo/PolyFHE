@@ -1,12 +1,19 @@
-fusion
-build/*
-build-*
+**/build/
+**/build-*/
 *.o
 *.nsys-rep
 *.sqlite
-log.txt
 *.log
 *.ncu-rep
-generated.cu
 *.out
 **/build/
+**/generated.cu
+
+# Python
+# Ignore Python bytecode
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# vscode
+.vscode/
