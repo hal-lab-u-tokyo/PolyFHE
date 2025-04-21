@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -27,6 +28,24 @@ enum class BlockPhase {
     NTTPhase2,
 };
 
+inline std::ostream &operator<<(std::ostream &os, BlockPhase phase) {
+    switch (phase) {
+    case BlockPhase::NTTPhase0:
+        os << "NTTPhase0";
+        break;
+    case BlockPhase::NTTPhase1:
+        os << "NTTPhase1";
+        break;
+    case BlockPhase::NTTPhase2:
+        os << "NTTPhase2";
+        break;
+    default:
+        os << "Unknown";
+        break;
+    }
+    return os;
+}
+
 enum class OpType {
     // For PolyGraph
     Add,
@@ -51,6 +70,7 @@ enum class OpType {
 std::string toStringOpType(OpType op_type);
 std::string toString(BlockPhase block_phase);
 MemoryAccessPattern OpType_access_pattern(OpType op_type);
+bool is_ntt_op(OpType op_type);
 
 class Node : public std::enable_shared_from_this<Node> {
 public:

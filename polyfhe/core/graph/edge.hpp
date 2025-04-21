@@ -8,6 +8,7 @@ namespace polyfhe {
 namespace core {
 
 enum class EdgeLevel {
+    Register,
     Shared,
     Global,
     YetToDetermine,
@@ -83,22 +84,8 @@ public:
         }
         return m_idx_argc;
     }
-    void set_offset(int offset) {
-        if (m_src->get_op_type() != core::OpType::Init &&
-            m_dst->get_op_type() != core::OpType::End) {
-            LOG_ERROR("set_offset: not special node\n");
-            exit(1);
-        }
-        m_offset = offset;
-    }
-    int get_offset() {
-        if (m_src->get_op_type() != core::OpType::Init &&
-            m_dst->get_op_type() != core::OpType::End) {
-            LOG_ERROR("get_offset: not special node\n");
-            exit(1);
-        }
-        return m_offset;
-    }
+    void set_offset(int offset) { m_offset = offset; }
+    int get_offset() { return m_offset; }
 
 private:
     std::shared_ptr<Node> m_src;
@@ -116,9 +103,9 @@ private:
     int m_offset_smem = 0;
     bool m_can_overwrite = false;
 
+    int m_offset = 0;
     // Only for init/end node
     int m_idx_argc = 0;
-    int m_offset = 0;
 };
 
 } // namespace core

@@ -29,16 +29,16 @@ bool KernelLaunchConfigPass::run_on_graph(
             k_config.block_size = "256";
             k_config.grid_size = "4096";
         } else if (s_type == core::SubgraphType::ElemLimb1) {
-            // NTTPhase1 uses shared memory even if it has only one node
-            // TODO: shared memory size
-            k_config.shared_mem_size = "params_h->n1 * sizeof(uint64_t)";
-            k_config.block_size = "params_h->n1 / 2";
-            k_config.grid_size = "params_h->L * params_h->n2";
+            k_config.shared_mem_size =
+                "(params_h->n1 + params_h->pad + 1) * params_h->pad "
+                "* sizeof(uint64_t)";
+            k_config.block_size = "(params_h->n1 / 8) * params_h->pad";
+            k_config.grid_size = "4096";
         } else if (s_type == core::SubgraphType::ElemLimb2) {
-            // TODO: shared memory size
-            k_config.shared_mem_size = "params_h->n2 * sizeof(uint64_t)";
-            k_config.block_size = "params_h->n2 / 2";
-            k_config.grid_size = "params_h->L * params_h->n1";
+            k_config.shared_mem_size =
+                "params_h->per_thread_ntt_size * 128 * sizeof(uint64_t)";
+            k_config.block_size = "128";
+            k_config.grid_size = "4096";
         } else if (s_type == core::SubgraphType::ElemSlot) {
             // TODO
             k_config.block_size = "params_h->n2";

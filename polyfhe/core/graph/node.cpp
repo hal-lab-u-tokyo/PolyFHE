@@ -7,6 +7,12 @@
 namespace polyfhe {
 namespace core {
 
+bool is_ntt_op(OpType op_type) {
+    return (op_type == OpType::NTT || op_type == OpType::iNTT ||
+            op_type == OpType::NTTPhase1 || op_type == OpType::iNTTPhase1 ||
+            op_type == OpType::NTTPhase2 || op_type == OpType::iNTTPhase2);
+}
+
 std::string toStringOpType(OpType op_type) {
     switch (op_type) {
     case OpType::Add:
@@ -56,7 +62,7 @@ std::string toString(BlockPhase block_phase) {
 }
 
 MemoryAccessPattern OpType_access_pattern(OpType op_type) {
-    if (op_type == OpType::NTT || op_type == OpType::iNTT) {
+    if (is_ntt_op(op_type)) {
         return MemoryAccessPattern::LimbWise;
     } else if (op_type == OpType::BConv || op_type == OpType::ModDown ||
                op_type == OpType::ModUp) {

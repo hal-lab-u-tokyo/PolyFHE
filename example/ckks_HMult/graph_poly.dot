@@ -1,0 +1,27 @@
+digraph G {
+Init[label="Init"];
+Init[label="Init"];
+End[label="End"];
+MultAxAx[label="Mult"];
+MultAxBx[label="Mult"];
+MultBxAx[label="Mult"];
+AddAxBx[label="Add"];
+MultBxBx[label="Mult"];
+iNTTPhase2[label="iNTTPhase2"];
+iNTTPhase1[label="iNTTPhase1"];
+Init -> MultAxAx[label="18_0_18_0_0"];
+Init -> MultAxAx[label="18_0_18_1_0"];
+Init -> MultAxBx[label="18_0_18_0_0"];
+Init -> MultAxBx[label="18_0_18_1_589824"];
+Init -> MultBxAx[label="18_0_18_0_589824"];
+Init -> MultBxAx[label="18_0_18_1_0"];
+MultAxBx -> AddAxBx[label="18_0_18"];
+MultBxAx -> AddAxBx[label="18_0_18"];
+Init -> MultBxBx[label="18_0_18_0_589824"];
+Init -> MultBxBx[label="18_0_18_1_589824"];
+MultBxBx -> iNTTPhase2[label="18_0_18"];
+iNTTPhase2 -> iNTTPhase1[label="18_0_18"];
+iNTTPhase1 -> End[label="18_0_18_0_1179648"];
+MultAxAx -> End[label="18_0_18_0_0"];
+AddAxBx -> End[label="18_0_18_0_589824"];
+}

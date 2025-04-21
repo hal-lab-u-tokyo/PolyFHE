@@ -100,6 +100,8 @@
         "syncstream": "cpp",
         "typeindex": "cpp",
         "valarray": "cpp",
-        "__nullptr": "cpp"
+        "__nullptr": "cpp",
+        "pointers": "cpp",
+        "string_span": "cpp"
     }
 }

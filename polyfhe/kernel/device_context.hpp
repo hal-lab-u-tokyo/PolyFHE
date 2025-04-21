@@ -59,11 +59,21 @@ public:
     int K;     // The number of special modulus
     int alpha; // Number of limbs in a digit, ceil((L + 1) / dnum)
     int dnum;  // Number of digits
+    const size_t pad = 4;
+    const int per_thread_ntt_size = 8;
 
     double sigma = 3.2;
 
     uint64_t* qVec;
     uint64_t* pVec;
+    uint64_t* modulus_const_ratio;
+
+    uint64_t* itwiddle;
+    uint64_t* itwiddle_shoup;
+    uint64_t* n_inv;
+    uint64_t* n_inv_shoup;
+    uint64_t* inv_degree_modulo;
+    uint64_t* inv_degree_modulo_shoup;
 
     NTTParams* ntt_params;
 };

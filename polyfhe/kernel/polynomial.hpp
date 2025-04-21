@@ -20,6 +20,52 @@
 extern "C" {
 enum class ElemWiseOp { Add, Sub, Mult };
 
+__forceinline__ __device__ void csub_q(uint64_t &operand,
+                                       const uint64_t &modulus) {
+    const uint64_t tmp = operand - modulus;
+    operand = tmp + (tmp >> 63) * modulus;
+}
+
+/** uint64 modular multiplication, result = operand1 * operand2 % mod
+ * @param[in] operand1 The first operand (64 bits).
+ * @param[in] operand2 The second operand (64 bits).
+ * @param[in] modulus The modulus value (64 bits).
+ * @param[in] barrett_mu 2^128/mod, (128 bits).
+ *  res (64 bits).
+ */
+__forceinline__ __device__ uint64_t multiply_and_barrett_reduce_uint64(
+    const uint64_t &operand1, const uint64_t &operand2, const uint64_t &modulus,
+    const uint64_t *barrett_mu) {
+    uint64_t result;
+    uint64_t q = modulus;
+    uint64_t ratio0 = barrett_mu[0];
+    uint64_t ratio1 = barrett_mu[1];
+    asm("{\n\t"
+        " .reg .u64 tmp;\n\t"
+        " .reg .u64 lo, hi;\n\t"
+        // 128-bit multiply
+        " mul.lo.u64 lo, %1, %2;\n\t"
+        " mul.hi.u64 hi, %1, %2;\n\t"
+        // Multiply input and const_ratio
+        // Round 1
+        " mul.hi.u64 tmp, lo, %3;\n\t"
+        " mad.lo.cc.u64 tmp, lo, %4, tmp;\n\t"
+        " madc.hi.u64 %0, lo, %4, 0;\n\t"
+        // Round 2
+        " mad.lo.cc.u64 tmp, hi, %3, tmp;\n\t"
+        " madc.hi.u64 %0, hi, %3, %0;\n\t"
+        // This is all we care about
+        " mad.lo.u64 %0, hi, %4, %0;\n\t"
+        // Barrett subtraction
+        " mul.lo.u64 %0, %0, %5;\n\t"
+        " sub.u64 %0, lo, %0;\n\t"
+        "}"
+        : "=l"(result)
+        : "l"(operand1), "l"(operand2), "l"(ratio0), "l"(ratio1), "l"(q));
+    csub_q(result, q);
+    return result;
+}
+
 __forceinline__ __device__ uint64_t calc_elemwise(ElemWiseOp op,
                                                   const uint64_t a,
                                                   const uint64_t b,

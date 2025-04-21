@@ -121,11 +121,12 @@ void Graph::add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
         edge->set_start_limb(start);
         edge->set_end_limb(end);
         edge->set_idx_argc(idx);
-        edge->set_offset_smem(offset);
+        edge->set_offset(offset);
     } else if (!label.empty()) {
         // label is {current_limb}_{start_limb}_{end_limb}
         if (vec.size() != 3) {
-            LOG_ERROR("Invalid label: %s\n", label.c_str());
+            LOG_ERROR("Invalid label: %s, src node: %s\n", label.c_str(),
+                      src->get_op_name().c_str());
             exit(1);
         }
         const int limb = std::stoi(vec[0]);
@@ -193,6 +194,9 @@ core::SubgraphType GetSubgraphType(
             }
         } else if (pattern == core::MemoryAccessPattern::SlotWise) {
             contains_slotwise = true;
+        } else {
+            LOG_ERROR("Unknown MemoryAccessPattern\n");
+            assert(false);
         }
     }
 

@@ -21,6 +21,9 @@ bool CanReuse(std::shared_ptr<polyfhe::core::Node> src,
         return false;
     }
     if (dst->get_block_phase() != src->get_block_phase()) {
+        std::cout << "dst->get_block_phase() != src->get_block_phase()\n";
+        std::cout << "src phase: " << src->get_block_phase() << "\n";
+        std::cout << "dst phase: " << dst->get_block_phase() << "\n";
         return false;
     }
     return true;
@@ -69,7 +72,10 @@ void ReuseWithSuccessor(
     std::vector<std::shared_ptr<polyfhe::core::Node>>& subgraph) {
     // Check if seed and successor can be reused
     for (auto edge : seed->get_out_edges()) {
+        std::cout << "Reuse?" << edge->get_src()->get_op_name() << " -> "
+                  << edge->get_dst()->get_op_name() << "\n";
         if (!CanReuse(seed, edge->get_dst())) {
+            std::cout << " no" << std::endl;
             LOG_INFO("Cannot reuse %s -> %s\n", seed->get_op_name().c_str(),
                      edge->get_dst()->get_op_name().c_str());
             edge->set_level(polyfhe::core::EdgeLevel::Global);

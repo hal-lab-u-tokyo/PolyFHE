@@ -27,8 +27,9 @@ struct Args {
 Args define_and_parse_arguments(int argc, char** argv) {
     Args args;
     boost::program_options::options_description desc("Hifive Options");
-    desc.add_options()("noopt,n", "Not optimize graph")(
-        "poly,p", "Input *.dot if poly graph")("help,h", "Print help message")(
+    desc.add_options()("opt", "Optimize graph (default: ON)")(
+        "noopt,n", "Not optimize graph")("poly,p", "Input *.dot if poly graph")(
+        "help,h", "Print help message")(
         "input,i", boost::program_options::value<std::string>(),
         "Input dot file")("config,c",
                           boost::program_options::value<std::string>(),
