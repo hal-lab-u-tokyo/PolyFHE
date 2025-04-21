@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++17 -O3 -I. -I$(ROOT)/thirdparty -I$(ROOT)/thirdparty/phantom-
 LIBPATH = $(ROOT)/build/thirdparty/phantom-fhe/lib
 LDFLAGS = -Xlinker -rpath -Xlinker $(LIBPATH) -L$(LIBPATH) -lPhantom -lpthread
 
-BIN_COMPILER = $(ROOT)/build/cc-polyfhe
+BIN_COMPILER = $(ROOT)/build/polyfhe-cc
 BIN_EXAMPLE = build/example.out
 COMPILER_OUT = build/generated.cu
 DOT = graph_poly.dot

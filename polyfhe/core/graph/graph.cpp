@@ -5,7 +5,6 @@
 
 #include "graph.hpp"
 #include "polyfhe/core/logger.hpp"
-#include "polyfhe/utils.hpp"
 namespace polyfhe {
 namespace core {
 
@@ -238,6 +237,8 @@ core::SubgraphType GetSubgraphType(
         assert(false);
     }
 }
+
+uint64_t NTTSampleSize(const uint64_t logN) { return 1 << (logN / 2); }
 
 int GetsPolySize(std::vector<std::shared_ptr<polyfhe::core::Node>> &subgraph,
                  std::shared_ptr<Config> config) {

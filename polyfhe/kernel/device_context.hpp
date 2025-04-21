@@ -94,5 +94,3 @@ private:
     Params* d_params;
     NTTParams* d_ntt_params;
 };
-
-uint64_t NTTSampleSize(const uint64_t logN);

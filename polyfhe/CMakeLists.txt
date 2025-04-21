@@ -1,0 +1,6 @@
+add_subdirectory(core)
+add_subdirectory(engine)
+add_subdirectory(frontend)
+add_subdirectory(kernel)
+add_subdirectory(tools)
+set(POLYFHE_SOURCE_FILES ${POLYFHE_SOURCE_FILES} PARENT_SCOPE)

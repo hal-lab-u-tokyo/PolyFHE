@@ -1059,7 +1059,7 @@ void CudaCodegen::generate_include(
     w << "#include <vector>\n";
     w << "#include <stdio.h>\n";
     w << "#include \"polyfhe/kernel/device_context.hpp\"\n\n";
-    w << "#include \"polyfhe/kernel/polynomial.hpp\"\n\n";
+    w << "#include \"polyfhe/kernel/polynomial.cuh\"\n\n";
     w << "#include \"polyfhe/kernel/ntt.hpp\"\n\n";
     w.write_to_file(filename, if_append);
 }

@@ -4,7 +4,6 @@
 
 #include "device_context.hpp"
 #include "polyfhe/kernel/device_context.hpp"
-#include "polyfhe/utils.hpp"
 
 // from https://github.com/snucrypto/HEAAN, 131d275
 void mulMod(uint64_t &r, uint64_t a, uint64_t b, uint64_t m) {
