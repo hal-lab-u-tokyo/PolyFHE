@@ -10,6 +10,7 @@ class PolyOpType(Enum):
     Add = auto()
     Sub = auto()
     Mult = auto()
+    Decomp = auto()
     BConv = auto()
     ModDown = auto()
     ModUp = auto()
@@ -79,6 +80,9 @@ class PolyFHE:
     
     def mul(self, a: PolyOp, b: PolyOp, name: str, current_limb: int, start_limb: int, end_limb: int):
         return PolyOp(PolyOpType.Mult, [a, b], name, current_limb, start_limb, end_limb)
+    
+    def decomp(self, a: PolyOp, name: str, current_limb: int, start_limb: int, end_limb: int):
+        return PolyOp(PolyOpType.Decomp, [a], name, current_limb, start_limb, end_limb)
     
     def intt_phase1(self, a: PolyOp, name: str, current_limb: int, start_limb: int, end_limb: int):
         return PolyOp(PolyOpType.iNTTPhase1, [a], name, current_limb, start_limb, end_limb)

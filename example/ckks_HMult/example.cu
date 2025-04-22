@@ -20,8 +20,9 @@ using namespace phantom::util;
 
 #define EPSINON 0.001
 
-void entry_kernel(Params *params_d, Params *params_h, uint64_t *in0,
-                  uint64_t *in1, uint64_t *out0, bool if_benchmark);
+void entry_kernel(Params *params_d, Params *params_h, PhantomContext &context,
+                  uint64_t *in0, uint64_t *in1, uint64_t *out0,
+                  bool if_benchmark);
 
 inline bool operator==(const cuDoubleComplex &lhs, const cuDoubleComplex &rhs) {
     return fabs(lhs.x - rhs.x) < EPSINON;
@@ -201,18 +202,19 @@ void example_ckks(PhantomContext &context, const double &scale) {
     xy_cipher_polyfhe.resize(3, coeff_mod_size, poly_degree, s);
     uint64_t *res = xy_cipher_polyfhe.data();
 
-    entry_kernel(params_d, &params_h, in1, in2, res, true);
+    entry_kernel(params_d, &params_h, context, in1, in2, res, true);
     checkCudaErrors(cudaDeviceSynchronize());
+    /*
     size_t block_size = 128;
     size_t grid_size = 4096;
     uint64_t *res2 = res + params_h.L * params_h.N * 2;
-
     auto &rns_tool = context.get_context_data(xy_cipher_polyfhe.chain_index())
                          .gpu_rns_tool();
     poly_mult_shoup<<<grid_size, block_size>>>(
         res2, res2, rns_tool.partQlHatInv_mod_Ql_concat(),
         rns_tool.partQlHatInv_mod_Ql_concat_shoup(), params_d);
     checkCudaErrors(cudaDeviceSynchronize());
+    */
 
     // Phantom's HMult
     PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);

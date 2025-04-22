@@ -21,7 +21,8 @@ Init -> MultBxBx[label="18_0_18_0_589824"];
 Init -> MultBxBx[label="18_0_18_1_589824"];
 MultBxBx -> iNTTPhase2[label="18_0_18"];
 iNTTPhase2 -> iNTTPhase1[label="18_0_18"];
-iNTTPhase1 -> End[label="18_0_18_0_1179648"];
+iNTTPhase1 -> Decomp[label="18_0_18"];
+Decomp -> End[label="18_0_18_0_1179648"];
 MultAxAx -> End[label="18_0_18_0_0"];
 AddAxBx -> End[label="18_0_18_0_589824"];
 }

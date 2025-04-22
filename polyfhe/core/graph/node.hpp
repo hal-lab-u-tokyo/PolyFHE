@@ -51,6 +51,7 @@ enum class OpType {
     Add,
     Sub,
     Mult,
+    Decomp,
     BConv,
     ModDown,
     ModUp,

@@ -339,11 +339,13 @@ void CudaCodegen::generate_kernel_defs(
         w << "__global__ void " << subgraph->get_name() << "(Params *params";
 
         for (auto node : subgraph->get_nodes()) {
+            // Input edges
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == polyfhe::core::EdgeLevel::Global) {
                     w << ", uint64_t *" << edge->get_name();
                 }
             }
+            // Output edges
             for (auto edge : node->get_out_edges()) {
                 if (edge->get_level() == polyfhe::core::EdgeLevel::Global) {
                     w << ", uint64_t *" << edge->get_name();
@@ -351,6 +353,11 @@ void CudaCodegen::generate_kernel_defs(
                     // We need to global-output only once
                     // break;
                 }
+            }
+            // Pre-computed constants
+            if (node->get_op_type() == core::OpType::Decomp) {
+                w << ", uint64_t *partQlHatInv_mod_Ql_concat";
+                w << ", uint64_t *partQlHatInv_mod_Ql_concat_shoup";
             }
         }
         w << ")";
@@ -398,73 +405,93 @@ void CudaCodegen::generate_kernel_defs(
             for (auto node : subgraph->get_nodes()) {
                 std::cout << "node: " << node->get_op_name() << std::endl;
                 core::OpType op_type = node->get_op_type();
-                if (op_type != core::OpType::Add &&
-                    op_type != core::OpType::Sub &&
-                    op_type != core::OpType::Mult) {
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub ||
+                    op_type == core::OpType::Mult) {
+                    w << "// " << node->get_op_name() << "\n";
+                    // Make sure all levels of outedges are the same
+                    for (auto edge : node->get_out_edges()) {
+                        assert(edge->get_level() ==
+                               node->get_out_edges()[0]->get_level());
+                    }
+
+                    std::string op = "";
+                    if (op_type == core::OpType::Add) {
+                        op = " + ";
+                    } else if (op_type == core::OpType::Sub) {
+                        op = " + q - ";
+                    } else if (op_type == core::OpType::Mult) {
+                        op = " , ";
+                    }
+
+                    // Output to only first outedge
+                    w << "res = ";
+
+                    if (op_type == core::OpType::Mult) {
+                        w << "multiply_and_barrett_reduce_uint64(";
+                    }
+
+                    // in0
+                    auto edge = node->get_in_edges()[0];
+                    w << gen_edge_access(
+                        edge, "n_idx",
+                        std::to_string(edge->get_offset_smem()) +
+                            " + threadIdx.x");
+
+                    w << op;
+
+                    // in1
+                    edge = node->get_in_edges()[1];
+                    w << gen_edge_access(
+                        edge, "n_idx",
+                        std::to_string(edge->get_offset_smem()) +
+                            " + threadIdx.x");
+
+                    if (op_type == core::OpType::Mult) {
+                        w << ", q, "
+                             "params->modulus_const_ratio "
+                             "+ l_idx * 2);\n ";
+                    } else {
+                        w << ";\n";
+                    }
+
+                    // out
+                    if (op_type == core::OpType::Add ||
+                        op_type == core::OpType::Sub) {
+                        w << "if (res >= q) res -= q;\n";
+                    }
+
+                    edge = node->get_out_edges()[0];
+                    w << gen_edge_access(
+                        edge, "n_idx",
+                        std::to_string(edge->get_offset_smem()) +
+                            " + threadIdx.x");
+                    w << " = res;\n";
+                } else if (op_type == core::OpType::Decomp) {
+                    assert(node->get_in_edges().size() == 1);
+                    assert(node->get_out_edges().size() == 1);
+                    auto inedge = node->get_in_edges()[0];
+                    auto outedge = node->get_out_edges()[0];
+                    w << "res = phantom::arith::multiply_and_reduce_shoup(";
+                    w << gen_edge_access(
+                        inedge, "n_idx",
+                        std::to_string(inedge->get_offset_smem()) +
+                            " + threadIdx.x");
+                    w << ", partQlHatInv_mod_Ql_concat[l_idx]";
+                    w << ", partQlHatInv_mod_Ql_concat_shoup[l_idx]";
+                    w << ", q);\n";
+                    w << gen_edge_access(
+                        outedge, "n_idx",
+                        std::to_string(outedge->get_offset_smem()) +
+                            " + threadIdx.x");
+                    w << " = res;\n";
+                } else {
                     LOG_ERROR(
-                        "Only Add, Sub, Mult are supported for "
+                        "Only Add, Sub, Mult and Decomp are supported for "
                         "SubgraphType::Elem\n");
                     std::cerr << "op_type: " << core::toStringOpType(op_type)
                               << std::endl;
                 }
-
-                w << "// " << node->get_op_name() << "\n";
-                assert(node->get_in_edges().size() == 2);
-
-                // Make sure all levels of outedges are the same
-                for (auto edge : node->get_out_edges()) {
-                    assert(edge->get_level() ==
-                           node->get_out_edges()[0]->get_level());
-                }
-
-                std::string op = "";
-                if (op_type == core::OpType::Add) {
-                    op = " + ";
-                } else if (op_type == core::OpType::Sub) {
-                    op = " + q - ";
-                } else if (op_type == core::OpType::Mult) {
-                    op = " , ";
-                }
-
-                // Output to only first outedge
-                w << "res = ";
-
-                if (op_type == core::OpType::Mult) {
-                    w << "multiply_and_barrett_reduce_uint64(";
-                }
-
-                // in0
-                auto edge = node->get_in_edges()[0];
-                w << gen_edge_access(
-                    edge, "n_idx",
-                    std::to_string(edge->get_offset_smem()) + " + threadIdx.x");
-
-                w << op;
-
-                // in1
-                edge = node->get_in_edges()[1];
-                w << gen_edge_access(
-                    edge, "n_idx",
-                    std::to_string(edge->get_offset_smem()) + " + threadIdx.x");
-
-                if (op_type == core::OpType::Mult) {
-                    w << ", params->qVec[l_idx], params->modulus_const_ratio "
-                         "+ l_idx * 2);\n ";
-                } else {
-                    w << ";\n";
-                }
-
-                // out
-                if (op_type == core::OpType::Add ||
-                    op_type == core::OpType::Sub) {
-                    w << "if (res >= q) res -= q;\n";
-                }
-
-                edge = node->get_out_edges()[0];
-                w << gen_edge_access(
-                    edge, "n_idx",
-                    std::to_string(edge->get_offset_smem()) + " + threadIdx.x");
-                w << " = res;\n";
             }
             w.block_end();
         } else if (s_type == core::SubgraphType::ElemLimb1) {
@@ -503,6 +530,16 @@ void CudaCodegen::generate_kernel_defs(
                     assert(node->get_in_edges().size() == 2);
                     LOG_ERROR("Not implemented\n");
                     assert(false);
+                } else if (op_type == core::OpType::Decomp) {
+                    w << "#pragma unroll\n";
+                    w << "for (int l = 0; l < 8; l++)";
+                    w.block_begin();
+                    w << "reg[l] = phantom::arith::multiply_and_reduce_shoup(";
+                    w << "reg[l]";
+                    w << ", partQlHatInv_mod_Ql_concat[twr_idx]";
+                    w << ", partQlHatInv_mod_Ql_concat_shoup[twr_idx]";
+                    w << ", params->qVec[twr_idx]);\n";
+                    w.block_end();
                 } else if (op_type == core::OpType::NTTPhase1) {
                     LOG_ERROR("Not implemented\n");
                     assert(false);
@@ -724,6 +761,7 @@ void CudaCodegen::generate_call_kernels(
           << kconfig.block_size << ", " << kconfig.shared_mem_size << ">>>";
         w << "(params_d";
         for (auto node : subgraph->get_nodes()) {
+            // Input edges
             for (auto edge : node->get_in_edges()) {
                 if (edge->get_level() == polyfhe::core::EdgeLevel::Global) {
                     // Check if the src node has branch
@@ -746,6 +784,8 @@ void CudaCodegen::generate_call_kernels(
                     }
                 }
             }
+
+            // Output edges
             for (auto edge : node->get_out_edges()) {
                 if (edge->get_level() == polyfhe::core::EdgeLevel::Global) {
                     w << ", " << edge->get_name() << "_d";
@@ -753,6 +793,12 @@ void CudaCodegen::generate_call_kernels(
                     // We need to global-output only once
                     // break;
                 }
+            }
+
+            // Pre-computed constants
+            if (node->get_op_type() == core::OpType::Decomp) {
+                w << ", rns_tool.partQlHatInv_mod_Ql_concat()";
+                w << ", rns_tool.partQlHatInv_mod_Ql_concat_shoup()";
             }
         }
         w << ");\n";
@@ -790,12 +836,16 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     LOG_INFO("Start Generate entry kernel\n");
     CodeWriter w;
 
-    w << "void entry_kernel(Params *params_d, Params *params_h, uint64_t *in0, "
+    w << "void entry_kernel(Params *params_d, Params *params_h, PhantomContext "
+         "&context, "
+         "uint64_t *in0, "
          "uint64_t *in1, "
          "uint64_t *out0, bool if_benchmark)";
     w.block_begin();
 
     // w << "const long N = params_h->N;\n";
+    w << "auto &rns_tool = ";
+    w << "context.get_context_data(1).gpu_rns_tool();\n";
 
     w << "\n";
     w << "// =====================================\n";
@@ -918,14 +968,17 @@ void CudaCodegen::generate_include(
     w << "#include <cuda.h>\n";
     w << "#include <cuda_runtime.h>\n";
     w << "#include <chrono>\n";
-    w << "#include <iostream>\n\n";
+    w << "#include <iostream>\n";
     w << "#include <numeric>\n";
     w << "#include <vector>\n";
     w << "#include <stdio.h>\n";
-    w << "#include \"polyfhe/kernel/device_context.hpp\"\n\n";
-    w << "#include \"polyfhe/kernel/polynomial.cuh\"\n\n";
-    w << "#include \"polyfhe/kernel/ntt.hpp\"\n\n";
-    w << "#include \"polyfhe/kernel/ntt-phantom.hpp\"\n\n";
+    w << "#include \"polyfhe/kernel/device_context.hpp\"\n";
+    w << "#include \"polyfhe/kernel/polynomial.cuh\"\n";
+    w << "#include \"polyfhe/kernel/ntt.hpp\"\n";
+    w << "#include \"polyfhe/kernel/ntt-phantom.hpp\"\n";
+    w << "#include \"phantom-fhe/include/phantom.h\"\n";
+    w << "#include \"phantom-fhe/include/uintmodmath.cuh\"\n";
+
     w.write_to_file(filename, if_append);
 }
 
