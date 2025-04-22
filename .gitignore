@@ -8,6 +8,7 @@
 *.out
 **/build/
 **/generated.cu
+compile_commands.json
 
 # Python
 # Ignore Python bytecode

@@ -207,24 +207,6 @@ void example_ckks(PhantomContext &context, const double &scale) {
     size_t grid_size = 4096;
     uint64_t *res2 = res + params_h.L * params_h.N * 2;
 
-    /*
-    const size_t per_thread_ntt_size = params_h.per_thread_ntt_size;
-    const size_t per_block_pad = params_h.pad;
-    size_t per_block_memory =
-        block_size * per_thread_ntt_size * sizeof(uint64_t);
-    std::cout << "per_block_memory: " << per_block_memory << std::endl;
-
-    per_block_memory =
-        (params_h.n1 + per_block_pad + 1) * per_block_pad * sizeof(uint64_t);
-    std::cout << "per_block_memory: " << per_block_memory << std::endl;
-    poly_inplace_inwt_radix8_phase1<<<
-        grid_size, (params_h.n1 / 8) * per_block_pad, per_block_memory>>>(
-        res2, params_h.L, 0, params_d);
-    checkCudaErrors(cudaDeviceSynchronize());
-    */
-
-    block_size = 128;
-    grid_size = 4096;
     auto &rns_tool = context.get_context_data(xy_cipher_polyfhe.chain_index())
                          .gpu_rns_tool();
     poly_mult_shoup<<<grid_size, block_size>>>(

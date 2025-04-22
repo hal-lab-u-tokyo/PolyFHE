@@ -15,3 +15,11 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["pypolyfhe"]
+
+[tool.uv.sources]
+pypolyfhe = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pypolyfhe",
+]

@@ -277,11 +277,19 @@ dependencies = [
     { name = "matplotlib" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pypolyfhe" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "graphviz", specifier = ">=0.20.3" },
     { name = "matplotlib", specifier = ">=3.10.1" },
 ]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pypolyfhe", editable = "." }]
 
 [[package]]
 name = "python-dateutil"

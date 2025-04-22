@@ -1,18 +1,26 @@
 # PolyFHE: Fully Homomorphic Encryption Compiler for GPUs
 
 ## Build
+To build compiler,
 ```
 git clone --recursive git@github.com:ainozaki/PolyFHE.git
 cd PolyFHE
 cmake -S . -B build
 cmake --build build -j $(nproc)
-./script/build-example.sh opt
 ```
 
 To install python interface,
 ```
-uv pip  install -e .
-uv run ./example/ckks_HMult/example.py
+uv add --editable ./ --dev
+```
+
+To build and run example,
+```
+# Optimized memory access
+./example/ckks_HMult/build.sh opt
+
+# No optimized memory access (Baseline)
+./example/ckks_HMult/build.sh noopt
 ```
 
 ## Dependencies

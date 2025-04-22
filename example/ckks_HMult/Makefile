@@ -6,7 +6,7 @@ LDFLAGS = -Xlinker -rpath -Xlinker $(LIBPATH) -L$(LIBPATH) -lPhantom -lpthread
 BIN_COMPILER = $(ROOT)/build/polyfhe-cc
 BIN_EXAMPLE = build/example.out
 COMPILER_OUT = build/generated.cu
-DOT = graph_poly.dot
+DOT = output.dot
 CONFIG = config.csv
 
 all: $(BIN_EXAMPLE)
