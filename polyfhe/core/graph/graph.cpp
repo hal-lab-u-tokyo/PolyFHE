@@ -109,21 +109,8 @@ void Graph::add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
         vec.push_back(token);
     }
 
-    if (dst->get_op_type() == core::OpType::Malloc) {
-        // label is {limb}_malloc_{n_poly}
-        if (vec.size() != 3) {
-            LOG_ERROR("Invalid label: %s\n", label.c_str());
-            exit(1);
-        }
-        const int limb = std::stoi(vec[0]);
-        const int n_poly = std::stoi(vec[2]);
-        edge->set_limb(limb);
-        edge->set_start_limb(0);
-        edge->set_end_limb(limb);
-        dst->set_malloc_limb(limb);
-        dst->set_malloc_num_poly(n_poly);
-    } else if (src->get_op_type() == core::OpType::Init ||
-               dst->get_op_type() == core::OpType::End) {
+    if (src->get_op_type() == core::OpType::Init ||
+        dst->get_op_type() == core::OpType::End) {
         // label is {limb}_{init/end}_{idx}_{offset}
         if (vec.size() != 4) {
             LOG_ERROR("Invalid label: %s\n", label.c_str());

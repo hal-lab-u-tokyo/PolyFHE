@@ -87,6 +87,10 @@ public:
     void set_offset(int offset) { m_offset = offset; }
     int get_offset() { return m_offset; }
 
+    // For codegen
+    void set_has_defined(bool has_defined) { m_has_defined = has_defined; }
+    bool get_has_defined() { return m_has_defined; }
+
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;
@@ -106,6 +110,9 @@ private:
     int m_offset = 0;
     // Only for init/end node
     int m_idx_argc = 0;
+
+    // For codegen
+    bool m_has_defined = false;
 };
 
 } // namespace core

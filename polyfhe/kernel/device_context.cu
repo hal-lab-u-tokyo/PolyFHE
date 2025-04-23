@@ -4,6 +4,7 @@
 
 #include "device_context.hpp"
 #include "polyfhe/kernel/device_context.hpp"
+/*
 
 // from https://github.com/snucrypto/HEAAN, 131d275
 void mulMod(uint64_t &r, uint64_t a, uint64_t b, uint64_t m) {
@@ -86,11 +87,10 @@ uint64_t compute_shoup(const uint64_t operand, const uint64_t modulus) {
     return temp / modulus;
 }
 
-Params::Params(const int logN, const int L, const int dnum)
-    : logN(logN), L(L), dnum(dnum) {
+Params::Params(int logN, int L, int dnum) : logN(logN), L(L), dnum(dnum) {
     limb = L;
     N = 1 << logN;
-    alpha = std::ceil((L + 1) / dnum);
+    alpha = (L + 1) / dnum;
     K = alpha;
     n1 = 1 << (logN / 2);
     n2 = N / n1;
@@ -150,7 +150,7 @@ Params::Params(const int logN, const int L, const int dnum)
 }
 
 void FHEContext::CopyParamsToDevice() {
-    Params params_tmp;
+    Params params_tmp(h_params->logN, h_params->L, h_params->dnum);
     memcpy(&params_tmp, h_params.get(), sizeof(Params));
     const int L = h_params->L;
     const int K = h_params->K;
@@ -248,3 +248,4 @@ FHEContext::FHEContext(const int logN, const int L, const int dnum) {
     h_params = std::make_shared<Params>(logN, L, dnum);
     CopyParamsToDevice();
 }
+    */

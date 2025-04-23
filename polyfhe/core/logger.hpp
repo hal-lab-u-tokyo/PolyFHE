@@ -3,6 +3,9 @@
 #include <cstdio>
 
 #define DEBUG_ON
+#ifdef NDEBUG
+#undef NDEBUG
+#endif
 
 // 30 black, 31 red, 32 green, 33 yellow, 34 blue, 35 magenta, 36 cyan, 37 white
 

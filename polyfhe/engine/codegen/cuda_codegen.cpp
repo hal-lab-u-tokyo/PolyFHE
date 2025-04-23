@@ -1,5 +1,6 @@
 #include "polyfhe/engine/codegen/cuda_codegen.hpp"
 
+#include <cassert>
 #include <iostream>
 #include <string>
 
@@ -335,6 +336,11 @@ void CudaCodegen::generate_kernel_defs(
 
     CodeWriter w;
     for (auto subgraph : graph->get_subgraphs()) {
+        if (subgraph->get_subgraph_type() == core::SubgraphType::NoAccess) {
+            // We don't need to generate kernel for NoAccess subgraph
+            continue;
+        }
+
         w << "// Define kernel for subgraph[" << subgraph->get_idx() << "]\n";
         w << "__global__ void " << subgraph->get_name() << "(Params *params";
 
@@ -408,6 +414,9 @@ void CudaCodegen::generate_kernel_defs(
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
+                    assert(node->get_in_edges().size() == 2);
+                    assert(node->get_out_edges().size() >= 1);
+
                     w << "// " << node->get_op_name() << "\n";
                     // Make sure all levels of outedges are the same
                     for (auto edge : node->get_out_edges()) {
@@ -461,15 +470,18 @@ void CudaCodegen::generate_kernel_defs(
                         w << "if (res >= q) res -= q;\n";
                     }
 
-                    edge = node->get_out_edges()[0];
-                    w << gen_edge_access(
-                        edge, "n_idx",
-                        std::to_string(edge->get_offset_smem()) +
-                            " + threadIdx.x");
-                    w << " = res;\n";
+                    for (auto out_edge : node->get_out_edges()) {
+                        w << gen_edge_access(
+                            out_edge, "n_idx",
+                            std::to_string(out_edge->get_offset_smem()) +
+                                " + threadIdx.x");
+                        w << " = res;\n";
+                    }
                 } else if (op_type == core::OpType::Decomp) {
                     assert(node->get_in_edges().size() == 1);
                     assert(node->get_out_edges().size() == 1);
+                    assert(node->get_out_edges()[0]->get_level() ==
+                           polyfhe::core::EdgeLevel::Global);
                     auto inedge = node->get_in_edges()[0];
                     auto outedge = node->get_out_edges()[0];
                     w << "res = phantom::arith::multiply_and_reduce_shoup(";
@@ -487,8 +499,9 @@ void CudaCodegen::generate_kernel_defs(
                     w << " = res;\n";
                 } else {
                     LOG_ERROR(
-                        "Only Add, Sub, Mult and Decomp are supported for "
-                        "SubgraphType::Elem\n");
+                        "Only Add, Sub, Mult, Decomp and Copy are "
+                        "supported "
+                        "for SubgraphType::Elem\n");
                     std::cerr << "op_type: " << core::toStringOpType(op_type)
                               << std::endl;
                 }
@@ -518,7 +531,8 @@ void CudaCodegen::generate_kernel_defs(
             w << "const size_t group = params->n1 / 8;\n";
             w << "const size_t pad_tid = threadIdx.x % params->pad;\n";
             w << "const size_t pad_idx = threadIdx.x / params->pad;\n";
-            w << "const size_t n_init = n_twr / group * pad_idx + pad_tid + "
+            w << "const size_t n_init = n_twr / group * pad_idx + pad_tid "
+                 "+ "
                  "params->pad * (n_idx / (group * params->pad));\n";
             for (auto node : subgraph->get_nodes()) {
                 w << "// " << node->get_op_name() << "\n";
@@ -534,7 +548,8 @@ void CudaCodegen::generate_kernel_defs(
                     w << "#pragma unroll\n";
                     w << "for (int l = 0; l < 8; l++)";
                     w.block_begin();
-                    w << "reg[l] = phantom::arith::multiply_and_reduce_shoup(";
+                    w << "reg[l] = "
+                         "phantom::arith::multiply_and_reduce_shoup(";
                     w << "reg[l]";
                     w << ", partQlHatInv_mod_Ql_concat[twr_idx]";
                     w << ", partQlHatInv_mod_Ql_concat_shoup[twr_idx]";
@@ -580,7 +595,8 @@ void CudaCodegen::generate_kernel_defs(
                      ->get_name()
               << ";\n";
 
-            w << "for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i < "
+            w << "for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i "
+                 "< "
                  "params->L * params->N / 8; i += blockDim.x * gridDim.x)";
             w.block_begin();
             w << "size_t batch_idx = i / (params->N / 8);\n";
@@ -669,7 +685,8 @@ void CudaCodegen::generate_kernel_defs(
                 } else if (op_type == core::OpType::ModDown) {
                 } else {
                     LOG_ERROR(
-                        "Only Add, Sub, Mult and ModUp/Down are supported for "
+                        "Only Add, Sub, Mult and ModUp/Down are supported "
+                        "for "
                         "SubgraphType::ElemSlot\n");
                 }
             }
@@ -818,22 +835,17 @@ void CudaCodegen::generate_call_kernels(
 
 void define_edge(CodeWriter& w, std::shared_ptr<polyfhe::core::Edge>& edge,
                  const bool if_malloc) {
+    if (edge->get_has_defined()) {
+        return;
+    }
+
     w << "// Edge: " << edge->get_src()->get_op_name() << " -> "
       << edge->get_dst()->get_op_name() << "\n";
 
     if (edge->get_src()->get_op_type() == polyfhe::core::OpType::Init) {
         auto dst = edge->get_dst();
-        if (dst->get_op_type() == core::OpType::Malloc) {
-            w << "uint64_t *" << edge->get_name() << "_d;\n";
-            w << "checkCudaErrors(cudaMalloc((void**)&" << edge->get_name()
-              << "_d, " << dst->get_malloc_limb() << " * "
-              << dst->get_malloc_num_poly()
-              << " * params_h->N * sizeof(uint64_t)));\n";
-            return;
-        } else {
-            w << "uint64_t *" << edge->get_name() << "_d = in"
-              << edge->get_idx_argc() << " + " << edge->get_offset() << ";\n";
-        }
+        w << "uint64_t *" << edge->get_name() << "_d = in"
+          << edge->get_idx_argc() << " + " << edge->get_offset() << ";\n";
     } else if (edge->get_dst()->get_op_type() == polyfhe::core::OpType::End) {
         w << "uint64_t *" << edge->get_name() << "_d = out"
           << edge->get_idx_argc() << " + " << edge->get_offset() << ";\n";
@@ -845,6 +857,7 @@ void define_edge(CodeWriter& w, std::shared_ptr<polyfhe::core::Edge>& edge,
           << "_d, " << edge->get_limb()
           << " * params_h->N * sizeof(uint64_t)));\n";
     }
+    edge->set_has_defined(true);
 }
 
 void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
@@ -853,7 +866,8 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     LOG_INFO("Start Generate entry kernel\n");
     CodeWriter w;
 
-    w << "void entry_kernel(Params *params_d, Params *params_h, PhantomContext "
+    w << "void entry_kernel(Params *params_d, Params *params_h, "
+         "PhantomContext "
          "&context, "
          "uint64_t *in0, "
          "uint64_t *in1, "
@@ -899,7 +913,8 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     for (auto subgraph : graph->get_subgraphs()) {
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_out_edges()) {
-                if (edge->get_src()->get_op_type() == core::OpType::Init) {
+                auto src = edge->get_src();
+                if (src->get_op_type() == core::OpType::Init) {
                     continue;
                 }
                 if (edge->get_dst()->get_op_type() == core::OpType::End) {
@@ -919,10 +934,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     // w << "std::cout << \"n1: \" << params_h->n1 << std::endl;\n";
     // w << "std::cout << \"n2: \" << params_h->n2 << std::endl;\n";
     w << "std::cout << \"L : \" << params_h->L << std::endl;\n";
-    // w << "std::cout << \"dnum : \" << params_h->dnum << std::endl;\n";
+    w << "std::cout << \"dnum : \" << params_h->dnum << std::endl;\n";
     // w << "std::cout << \"K : \" << params_h->K << std::endl;\n";
-    // w << "std::cout << \"alpha : \" << params_h->alpha << std::endl;\n";
-    // w << "std::cout << \"------------------------------\" << std::endl;\n";
+    w << "std::cout << \"alpha : \" << params_h->alpha << std::endl;\n";
+    // w << "std::cout << \"------------------------------\" <<
+    // std::endl;\n";
 
     // TODO: cudaFuncSetAttribute based on DeviceProp
     // w << "cudaDeviceProp prop;\n";

@@ -44,7 +44,18 @@ struct NTTParams {
 
 class Params {
 public:
-    Params(const int logN, const int L, const int dnum);
+    Params(int logN, int L, int dnum) {
+        this->logN = logN;
+        this->N = 1 << logN;
+        this->n1 = 1 << (logN / 2);
+        this->n2 = this->N / this->n1;
+        this->L = L;
+        this->dnum = dnum;
+        this->limb = L;
+        this->alpha = (L + 1) / dnum;
+        this->K = this->alpha;
+        this->KL = this->K + this->L;
+    }
     Params() = default;
     ~Params() = default;
 
@@ -54,9 +65,10 @@ public:
     int n1;
     int n2;
 
-    int L;     // Maximum limb
-    int limb;  // Current limb
-    int K;     // The number of special modulus
+    int L;    // Maximum limb
+    int limb; // Current limb
+    int K;    // The number of special modulus
+    int KL;
     int alpha; // Number of limbs in a digit, ceil((L + 1) / dnum)
     int dnum;  // Number of digits
     const size_t pad = 4;

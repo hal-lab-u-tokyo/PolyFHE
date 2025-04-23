@@ -18,3 +18,5 @@ __pycache__/
 
 # vscode
 .vscode/
+
+tmp.py

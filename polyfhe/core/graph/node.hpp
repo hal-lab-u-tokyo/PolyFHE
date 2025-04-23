@@ -64,8 +64,6 @@ enum class OpType {
     iNTTPhase2,
     End,
     Init,
-    Malloc,
-    Copy,
     // For FHEGraph
     // TODO: separate FHEGraph and PolyGraph
     HAdd,
@@ -159,24 +157,6 @@ public:
     void set_idx_subgraph(int idx) { idx_subgraph = idx; }
     int get_idx_subgraph() { return idx_subgraph; }
 
-    // Malloc
-    void set_malloc_limb(int limb) {
-        assert(m_op_type == OpType::Malloc);
-        m_malloc_limb = limb;
-    }
-    int get_malloc_limb() {
-        assert(m_op_type == OpType::Malloc);
-        return m_malloc_limb;
-    }
-    void set_malloc_num_poly(int num_poly) {
-        assert(m_op_type == OpType::Malloc);
-        m_malloc_num_poly = num_poly;
-    }
-    int get_malloc_num_poly() {
-        assert(m_op_type == OpType::Malloc);
-        return m_malloc_num_poly;
-    }
-
 protected:
     OpType m_op_type;
     std::vector<std::shared_ptr<Edge>> m_in_edges;
@@ -185,10 +165,6 @@ protected:
     MemoryAccessPattern m_access_pattern = MemoryAccessPattern::YetSet;
     BlockPhase m_block_phase;
     int idx_subgraph = -1;
-
-    // Only for Malloc Op
-    int m_malloc_limb;
-    int m_malloc_num_poly;
 
 private:
     // Only for lowerings

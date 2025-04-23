@@ -114,12 +114,7 @@ void example_ckks(PhantomContext &context, const double &scale) {
 
     std::cout << "coeff_mod_size: " << coeff_mod_size << std::endl;
 
-    Params params_h;
-    params_h.N = poly_degree;
-    params_h.L = coeff_mod_size;
-    params_h.logN = log2(poly_degree);
-    params_h.n1 = 1 << (params_h.logN / 2);
-    params_h.n2 = params_h.N / params_h.n1;
+    Params params_h(std::log2(poly_degree), coeff_mod_size, 9);
     ConvertPhantomToParams(params_h, context.gpu_rns_tables().modulus(),
                            ntt_tables);
     Params *params_d;
