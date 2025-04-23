@@ -86,7 +86,7 @@ std::shared_ptr<polyfhe::core::Graph> ConvertDotToGraph(
     for (int i = 0; i < n; i++) {
         std::shared_ptr<polyfhe::core::Node> src = visited[i];
         if (!src) {
-            LOG_ERROR("Node %d not visited\n", i);
+            LOG_ERROR("Node %d has not visited\n", i);
             exit(1);
         }
 

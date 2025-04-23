@@ -739,6 +739,8 @@ void CudaCodegen::generate_kernel_defs(
                 }
                 w << "__syncthreads();\n";
             }
+        } else if (s_type == polyfhe::core::SubgraphType::NoAccess) {
+            // We don't need to generate kernel
         } else {
             LOG_ERROR("Not implemented\n");
         }
@@ -756,6 +758,11 @@ void CudaCodegen::generate_call_kernels(
     w << "// Timer start\n";
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
     for (auto subgraph : graph->get_subgraphs()) {
+        if (subgraph->get_subgraph_type() ==
+            polyfhe::core::SubgraphType::NoAccess) {
+            // Skip NoAccess subgraph
+            continue;
+        }
         core::KernelLaunchConfig kconfig = subgraph->get_kernel_launch_config();
         w << subgraph->get_name() << "<<<" << kconfig.grid_size << ", "
           << kconfig.block_size << ", " << kconfig.shared_mem_size << ">>>";
@@ -815,8 +822,18 @@ void define_edge(CodeWriter& w, std::shared_ptr<polyfhe::core::Edge>& edge,
       << edge->get_dst()->get_op_name() << "\n";
 
     if (edge->get_src()->get_op_type() == polyfhe::core::OpType::Init) {
-        w << "uint64_t *" << edge->get_name() << "_d = in"
-          << edge->get_idx_argc() << " + " << edge->get_offset() << ";\n";
+        auto dst = edge->get_dst();
+        if (dst->get_op_type() == core::OpType::Malloc) {
+            w << "uint64_t *" << edge->get_name() << "_d;\n";
+            w << "checkCudaErrors(cudaMalloc((void**)&" << edge->get_name()
+              << "_d, " << dst->get_malloc_limb() << " * "
+              << dst->get_malloc_num_poly()
+              << " * params_h->N * sizeof(uint64_t)));\n";
+            return;
+        } else {
+            w << "uint64_t *" << edge->get_name() << "_d = in"
+              << edge->get_idx_argc() << " + " << edge->get_offset() << ";\n";
+        }
     } else if (edge->get_dst()->get_op_type() == polyfhe::core::OpType::End) {
         w << "uint64_t *" << edge->get_name() << "_d = out"
           << edge->get_idx_argc() << " + " << edge->get_offset() << ";\n";
@@ -825,8 +842,8 @@ void define_edge(CodeWriter& w, std::shared_ptr<polyfhe::core::Edge>& edge,
     }
     if (if_malloc) {
         w << "checkCudaErrors(cudaMalloc((void**)&" << edge->get_name()
-          << "_d, " << edge->get_limb() << " * params_h->N"
-          << "* sizeof(uint64_t)));\n";
+          << "_d, " << edge->get_limb()
+          << " * params_h->N * sizeof(uint64_t)));\n";
     }
 }
 

@@ -26,6 +26,8 @@ class PolyOpType(Enum):
     Const = auto()
     InitEdge = auto()
     EndEdge = auto()
+    Malloc = auto()
+    Copy = auto()
 
     def __str__(self):
         return self.name
@@ -53,10 +55,25 @@ class PolyOp:
     def __repr__(self):
         return f"PolyOp(op:{self.op_type},id:{self.id[-4:]})"
 
-    def set_special_edge(self, idx_ct: int, offset: int):
-        assert(self.op_type == PolyOpType.InitEdge or self.op_type == PolyOpType.EndEdge)
+    def set_special_edge(self, idx_ct: int, offset: int, n_poly: int = 0):
+        assert(self.op_type == PolyOpType.InitEdge or self.op_type == PolyOpType.EndEdge or self.op_type == PolyOpType.Malloc)
         self.idx_ct = idx_ct
         self.offset = offset
+        self.n_poly = n_poly
+
+    def set_malloc_info(self, limb: int, degree: int, num_poly: int):
+        assert(self.op_type == PolyOpType.Malloc)
+        self.malloc_limb = limb
+        self.malloc_degree = degree
+        self.malloc_num_poly = num_poly
+
+    def set_copy_info(self, dst_op: PolyOp, dst_offset: int, src_op: PolyOp, src_offset: int, size: int):
+        assert(self.op_type == PolyOpType.Copy)
+        self.dst_op = dst_op
+        self.dst_offset = dst_offset
+        self.src_op = src_op
+        self.src_offset = src_offset
+        self.size = size
 
 class PolyFHE:
     def __init__(self):
@@ -74,7 +91,17 @@ class PolyFHE:
         op = PolyOp(PolyOpType.EndEdge, [a], "end")
         op.set_special_edge(ct_idx, offset)
         return op
+
+    def malloc(self, name: str, limb: int, degree: int, num_poly: int):
+        op = PolyOp(PolyOpType.Malloc, [], name)
+        op.set_malloc_info(limb, degree, num_poly)
+        return op
     
+    def copy(self, name: str, dst_op: PolyOp, dst_offset: int, src_op: PolyOp, src_offset: int, size: int):
+        op = PolyOp(PolyOpType.Copy, [dst_op, src_op], name)
+        op.set_copy_info(dst_op, dst_offset, src_op, src_offset, size)
+        return op
+
     def add(self, a: PolyOp, b: PolyOp, name: str, current_limb: int, start_limb: int, end_limb: int):
         return PolyOp(PolyOpType.Add, [a, b], name, current_limb, start_limb, end_limb)
     
@@ -103,7 +130,10 @@ class PolyFHE:
             dot.node(f"{op.name}", label=f"{op.op_type}")
 
         def add_edge(src: PolyOp, dst: PolyOp):
-            if src.op_type == PolyOpType.InitEdge:
+            if src.op_type == PolyOpType.Malloc:
+                dot.edge(self.init_op.name, src.name, label=gen_edge_label(self.init_op, src))
+                dot.edge(src.name, dst.name, label=gen_edge_label(src, dst))
+            elif src.op_type == PolyOpType.InitEdge:
                 dot.edge(self.init_op.name, dst.name, label=gen_edge_label(src, dst))
             elif dst.op_type == PolyOpType.EndEdge:
                 dot.edge(src.name, self.end_op.name, label=gen_edge_label(src, dst))
@@ -114,20 +144,26 @@ class PolyFHE:
             print(f"Generating edge label for {src} -> {dst}")  
             label = ""
             if src.op_type == PolyOpType.InitEdge:
-                label = f"{dst.current_limb}_{dst.start_limb}_{dst.end_limb}_{src.idx_ct}_{src.offset}"
+                label = f"{dst.end_limb}_init_{src.idx_ct}_{src.offset}"
             elif dst.op_type == PolyOpType.EndEdge:
-                label = f"{src.current_limb}_{src.start_limb}_{src.end_limb}_{dst.idx_ct}_{dst.offset}"
+                label = f"{src.end_limb}_end_{dst.idx_ct}_{dst.offset}"
+            elif src.op_type == PolyOpType.Malloc:
+                label = f"{src.malloc_limb}"
+            elif dst.op_type == PolyOpType.Malloc:
+                assert(src.op_type == PolyOpType.Init)
+                label = f"{dst.malloc_limb}_malloc_{dst.malloc_num_poly}"
             else:
-                if src.current_limb != dst.current_limb:
-                    print(f"error: current limb mismatch {src.current_limb} != {dst.current_limb}")
-                    exit(1)
-                if src.start_limb != dst.start_limb:
-                    print(f"error: start limb mismatch {src.start_limb} != {dst.start_limb}")
-                    exit(1)
-                if src.end_limb != dst.end_limb:
-                    print(f"error: end limb mismatch {src.end_limb} != {dst.end_limb}")
-                    exit(1)
-                label = f"{src.current_limb}_{src.start_limb}_{src.end_limb}"
+                if dst.op_type != PolyOpType.Copy:
+                    if src.current_limb != dst.current_limb:
+                        print(f"error: current limb mismatch {src.current_limb} != {dst.current_limb}")
+                        exit(1)
+                    if src.start_limb != dst.start_limb:
+                        print(f"error: start limb mismatch {src.start_limb} != {dst.start_limb}")
+                        exit(1)
+                    if src.end_limb != dst.end_limb:
+                        print(f"error: end limb mismatch {src.end_limb} != {dst.end_limb}")
+                        exit(1)
+                label = f"{src.end_limb}"
             return label
 
         def gen_dot(op: PolyOp, visited: set):

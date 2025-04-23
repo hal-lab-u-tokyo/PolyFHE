@@ -78,6 +78,11 @@ bool KernelLaunchConfigPass::run_on_graph(
             k_config.block_size = std::to_string(thread_ceil_to_ntt);
             k_config.grid_size = "params_h->n1";
             k_config.shared_mem_size = std::to_string(smem);
+        } else if (s_type == core::SubgraphType::NoAccess) {
+            // We don't need to launch kernel
+            k_config.block_size = "0";
+            k_config.grid_size = "0";
+            k_config.shared_mem_size = "0";
         } else {
             LOG_ERROR("Unexpected subgraph type\n");
         }

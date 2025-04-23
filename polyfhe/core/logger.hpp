@@ -10,10 +10,11 @@
 #define LOG_DEBUG(...)                                            \
     printf("[DEBUG][%s][%d][%s] ", __FILE__, __LINE__, __func__), \
         printf(__VA_ARGS__)
-#define LOG_ERROR(...)                                                 \
-    printf("\x1b[31m[ERROR][%s][%d][%s]\x1b[39m ", __FILE__, __LINE__, \
-           __func__),                                                  \
-        printf(__VA_ARGS__)
+#define LOG_ERROR(...)                                                   \
+    printf("\x1b[31m[ERROR][%s][%d][%s], exiting...\x1b[39m ", __FILE__, \
+           __LINE__, __func__),                                          \
+        printf(__VA_ARGS__);                                             \
+    exit(1);
 #define LOG_WARN(...)                                                 \
     printf("\x1b[33m[WARN][%s][%d][%s]\x1b[39m ", __FILE__, __LINE__, \
            __func__),                                                 \

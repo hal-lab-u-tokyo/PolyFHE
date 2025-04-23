@@ -45,6 +45,10 @@ std::string toStringOpType(OpType op_type) {
         return "End";
     case OpType::Init:
         return "Init";
+    case OpType::Malloc:
+        return "Malloc";
+    case OpType::Copy:
+        return "Copy";
     default:
         return "Unknown";
     }
@@ -72,8 +76,9 @@ MemoryAccessPattern OpType_access_pattern(OpType op_type) {
     } else if (op_type == OpType::Add || op_type == OpType::Sub ||
                op_type == OpType::Mult || op_type == OpType::Decomp) {
         return MemoryAccessPattern::ElementWise;
-    } else if (op_type == OpType::End || op_type == OpType::Init) {
-        return MemoryAccessPattern::NotDefined;
+    } else if (op_type == OpType::End || op_type == OpType::Init ||
+               op_type == OpType::Malloc || op_type == OpType::Copy) {
+        return MemoryAccessPattern::NoAccess;
     } else {
         return MemoryAccessPattern::YetSet;
     }
@@ -100,6 +105,8 @@ Node::Node(std::string op_name) : m_id(-1) {
         {"iNTTPhase2", OpType::iNTTPhase2},
         {"End", OpType::End},
         {"Init", OpType::Init},
+        {"Malloc", OpType::Malloc},
+        {"Copy", OpType::Copy},
         {"HAdd", OpType::HAdd},
         {"HMult", OpType::HMult},
     };

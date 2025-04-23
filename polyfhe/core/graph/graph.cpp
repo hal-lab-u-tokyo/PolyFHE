@@ -22,6 +22,8 @@ std::string to_string(SubgraphType subgraph_type) {
         return "ElemLimb1Slot";
     case SubgraphType::ElemLimb2Slot:
         return "ElemLimb2Slot";
+    case SubgraphType::NoAccess:
+        return "NoAccess";
     default:
         LOG_ERROR("Invalid SubgraphType\n");
         exit(1);
@@ -47,6 +49,9 @@ std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type) {
         break;
     case SubgraphType::ElemLimb2Slot:
         os << "ElemLimb2Slot";
+        break;
+    case SubgraphType::NoAccess:
+        os << "NoAccess";
         break;
     default:
         LOG_ERROR("Invalid SubgraphType\n");
@@ -104,36 +109,45 @@ void Graph::add_edge(std::shared_ptr<Node> src, std::shared_ptr<Node> dst,
         vec.push_back(token);
     }
 
-    if (src->get_op_type() == core::OpType::Init ||
-        dst->get_op_type() == core::OpType::End) {
-        // label is {current_limb}_{start_limb}_{end_limb}_{idx_argc}_{offset}
-        if (vec.size() != 5) {
+    if (dst->get_op_type() == core::OpType::Malloc) {
+        // label is {limb}_malloc_{n_poly}
+        if (vec.size() != 3) {
             LOG_ERROR("Invalid label: %s\n", label.c_str());
             exit(1);
         }
         const int limb = std::stoi(vec[0]);
-        const int start = std::stoi(vec[1]);
-        const int end = std::stoi(vec[2]);
-        const int idx = std::stoi(vec[3]);
-        const int offset = std::stoi(vec[4]);
+        const int n_poly = std::stoi(vec[2]);
         edge->set_limb(limb);
-        edge->set_start_limb(start);
-        edge->set_end_limb(end);
+        edge->set_start_limb(0);
+        edge->set_end_limb(limb);
+        dst->set_malloc_limb(limb);
+        dst->set_malloc_num_poly(n_poly);
+    } else if (src->get_op_type() == core::OpType::Init ||
+               dst->get_op_type() == core::OpType::End) {
+        // label is {limb}_{init/end}_{idx}_{offset}
+        if (vec.size() != 4) {
+            LOG_ERROR("Invalid label: %s\n", label.c_str());
+            exit(1);
+        }
+        const int limb = std::stoi(vec[0]);
+        const int idx = std::stoi(vec[2]);
+        const int offset = std::stoi(vec[3]);
+        edge->set_limb(limb);
+        edge->set_start_limb(0);
+        edge->set_end_limb(limb);
         edge->set_idx_argc(idx);
         edge->set_offset(offset);
     } else if (!label.empty()) {
-        // label is {current_limb}_{start_limb}_{end_limb}
-        if (vec.size() != 3) {
+        // label is {limb}
+        if (vec.size() != 1) {
             LOG_ERROR("Invalid label: %s, src node: %s\n", label.c_str(),
                       src->get_op_name().c_str());
             exit(1);
         }
         const int limb = std::stoi(vec[0]);
-        const int start = std::stoi(vec[1]);
-        const int end = std::stoi(vec[2]);
         edge->set_limb(limb);
-        edge->set_start_limb(start);
-        edge->set_end_limb(end);
+        edge->set_start_limb(0);
+        edge->set_end_limb(limb);
     }
 }
 
@@ -177,6 +191,14 @@ core::SubgraphType GetSubgraphType(
     bool contains_ntt1 = false;
     bool contains_ntt2 = false;
     bool contains_slotwise = false;
+    bool only_not_defined = true;
+    for (auto node : s) {
+        core::MemoryAccessPattern pattern = node->get_access_pattern();
+        if (pattern != core::MemoryAccessPattern::NoAccess) {
+            only_not_defined = false;
+            break;
+        }
+    }
     for (auto node : s) {
         core::MemoryAccessPattern pattern = node->get_access_pattern();
         if (pattern == core::MemoryAccessPattern::ElementWise) {
@@ -193,6 +215,8 @@ core::SubgraphType GetSubgraphType(
             }
         } else if (pattern == core::MemoryAccessPattern::SlotWise) {
             contains_slotwise = true;
+        } else if (pattern == core::MemoryAccessPattern::NoAccess) {
+            // Do nothing
         } else {
             LOG_ERROR("Unknown MemoryAccessPattern\n");
             assert(false);
@@ -232,6 +256,8 @@ core::SubgraphType GetSubgraphType(
                          : core::SubgraphType::ElemLimb2;
     } else if (contains_elemwise) {
         return core::SubgraphType::Elem;
+    } else if (only_not_defined) {
+        return core::SubgraphType::NoAccess;
     } else {
         LOG_ERROR("Unknown SubgraphType\n");
         assert(false);
@@ -285,6 +311,9 @@ int GetsPolySize(std::vector<std::shared_ptr<polyfhe::core::Node>> &subgraph,
         break;
     case SubgraphType::ElemLimb2Slot:
         spoly_size = config->N / NTTSampleSize(config->logN) * max_limb;
+        break;
+    case SubgraphType::NoAccess:
+        spoly_size = 0;
         break;
     default:
         LOG_ERROR("Invalid SubgraphType\n");
