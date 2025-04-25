@@ -21,7 +21,7 @@ using namespace phantom::util;
 #define EPSINON 0.001
 
 void entry_kernel(Params *params_d, Params *params_h, PhantomContext &context,
-                  uint64_t *in0, uint64_t *in1, uint64_t *out0,
+                  uint64_t *in0, uint64_t *in1, uint64_t *out0, uint64_t *out2,
                   bool if_benchmark);
 
 inline bool operator==(const cuDoubleComplex &lhs, const cuDoubleComplex &rhs) {
@@ -127,13 +127,24 @@ void example_ckks(PhantomContext &context, const double &scale) {
     xy_cipher_polyfhe.resize(3, coeff_mod_size, poly_degree, s);
     uint64_t *res = xy_cipher_polyfhe.data();
 
+    const int beta = std::ceil((params_h.L + 1) / params_h.alpha);
+    const int nlbeta = poly_degree * coeff_mod_size * beta;
+    std::cout << "beta: " << beta << std::endl;
+    uint64_t *res_modup_polyfhe, *res_modup_phantom;
+    checkCudaErrors(
+        cudaMalloc((void **) &res_modup_polyfhe, nlbeta * sizeof(uint64_t)));
+    checkCudaErrors(
+        cudaMalloc((void **) &res_modup_phantom, nlbeta * sizeof(uint64_t)));
+
     // PolyFHE's HMult
-    entry_kernel(params_d, &params_h, context, in1, in2, res, true);
+    entry_kernel(params_d, &params_h, context, in1, in2, res, res_modup_polyfhe,
+                 true);
     checkCudaErrors(cudaDeviceSynchronize());
 
     // Phantom's HMult
     PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);
-    relinearize_inplace(context, xy_cipher, relin_keys);
+    relinearize_inplace_debug(context, xy_cipher, relin_keys,
+                              res_modup_phantom);
     checkCudaErrors(cudaDeviceSynchronize());
     // rescale_to_next_inplace(context, xy_cipher);
     std::cout << "xy_cipher.chain_index(): " << xy_cipher.chain_index()
@@ -147,8 +158,10 @@ void example_ckks(PhantomContext &context, const double &scale) {
     uint64_t *h_res_phantom =
         (uint64_t *) malloc(poly_degree * coeff_mod_size * sizeof(uint64_t));
 
+    bool correctness = true;
     for (int idx = 0; idx < xy_cipher.size(); idx++) {
         std::cout << "idx: " << idx << std::endl;
+        correctness = true;
         uint64_t *d_res_polyfhe =
             xy_cipher_polyfhe.data() + idx * poly_degree * coeff_mod_size;
         uint64_t *d_res_phantom =
@@ -161,7 +174,6 @@ void example_ckks(PhantomContext &context, const double &scale) {
             cudaMemcpy(h_res_phantom, d_res_phantom,
                        poly_degree * coeff_mod_size * sizeof(uint64_t),
                        cudaMemcpyDeviceToHost));
-        bool correctness = true;
         for (int i = 0; i < poly_degree * coeff_mod_size; i++) {
             if (h_res_polyfhe[i] != h_res_phantom[i]) {
                 correctness = false;
@@ -176,6 +188,32 @@ void example_ckks(PhantomContext &context, const double &scale) {
         } else {
             cout << "  Fail" << endl;
         }
+    }
+
+    // Check t_modup_ptr
+    uint64_t *h_modup_polyfhe = (uint64_t *) malloc(nlbeta * sizeof(uint64_t));
+    uint64_t *h_modup_phantom = (uint64_t *) malloc(nlbeta * sizeof(uint64_t));
+    checkCudaErrors(cudaMemcpy(h_modup_polyfhe, res_modup_polyfhe,
+                               nlbeta * sizeof(uint64_t),
+                               cudaMemcpyDeviceToHost));
+    checkCudaErrors(cudaMemcpy(h_modup_phantom, res_modup_phantom,
+                               nlbeta * sizeof(uint64_t),
+                               cudaMemcpyDeviceToHost));
+    std::cout << "Modup result" << std::endl;
+    correctness = true;
+    for (int i = 0; i < nlbeta; i++) {
+        if (h_modup_polyfhe[i] != h_modup_phantom[i]) {
+            cout << "  PolyFHE != Phantom at index " << i << endl;
+            cout << "   PolyFHE: " << h_modup_polyfhe[i] << endl;
+            cout << "   Phantom: " << h_modup_phantom[i] << endl;
+            correctness = false;
+            break;
+        }
+    }
+    if (correctness) {
+        cout << "  OK" << endl;
+    } else {
+        cout << "  Fail" << endl;
     }
 
     /*

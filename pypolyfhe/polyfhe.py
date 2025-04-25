@@ -10,6 +10,7 @@ class PolyOpType(Enum):
     Add = auto()
     Sub = auto()
     Mult = auto()
+    MultConst = auto()
     Decomp = auto()
     BConv = auto()
     ModDown = auto()
@@ -87,9 +88,16 @@ class PolyFHE:
     def mul(self, a: PolyOp, b: PolyOp, name: str, current_limb: int, start_limb: int, end_limb: int):
         return PolyOp(PolyOpType.Mult, [a, b], name, current_limb, start_limb, end_limb)
     
+    def mul_const(self, a: PolyOp, name: str, current_limb: int, start_limb: int, end_limb: int):
+        return PolyOp(PolyOpType.MultConst, [a], name, current_limb, start_limb, end_limb)
+    
     def decomp(self, a: PolyOp, name: str, current_limb: int, start_limb: int, end_limb: int, alpha: int, beta: int):
         op = PolyOp(PolyOpType.Decomp, [a], name, current_limb, start_limb, end_limb)
         op.set_decomp_info(alpha, beta)
+        return op
+    
+    def bconv(self, a: PolyOp, name: str, in_idx_start: int, in_idx_size: int, out_idx_start: int, out_idx_size: int):
+        op = PolyOp(PolyOpType.BConv, [a], name, 0, 0, 0)
         return op
     
     def intt_phase1(self, a: PolyOp, name: str, current_limb: int, start_limb: int, end_limb: int):
@@ -126,15 +134,6 @@ class PolyFHE:
             elif dst.op_type == PolyOpType.EndEdge:
                 label = f"{src.end_limb}_end_{dst.idx_ct}_{dst.offset}"
             else:
-                if src.current_limb != dst.current_limb:
-                    print(f"error: current limb mismatch {src.current_limb} != {dst.current_limb}")
-                    exit(1)
-                if src.start_limb != dst.start_limb:
-                    print(f"error: start limb mismatch {src.start_limb} != {dst.start_limb}")
-                    exit(1)
-                if src.end_limb != dst.end_limb:
-                    print(f"error: end limb mismatch {src.end_limb} != {dst.end_limb}")
-                    exit(1)
                 label = f"{src.end_limb}"
             return label
 

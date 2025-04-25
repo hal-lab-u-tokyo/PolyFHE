@@ -107,15 +107,17 @@ std::string gen_ElemWiseOp_internal(polyfhe::core::OpType op_type,
 
 void CudaCodegen::generate_ElemWiseOp(
     std::shared_ptr<polyfhe::core::Node>& node, CodeWriter& w,
-    std::shared_ptr<polyfhe::core::Edge> out,
+    std::vector<std::shared_ptr<polyfhe::core::Edge>> out_vec,
     std::shared_ptr<polyfhe::core::Edge> in0,
     std::shared_ptr<polyfhe::core::Edge> in1,
     polyfhe::core::SubgraphType s_type) {
     auto op_type = node->get_op_type();
 
     if (s_type == polyfhe::core::SubgraphType::ElemLimb1) {
+        // TODO: support multiple output
+        assert(out_vec.size() == 1);
         std::vector<std::string> args;
-        for (auto edge : {out, in0, in1}) {
+        for (auto edge : {out_vec[0], in0, in1}) {
             args.push_back(gen_edge_access(
                 edge, "batch_idx * params->N + n_idx",
                 std::to_string(edge->get_offset_smem()) + " + threadIdx.x"));
@@ -123,7 +125,7 @@ void CudaCodegen::generate_ElemWiseOp(
         w << gen_ElemWiseOp_internal(op_type, args[0], args[1], args[2]);
 
         args.clear();
-        for (auto edge : {out, in0, in1}) {
+        for (auto edge : {out_vec[0], in0, in1}) {
             args.push_back(gen_edge_access(
                 edge, "batch_idx * params->N + n_idx + blockDim.x",
                 std::to_string(edge->get_offset_smem()) + " + threadIdx.x + "
@@ -136,19 +138,29 @@ void CudaCodegen::generate_ElemWiseOp(
         w << "#pragma unroll\n";
         w << "for (int l = 0; l < 8; l++)";
         w.block_begin();
-        std::vector<std::string> args;
-        for (auto edge : {out, in0, in1}) {
+        w << "uint64_t res;\n";
+
+        std::vector<std::string> in_strs;
+        for (auto in : {in0, in1}) {
             // TODO: use Register in data_reuse_pass.cpp
-            if (edge->get_level() == polyfhe::core::EdgeLevel::Shared) {
-                edge->set_level(polyfhe::core::EdgeLevel::Register);
+            if (in->get_level() == polyfhe::core::EdgeLevel::Shared) {
+                in->set_level(polyfhe::core::EdgeLevel::Register);
             }
-            args.push_back(gen_edge_access(edge, "idx + l", "l"));
+            in_strs.push_back(gen_edge_access(in, "idx + l", "l"));
         }
-        w << gen_ElemWiseOp_internal(op_type, args[0], args[1], args[2]);
+        w << gen_ElemWiseOp_internal(op_type, "res", in_strs[0], in_strs[1]);
+        for (auto out : out_vec) {
+            // TODO: use Register in data_reuse_pass.cpp
+            if (out->get_level() == polyfhe::core::EdgeLevel::Shared) {
+                out->set_level(polyfhe::core::EdgeLevel::Register);
+            }
+            w << gen_edge_access(out, "idx + l", "l") << " = res;\n";
+        }
         w.block_end();
     } else if (s_type == polyfhe::core::SubgraphType::ElemLimb2Slot) {
+        assert(out_vec.size() == 1);
         std::vector<std::string> args;
-        for (auto edge : {out, in0, in1}) {
+        for (auto edge : {out_vec[0], in0, in1}) {
             args.push_back(gen_edge_access(
                 edge,
                 "batch_idx * params->N + blockIdx.x + thread_idx * params->n1",
@@ -158,7 +170,7 @@ void CudaCodegen::generate_ElemWiseOp(
         w << gen_ElemWiseOp_internal(op_type, args[0], args[1], args[2]);
 
         args.clear();
-        for (auto edge : {out, in0, in1}) {
+        for (auto edge : {out_vec[0], in0, in1}) {
             args.push_back(gen_edge_access(
                 edge,
                 "batch_idx * params->N + blockIdx.x + (thread_idx + "
@@ -361,7 +373,7 @@ void CudaCodegen::generate_kernel_defs(
                 }
             }
             // Pre-computed constants
-            if (node->get_op_type() == core::OpType::Decomp) {
+            if (node->get_op_type() == core::OpType::MultConst) {
                 w << ", uint64_t *partQlHatInv_mod_Ql_concat";
                 w << ", uint64_t *partQlHatInv_mod_Ql_concat_shoup";
             }
@@ -477,7 +489,7 @@ void CudaCodegen::generate_kernel_defs(
                                 " + threadIdx.x");
                         w << " = res;\n";
                     }
-                } else if (op_type == core::OpType::Decomp) {
+                } else if (op_type == core::OpType::MultConst) {
                     assert(node->get_in_edges().size() == 1);
                     assert(node->get_out_edges().size() == 1);
                     assert(node->get_out_edges()[0]->get_level() ==
@@ -499,7 +511,7 @@ void CudaCodegen::generate_kernel_defs(
                     w << " = res;\n";
                 } else {
                     LOG_ERROR(
-                        "Only Add, Sub, Mult, Decomp and Copy are "
+                        "Only Add, Sub, Mult, MultConst and Copy are "
                         "supported "
                         "for SubgraphType::Elem\n");
                     std::cerr << "op_type: " << core::toStringOpType(op_type)
@@ -544,7 +556,7 @@ void CudaCodegen::generate_kernel_defs(
                     assert(node->get_in_edges().size() == 2);
                     LOG_ERROR("Not implemented\n");
                     assert(false);
-                } else if (op_type == core::OpType::Decomp) {
+                } else if (op_type == core::OpType::MultConst) {
                     w << "#pragma unroll\n";
                     w << "for (int l = 0; l < 8; l++)";
                     w.block_begin();
@@ -615,9 +627,8 @@ void CudaCodegen::generate_kernel_defs(
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
-                    assert(node->get_out_edges().size() == 1);
                     assert(node->get_in_edges().size() == 2);
-                    generate_ElemWiseOp(node, w, node->get_out_edges()[0],
+                    generate_ElemWiseOp(node, w, node->get_out_edges(),
                                         node->get_in_edges()[0],
                                         node->get_in_edges()[1], s_type);
                 } else if (op_type == core::OpType::NTTPhase2) {
@@ -722,7 +733,7 @@ void CudaCodegen::generate_kernel_defs(
                     w.block_begin();
                     w << "const uint64_t q = "
                          "params->ntt_params->q[batch_idx];\n";
-                    generate_ElemWiseOp(node, w, node->get_out_edges()[0],
+                    generate_ElemWiseOp(node, w, node->get_out_edges(),
                                         node->get_in_edges()[0],
                                         node->get_in_edges()[1], s_type);
                     w.block_end();
@@ -820,7 +831,7 @@ void CudaCodegen::generate_call_kernels(
             }
 
             // Pre-computed constants
-            if (node->get_op_type() == core::OpType::Decomp) {
+            if (node->get_op_type() == core::OpType::MultConst) {
                 w << ", rns_tool.partQlHatInv_mod_Ql_concat()";
                 w << ", rns_tool.partQlHatInv_mod_Ql_concat_shoup()";
             }
@@ -871,7 +882,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
          "&context, "
          "uint64_t *in0, "
          "uint64_t *in1, "
-         "uint64_t *out0, bool if_benchmark)";
+         "uint64_t *out0, uint64_t *out1, bool if_benchmark)";
     w.block_begin();
 
     // w << "const long N = params_h->N;\n";

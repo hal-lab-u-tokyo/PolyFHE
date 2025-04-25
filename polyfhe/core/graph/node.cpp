@@ -21,6 +21,8 @@ std::string toStringOpType(OpType op_type) {
         return "Sub";
     case OpType::Mult:
         return "Mult";
+    case OpType::MultConst:
+        return "MultConst";
     case OpType::Decomp:
         return "Decomp";
     case OpType::BConv:
@@ -70,7 +72,7 @@ MemoryAccessPattern OpType_access_pattern(OpType op_type) {
                op_type == OpType::ModUp) {
         return MemoryAccessPattern::SlotWise;
     } else if (op_type == OpType::Add || op_type == OpType::Sub ||
-               op_type == OpType::Mult || op_type == OpType::Decomp) {
+               op_type == OpType::Mult || op_type == OpType::MultConst) {
         return MemoryAccessPattern::ElementWise;
     } else if (op_type == OpType::End || op_type == OpType::Init) {
         return MemoryAccessPattern::NoAccess;
@@ -88,6 +90,7 @@ Node::Node(std::string op_name) : m_id(-1) {
         {"Add", OpType::Add},
         {"Sub", OpType::Sub},
         {"Mult", OpType::Mult},
+        {"MultConst", OpType::MultConst},
         {"Decomp", OpType::Decomp},
         {"BConv", OpType::BConv},
         {"ModDown", OpType::ModDown},
