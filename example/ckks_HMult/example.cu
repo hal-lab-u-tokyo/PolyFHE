@@ -12,6 +12,7 @@
 #include "phantom-fhe/include/phantom.h"
 #include "polyfhe/kernel/device_context.hpp"
 #include "polyfhe/kernel/ntt-phantom.hpp"
+#include "polyfhe/kernel/polynomial.cuh"
 
 using namespace std;
 using namespace phantom;
@@ -32,8 +33,52 @@ inline bool compare_double(const double &lhs, const double &rhs) {
     return fabs(lhs - rhs) < EPSINON;
 }
 
-void ConvertPhantomToParams(Params &params, const DModulus *d_modulus,
-                            const DNTTTable &ntt_tables) {
+/*
+__global__ static void BConvGlobal(Params *params, uint64_t *dst,
+                                   const uint64_t *in,
+                                   const uint64_t *qiHat_mod_pj,
+                                   const DModulus *ibase, uint64_t ibase_size,
+                                   const DModulus *obase, uint64_t obase_size,
+                                   size_t startPartIdx, size_t size_PartQl) {
+    extern __shared__ uint64_t shared[];
+    // TODO: malloc ibase_size
+    uint64_t reg_ibase[8];
+
+    for (size_t i = threadIdx.x; i < obase_size * ibase_size; i += blockDim.x) {
+        shared[i] = qiHat_mod_pj[i];
+    }
+    __syncthreads();
+
+    constexpr const int unroll_number = 2;
+    for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+         tid < (params->N * obase_size + unroll_number - 1) / unroll_number;
+         tid += blockDim.x * gridDim.x) {
+        const size_t n_idx = unroll_number * (tid / obase_size);
+        const size_t l_idx = tid % obase_size;
+
+        // Load
+        for (int i = 0; i < ibase_size; i++) {
+            reg_ibase[2 * i] = *(in + params->N * i + n_idx);
+            reg_ibase[2 * i + 1] = *(in + params->N * i + n_idx + 1);
+        }
+
+        uint64_t res1, res2;
+
+        BConvOp(params, &res1, &res2, reg_ibase, shared, n_idx, l_idx, ibase,
+                ibase_size, obase, obase_size, startPartIdx, size_PartQl);
+
+        // Leap over the overlapped region.
+        const size_t l_out_idx =
+            l_idx + ((l_idx >= startPartIdx) ? size_PartQl : 0);
+        phantom::arith::st_two_uint64(dst + l_out_idx * params->N + n_idx, res1,
+                                      res2);
+    }
+}
+*/
+
+void ConvertPhantomToParams(Params &params, const PhantomContext &context) {
+    const DModulus *d_modulus = context.gpu_rns_tables().modulus();
+    const DNTTTable &ntt_tables = context.gpu_rns_tables();
     uint64_t *d_tmp;
     cudaMalloc(&d_tmp, params.L * sizeof(uint64_t));
     for (int i = 0; i < params.L; i++) {
@@ -55,6 +100,13 @@ void ConvertPhantomToParams(Params &params, const DModulus *d_modulus,
     params.itwiddle_shoup = ntt_tables.itwiddle_shoup();
     params.n_inv = ntt_tables.n_inv_mod_q();
     params.n_inv_shoup = ntt_tables.n_inv_mod_q_shoup();
+
+    // DRNSTool
+    for (int i = 0; i < params.L + 1; i++) {
+        auto &context_data = context.get_context_data(i);
+        phantom::DRNSTool &rns_tool = context_data.gpu_rns_tool();
+        params.rns_tools.push_back(&rns_tool);
+    }
 }
 
 void example_ckks(PhantomContext &context, const double &scale) {
@@ -110,13 +162,11 @@ void example_ckks(PhantomContext &context, const double &scale) {
     auto &parms = context_data.parms();
     auto &coeff_modulus = parms.coeff_modulus();
     uint64_t coeff_mod_size = coeff_modulus.size();
-    const DNTTTable &ntt_tables = context.gpu_rns_tables();
 
     std::cout << "coeff_mod_size: " << coeff_mod_size << std::endl;
 
     Params params_h(std::log2(poly_degree), coeff_mod_size, 9);
-    ConvertPhantomToParams(params_h, context.gpu_rns_tables().modulus(),
-                           ntt_tables);
+    ConvertPhantomToParams(params_h, context);
     Params *params_d;
     checkCudaErrors(cudaMalloc((void **) &params_d, sizeof(Params)));
     checkCudaErrors(cudaMemcpy(params_d, &params_h, sizeof(Params),
@@ -128,17 +178,52 @@ void example_ckks(PhantomContext &context, const double &scale) {
     uint64_t *res = xy_cipher_polyfhe.data();
 
     const int beta = std::ceil((params_h.L + 1) / params_h.alpha);
-    const int nlbeta = poly_degree * coeff_mod_size * beta;
+    const int sizeQP = coeff_mod_size + params_h.alpha;
+    const int sizeQPNBeta = poly_degree * sizeQP * beta;
     std::cout << "beta: " << beta << std::endl;
-    uint64_t *res_modup_polyfhe, *res_modup_phantom;
-    checkCudaErrors(
-        cudaMalloc((void **) &res_modup_polyfhe, nlbeta * sizeof(uint64_t)));
-    checkCudaErrors(
-        cudaMalloc((void **) &res_modup_phantom, nlbeta * sizeof(uint64_t)));
+    uint64_t *res_modup_polyfhe, *res_modup_polyfhe2, *res_modup_phantom;
+    checkCudaErrors(cudaMalloc((void **) &res_modup_polyfhe,
+                               sizeQPNBeta * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc((void **) &res_modup_polyfhe2,
+                               sizeQPNBeta * sizeof(uint64_t)));
+    checkCudaErrors(cudaMalloc((void **) &res_modup_phantom,
+                               sizeQPNBeta * sizeof(uint64_t)));
 
     // PolyFHE's HMult
     entry_kernel(params_d, &params_h, context, in1, in2, res, res_modup_polyfhe,
                  true);
+    checkCudaErrors(cudaDeviceSynchronize());
+    /*
+    phantom::DRNSTool *drns_tool = params_h.rns_tools[1];
+    for (size_t beta_idx = 0; beta_idx < beta; beta_idx++) {
+        const size_t startPartIdx = params_h.alpha * beta_idx;
+        const size_t size_PartQl =
+            (beta_idx == beta - 1) ? (params_h.L - params_h.alpha * (beta - 1))
+                                   : params_h.alpha;
+
+        const uint64_t *in_modup_i =
+            res_modup_polyfhe + poly_degree * startPartIdx;
+        uint64_t *out_modup_i =
+            res_modup_polyfhe2 + poly_degree * beta_idx * sizeQP;
+
+        auto &bconv_pre =
+            drns_tool->v_base_part_Ql_to_compl_part_QlP_conv()[beta_idx];
+        auto &ibase = bconv_pre.ibase();
+        auto &obase = bconv_pre.obase();
+        const auto qiHat_mod_pj = bconv_pre.QHatModp();
+
+        uint64_t gridDimGlb;
+        constexpr int unroll_factor = 2;
+        gridDimGlb = params_h.N * obase.size() / blockDimGlb.x / unroll_factor;
+        std::cout << "beta_idx: " << beta_idx << std::endl;
+        BConvGlobal<<<gridDimGlb, blockDimGlb,
+                      sizeof(uint64_t) * obase.size() * ibase.size()>>>(
+            params_d, out_modup_i, in_modup_i, qiHat_mod_pj, ibase.base(),
+            ibase.size(), obase.base(), obase.size(), startPartIdx,
+            size_PartQl);
+        checkCudaErrors(cudaDeviceSynchronize());
+    }
+    */
     checkCudaErrors(cudaDeviceSynchronize());
 
     // Phantom's HMult
@@ -191,23 +276,29 @@ void example_ckks(PhantomContext &context, const double &scale) {
     }
 
     // Check t_modup_ptr
-    uint64_t *h_modup_polyfhe = (uint64_t *) malloc(nlbeta * sizeof(uint64_t));
-    uint64_t *h_modup_phantom = (uint64_t *) malloc(nlbeta * sizeof(uint64_t));
+    uint64_t *h_modup_polyfhe =
+        (uint64_t *) malloc(sizeQPNBeta * sizeof(uint64_t));
+    uint64_t *h_modup_phantom =
+        (uint64_t *) malloc(sizeQPNBeta * sizeof(uint64_t));
     checkCudaErrors(cudaMemcpy(h_modup_polyfhe, res_modup_polyfhe,
-                               nlbeta * sizeof(uint64_t),
+                               sizeQPNBeta * sizeof(uint64_t),
                                cudaMemcpyDeviceToHost));
     checkCudaErrors(cudaMemcpy(h_modup_phantom, res_modup_phantom,
-                               nlbeta * sizeof(uint64_t),
+                               sizeQPNBeta * sizeof(uint64_t),
                                cudaMemcpyDeviceToHost));
     std::cout << "Modup result" << std::endl;
     correctness = true;
-    for (int i = 0; i < nlbeta; i++) {
-        if (h_modup_polyfhe[i] != h_modup_phantom[i]) {
-            cout << "  PolyFHE != Phantom at index " << i << endl;
-            cout << "   PolyFHE: " << h_modup_polyfhe[i] << endl;
-            cout << "   Phantom: " << h_modup_phantom[i] << endl;
-            correctness = false;
-            break;
+    for (int beta_idx = 0; beta_idx < beta; beta_idx++) {
+        for (int j = 0; j < poly_degree * params_h.KL; j++) {
+            int i = beta_idx * poly_degree * params_h.KL + j;
+            if (h_modup_polyfhe[i] != h_modup_phantom[i]) {
+                cout << "  PolyFHE != Phantom at index[" << beta_idx << "]["
+                     << j << "]" << endl;
+                cout << "   PolyFHE: " << h_modup_polyfhe[i] << endl;
+                cout << "   Phantom: " << h_modup_phantom[i] << endl;
+                correctness = false;
+                break;
+            }
         }
     }
     if (correctness) {
@@ -215,6 +306,27 @@ void example_ckks(PhantomContext &context, const double &scale) {
     } else {
         cout << "  Fail" << endl;
     }
+
+    std::vector<double> elapsed_list;
+    for (int iter = 0; iter < 5; iter++) {
+        auto start = std::chrono::high_resolution_clock::now();
+        PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);
+        relinearize_inplace_debug(context, xy_cipher, relin_keys,
+                                  res_modup_phantom);
+        checkCudaErrors(cudaDeviceSynchronize());
+        auto end = std::chrono::high_resolution_clock::now();
+        double elapsed =
+            std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+                .count();
+        if (iter != 0) {
+            elapsed_list.push_back(elapsed);
+        }
+    }
+    double avg_time =
+        std::accumulate(elapsed_list.begin(), elapsed_list.end(), 0.0) /
+        elapsed_list.size();
+    std::cout << "Average elapsed time (Phantom): " << avg_time << " us"
+              << std::endl;
 
     /*
     PhantomPlaintext xy_plain;

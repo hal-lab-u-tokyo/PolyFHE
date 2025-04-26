@@ -16,6 +16,7 @@ bool KernelLaunchConfigPass::run_on_graph(
 
         core::KernelLaunchConfig k_config;
         polyfhe::Config* config = graph->m_config.get();
+        std::cout << "s_type: " << core::to_string(s_type) << std::endl;
 
         if (s_type == core::SubgraphType::Elem) {
             // If subgraph contains only ONE node, we don't need to malloc
@@ -40,44 +41,22 @@ bool KernelLaunchConfigPass::run_on_graph(
             k_config.block_size = "128";
             k_config.grid_size = "4096";
         } else if (s_type == core::SubgraphType::ElemSlot) {
-            // TODO
-            k_config.block_size = "params_h->n2";
-            k_config.grid_size = "params_h->n1 * params_h->L";
-            k_config.shared_mem_size =
-                std::to_string(subgraph->get_smem_size());
-        } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
-            int driver_shared_mem_size_per_block = 1;
             // TODO: use limb instead of L
-            int shared_mem_size_phase1 =
-                config->n1 * sizeof(uint64_t) * config->L;
-            int block_per_sm_limited_by_shared_mem =
-                config->SharedMemKB /
-                (shared_mem_size_phase1 + driver_shared_mem_size_per_block);
-            int ntt_threads = config->n1 / 2;
-            // TODO: Max thread per block is 1024
-            int thread_limited_by_shared_mem =
-                1024 / block_per_sm_limited_by_shared_mem;
-            int thread_ceil_to_ntt =
-                ((ntt_threads + thread_limited_by_shared_mem - 1) /
-                 ntt_threads) *
-                ntt_threads;
-            k_config.block_size = std::to_string(thread_ceil_to_ntt);
-            k_config.grid_size = "params_h->n2";
-            k_config.shared_mem_size = std::to_string(shared_mem_size_phase1);
+            k_config.block_size = "128";
+            k_config.grid_size =
+                "params_h->N * obase.size() / 128 / unroll_factor";
+            k_config.shared_mem_size =
+                "obase.size() * ibase.size() * sizeof(uint64_t)";
+        } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
+            // TODO
+            k_config.block_size = "128";
+            k_config.grid_size = "4096";
+            k_config.shared_mem_size = "params_h->L * sizeof(uint64_t)";
         } else if (s_type == core::SubgraphType::ElemLimb2Slot) {
-            int driver_smem_kb = 1;
-            int smem = config->n2 * sizeof(uint64_t) * config->L;
-            int smem_kb = smem / 1024;
-            int block_per_sm_limited_by_smem =
-                config->SharedMemKB / (smem_kb + driver_smem_kb);
-            int ntt_threads = config->n2 / 2;
-            int thread_limited_by_smem = 1024 / block_per_sm_limited_by_smem;
-            int thread_ceil_to_ntt =
-                ((ntt_threads + thread_limited_by_smem - 1) / ntt_threads) *
-                ntt_threads;
-            k_config.block_size = std::to_string(thread_ceil_to_ntt);
-            k_config.grid_size = "params_h->n1";
-            k_config.shared_mem_size = std::to_string(smem);
+            // TODO
+            k_config.block_size = "128";
+            k_config.grid_size = "4096";
+            k_config.shared_mem_size = "params_h->L * sizeof(uint64_t)";
         } else if (s_type == core::SubgraphType::NoAccess) {
             // We don't need to launch kernel
             k_config.block_size = "0";

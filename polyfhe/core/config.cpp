@@ -50,6 +50,8 @@ Config::Config(std::string filename) {
     std::cout << "===============================" << std::endl;
     std::cout << "logN: " << logN << std::endl;
     std::cout << "N: " << N << std::endl;
+    std::cout << "n1: " << n1 << std::endl;
+    std::cout << "n2: " << n2 << std::endl;
     std::cout << "L: " << L << std::endl;
     std::cout << "k: " << k << std::endl;
     std::cout << "alpha: " << alpha << std::endl;

@@ -91,6 +91,11 @@ public:
         return m_kernel_launch_config;
     }
 
+    // Search node of specified OpType and return the first one
+    // If the number of found node is different with `n_found`,
+    // raise assertion
+    std::shared_ptr<Node> search_op(core::OpType op_type, int n_found);
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;

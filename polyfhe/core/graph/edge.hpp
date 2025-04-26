@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "polyfhe/core/graph/node.hpp"
@@ -91,6 +92,9 @@ public:
     void set_has_defined(bool has_defined) { m_has_defined = has_defined; }
     bool get_has_defined() { return m_has_defined; }
 
+    void set_same_edge(std::shared_ptr<Edge> edge) { same_edge = edge; }
+    std::shared_ptr<Edge> get_same_edge() { return same_edge; }
+
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;
@@ -113,6 +117,8 @@ private:
 
     // For codegen
     bool m_has_defined = false;
+
+    std::shared_ptr<Edge> same_edge;
 };
 
 } // namespace core

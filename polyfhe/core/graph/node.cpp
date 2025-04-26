@@ -1,6 +1,7 @@
 #include "polyfhe/core/graph/node.hpp"
 
 #include <map>
+#include <sstream>
 #include <string>
 
 #include "polyfhe/core/logger.hpp"
@@ -13,7 +14,7 @@ bool is_ntt_op(OpType op_type) {
             op_type == OpType::NTTPhase2 || op_type == OpType::iNTTPhase2);
 }
 
-std::string toStringOpType(OpType op_type) {
+std::string to_str(OpType op_type) {
     switch (op_type) {
     case OpType::Add:
         return "Add";
@@ -84,7 +85,7 @@ MemoryAccessPattern OpType_access_pattern(OpType op_type) {
 Node::Node(OpType op_type)
     : m_op_type(op_type), m_access_pattern(OpType_access_pattern(op_type)) {}
 
-Node::Node(std::string op_name) : m_id(-1) {
+Node::Node(std::string op_label) : m_id(-1) {
     // We have to convert string op's name to OpType
     std::map<std::string, OpType> op_map = {
         {"Add", OpType::Add},
@@ -106,12 +107,24 @@ Node::Node(std::string op_name) : m_id(-1) {
         {"HAdd", OpType::HAdd},
         {"HMult", OpType::HMult},
     };
-    if (op_map.find(op_name) == op_map.end()) {
-        LOG_ERROR("Unknown op_name: %s\n", op_name.c_str());
+
+    // format of op_label: {op_name}_{info}
+    std::vector<std::string> op_label_vec;
+    std::stringstream ss(op_label);
+    std::string token;
+    while (std::getline(ss, token, '_')) {
+        op_label_vec.push_back(token);
+    }
+    if (op_map.find(op_label_vec[0]) == op_map.end()) {
+        LOG_ERROR("Unknown op_name: %s\n", op_label_vec[0].c_str());
         exit(1);
     }
-    m_op_type = op_map[op_name];
+    m_op_type = op_map[op_label_vec[0]];
     m_access_pattern = OpType_access_pattern(m_op_type);
+
+    if (m_op_type == OpType::BConv) {
+        set_beta_idx(std::stoi(op_label_vec[1]));
+    }
 }
 
 std::vector<VariableType> Node::get_input_types() {

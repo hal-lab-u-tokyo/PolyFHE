@@ -70,7 +70,7 @@ enum class OpType {
     HAdd,
     HMult
 };
-std::string toStringOpType(OpType op_type);
+std::string to_str(OpType op_type);
 std::string toString(BlockPhase block_phase);
 MemoryAccessPattern OpType_access_pattern(OpType op_type);
 bool is_ntt_op(OpType op_type);
@@ -112,10 +112,10 @@ public:
 
     // Operation
     virtual OpType get_op_type() { return m_op_type; }
-    std::string get_op_type_str() { return toStringOpType(m_op_type); }
+    std::string get_op_type_str() { return to_str(m_op_type); }
     void set_op_type(OpType op_type) { m_op_type = op_type; }
     std::string get_op_name() {
-        return toStringOpType(m_op_type) + "_" + std::to_string(m_id);
+        return to_str(m_op_type) + "_" + std::to_string(m_id);
     }
     virtual std::vector<std::shared_ptr<Node>> get_nodes() {
         return {shared_from_this()};
@@ -158,6 +158,16 @@ public:
     void set_idx_subgraph(int idx) { idx_subgraph = idx; }
     int get_idx_subgraph() { return idx_subgraph; }
 
+    // Only for BConv
+    void set_beta_idx(int beta_idx) {
+        assert(m_op_type == OpType::BConv);
+        m_beta_idx = beta_idx;
+    }
+    int get_beta_idx() {
+        assert(m_op_type == OpType::BConv);
+        return m_beta_idx;
+    }
+
 protected:
     OpType m_op_type;
     std::vector<std::shared_ptr<Edge>> m_in_edges;
@@ -166,6 +176,9 @@ protected:
     MemoryAccessPattern m_access_pattern = MemoryAccessPattern::YetSet;
     BlockPhase m_block_phase;
     int idx_subgraph = -1;
+
+    // Only for BConv
+    int m_beta_idx;
 
 private:
     // Only for lowerings

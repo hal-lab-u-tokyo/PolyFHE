@@ -60,6 +60,23 @@ std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type) {
     return os;
 }
 
+std::shared_ptr<Node> SubGraph::search_op(core::OpType op_type, int n_found) {
+    std::shared_ptr<Node> res;
+    int counter = 0;
+    for (auto node : m_nodes) {
+        if (node->get_op_type() == op_type) {
+            if (res == nullptr) {
+                res = node;
+            }
+            counter += 1;
+        }
+    }
+    if (counter != n_found) {
+        LOG_ERROR("Unexpected number of OpType is found\n");
+    }
+    return res;
+}
+
 int SubGraph::get_max_limb() {
     int max = 0;
     for (auto node : m_nodes) {

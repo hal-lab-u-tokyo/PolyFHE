@@ -5,6 +5,7 @@
 
 #include <cstdint>
 
+#include "phantom-fhe/include/uintmodmath.cuh"
 #include "polyfhe/kernel/device_context.hpp"
 
 #define CudaCheckError()                                             \
@@ -154,6 +155,26 @@ __forceinline__ __device__ void ModUpOp(
                             (1 - dst_global) * (l * sPoly_x + n_sidx);
         dst[dst_idx] = 0;
     }
+}
+
+__forceinline__ __device__ void BConvOp(
+    Params *params, uint64_t *res1, uint64_t *res2, const uint64_t *in_reg,
+    uint64_t *s_qiHat_mod_pj, const size_t degree_idx,
+    const size_t out_prime_idx, const DModulus *ibase, uint64_t ibase_size,
+    const DModulus *obase, uint64_t obase_size, size_t startPartIdx,
+    size_t size_PartQl) {
+    phantom::arith::uint128_t2 accum =
+        base_convert_acc_unroll2_reg(in_reg, s_qiHat_mod_pj, out_prime_idx,
+                                     params->N, ibase_size, degree_idx);
+
+    uint64_t obase_value = obase[out_prime_idx].value();
+    uint64_t obase_ratio[2] = {obase[out_prime_idx].const_ratio()[0],
+                               obase[out_prime_idx].const_ratio()[1]};
+
+    *res1 = phantom::arith::barrett_reduce_uint128_uint64(accum.x, obase_value,
+                                                          obase_ratio);
+    *res2 = phantom::arith::barrett_reduce_uint128_uint64(accum.y, obase_value,
+                                                          obase_ratio);
 }
 
 void Add_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b,

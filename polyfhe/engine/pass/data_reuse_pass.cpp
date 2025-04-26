@@ -26,6 +26,12 @@ bool CanReuse(std::shared_ptr<polyfhe::core::Node> src,
         std::cout << "dst phase: " << dst->get_block_phase() << "\n";
         return false;
     }
+    if (src->get_access_pattern() == core::MemoryAccessPattern::ElementWise ||
+        dst->get_access_pattern() == core::MemoryAccessPattern::ElementWise) {
+        return true;
+    } else if (src->get_access_pattern() != dst->get_access_pattern()) {
+        return false;
+    }
     return true;
 }
 

@@ -454,7 +454,7 @@ void CudaCodegen::generate_kernel_defs(
                     LOG_ERROR(
                         "Only Add, Sub, Mult are supported for "
                         "SubgraphType::Elem\n");
-                    std::cerr << "op_type: " << core::toStringOpType(op_type)
+                    std::cerr << "op_type: " << core::to_str(op_type)
                               << std::endl;
                 }
 
@@ -547,7 +547,7 @@ void CudaCodegen::generate_kernel_defs(
                         "Invalid Op: Only ElementWiseOp, NTTPhase1 and "
                         "iNTTPhase1 are "
                         "supported for SubgraphType::ElemLimb1\n");
-                    std::cerr << "op_type: " << core::toStringOpType(op_type)
+                    std::cerr << "op_type: " << core::to_str(op_type)
                               << std::endl;
                 }
             }
@@ -588,7 +588,7 @@ void CudaCodegen::generate_kernel_defs(
                     LOG_ERROR(
                         "Only ElementWiseOp, NTTPhase2 and iNTTPhase2 are "
                         "supported for SubgraphType::ElemLimb2\n");
-                    std::cerr << "op_type: " << core::toStringOpType(op_type)
+                    std::cerr << "op_type: " << core::to_str(op_type)
                               << std::endl;
                 }
             }
@@ -696,7 +696,7 @@ void CudaCodegen::generate_kernel_defs(
                 } else {
                     LOG_ERROR(
                         "Unsupported op for SubgraphType::ElemLimb2Slot\n");
-                    std::cerr << "op_type: " << core::toStringOpType(op_type)
+                    std::cerr << "op_type: " << core::to_str(op_type)
                               << std::endl;
                 }
                 w << "__syncthreads();\n";

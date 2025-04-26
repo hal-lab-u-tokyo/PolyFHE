@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "phantom-fhe/include/rns.cuh"
 #include "polyfhe/core/logger.hpp"
 
 #define checkCudaErrors(err) __checkCudaErrors(err, __FILE__, __LINE__)
@@ -88,6 +89,7 @@ public:
     uint64_t* inv_degree_modulo_shoup;
 
     NTTParams* ntt_params;
+    std::vector<phantom::DRNSTool*> rns_tools;
 };
 
 class FHEContext {
