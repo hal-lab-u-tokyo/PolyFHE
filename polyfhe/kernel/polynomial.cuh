@@ -5,7 +5,6 @@
 
 #include <cstdint>
 
-#include "phantom-fhe/include/uintmodmath.cuh"
 #include "polyfhe/kernel/device_context.hpp"
 
 #define CudaCheckError()                                             \
@@ -134,27 +133,142 @@ __forceinline__ __device__ void ElemWiseOp_ElemSlot(
     }
 }
 
-__forceinline__ __device__ void ModUpOp(
-    Params *params, uint64_t *dst, const uint64_t *src, const int dst_global,
-    const int src_global, const int sPoly_x, const int n_gidx, const int n_sidx,
-    const int start_limb, const int end_limb) {
-    for (int k = 0; k < params->K; k++) {
-        const int dst_idx =
-            dst_global * ((params->limb + k) * params->N + n_gidx) +
-            (1 - dst_global) * ((params->limb + k) * sPoly_x + n_sidx);
-        uint64_t sum = 0;
-        for (int l = start_limb; l < end_limb; l++) {
-            const int src_idx = src_global * (l * params->N + n_gidx) +
-                                (1 - src_global) * (l * sPoly_x + n_sidx);
-            sum += src[src_idx];
-        }
-        dst[dst_idx] = sum;
+typedef struct xxx_uint128_t {
+    uint64_t hi;
+    uint64_t lo;
+    // TODO: implement uint128_t basic operations
+    //    __device__ uint128_t &operator+=(const uint128_t &op);
+} xxx_uint128_t;
+
+struct xxx_uint128_t2 {
+    xxx_uint128_t x;
+    xxx_uint128_t y;
+};
+
+/** unsigned 128-bit integer addition.
+ * @param[in] operand1 The operand 1
+ * @param[in] operand2 The operand 2
+ * @param[out] result The result
+ * return carry bit
+ */
+__forceinline__ __device__ void xxx_add_uint128_uint128(
+    const xxx_uint128_t &operand1, const xxx_uint128_t &operand2,
+    xxx_uint128_t &result) {
+    asm volatile(
+        "{\n\t"
+        "add.cc.u64     %0, %2, %4;\n\t"
+        "addc.u64    %1, %3, %5;\n\t"
+        "}"
+        : "=l"(result.lo), "=l"(result.hi)
+        : "l"(operand1.lo), "l"(operand1.hi), "l"(operand2.lo),
+          "l"(operand2.hi));
+}
+
+/**  a * b, return product is 128 bits.
+ * @param[in] operand1 The multiplier
+ * @param[in] operand2 The multiplicand
+ * return operand1 * operand2 in 128bits
+ */
+__forceinline__ __device__ xxx_uint128_t
+xxx_multiply_uint64_uint64(const uint64_t &operand1, const uint64_t &operand2) {
+    xxx_uint128_t result_;
+    result_.lo = operand1 * operand2;
+    result_.hi = __umul64hi(operand1, operand2);
+    return result_;
+}
+
+__forceinline__ __device__ auto base_convert_acc_unroll2_reg(
+    const uint64_t *reg, const uint64_t *QHatModp, size_t out_prime_idx,
+    size_t degree, size_t ibase_size, size_t degree_idx) {
+    xxx_uint128_t2 accum{0};
+    for (int i = 0; i < ibase_size; i++) {
+        const uint64_t op2 = QHatModp[out_prime_idx * ibase_size + i];
+        xxx_uint128_t2 out{};
+
+        uint64_t op1_x = reg[2 * i];
+        uint64_t op1_y = reg[2 * i + 1];
+        out.x = xxx_multiply_uint64_uint64(op1_x, op2);
+        xxx_add_uint128_uint128(out.x, accum.x, accum.x);
+        out.y = xxx_multiply_uint64_uint64(op1_y, op2);
+        xxx_add_uint128_uint128(out.y, accum.y, accum.y);
     }
-    for (int l = 0; l < params->limb; l++) {
-        const int dst_idx = dst_global * (l * params->N + n_gidx) +
-                            (1 - dst_global) * (l * sPoly_x + n_sidx);
-        dst[dst_idx] = 0;
+    return accum;
+}
+
+__forceinline__ __device__ auto xxx_base_convert_acc_unroll2(
+    const uint64_t *ptr, const uint64_t *QHatModp, size_t out_prime_idx,
+    size_t degree, size_t ibase_size, size_t degree_idx) {
+    xxx_uint128_t2 accum{0};
+    for (int i = 0; i < ibase_size; i++) {
+        const uint64_t op2 = QHatModp[out_prime_idx * ibase_size + i];
+        xxx_uint128_t2 out{};
+
+        uint64_t op1_x = ptr[i * degree + degree_idx];
+        uint64_t op1_y = ptr[i * degree + degree_idx + 1];
+        out.x = xxx_multiply_uint64_uint64(op1_x, op2);
+        xxx_add_uint128_uint128(out.x, accum.x, accum.x);
+        out.y = xxx_multiply_uint64_uint64(op1_y, op2);
+        xxx_add_uint128_uint128(out.y, accum.y, accum.y);
     }
+    return accum;
+}
+
+/** Reduce an 128-bit product into 64-bit modulus field using Barrett reduction
+ * @param[in] product The input 128-bit product.
+ * @param[in] modulus The modulus.
+ * @param[in] barrett_mu The pre-computed value for mod, (2^128/modulus) in 128
+ * bits. Return prod % mod
+ */
+__forceinline__ __device__ uint64_t xxx_barrett_reduce_uint128_uint64(
+    const xxx_uint128_t &product, const uint64_t &modulus,
+    const uint64_t *barrett_mu) {
+    uint64_t result;
+    uint64_t q = modulus;
+
+    uint64_t lo = product.lo;
+    uint64_t hi = product.hi;
+    uint64_t ratio0 = barrett_mu[0];
+    uint64_t ratio1 = barrett_mu[1];
+
+    asm("{\n\t"
+        " .reg .u64 tmp;\n\t"
+        // Multiply input and const_ratio
+        // Round 1
+        " mul.hi.u64 tmp, %1, %3;\n\t"
+        " mad.lo.cc.u64 tmp, %1, %4, tmp;\n\t"
+        " madc.hi.u64 %0, %1, %4, 0;\n\t"
+        // Round 2
+        " mad.lo.cc.u64 tmp, %2, %3, tmp;\n\t"
+        " madc.hi.u64 %0, %2, %3, %0;\n\t"
+        // This is all we care about
+        " mad.lo.u64 %0, %2, %4, %0;\n\t"
+        // Barrett subtraction
+        " mul.lo.u64 %0, %0, %5;\n\t"
+        " sub.u64 %0, %1, %0;\n\t"
+        "}"
+        : "=l"(result)
+        : "l"(lo), "l"(hi), "l"(ratio0), "l"(ratio1), "l"(q));
+    csub_q(result, q);
+    return result;
+}
+
+__forceinline__ __device__ void BConvOpNoReg(
+    Params *params, uint64_t *res1, uint64_t *res2, const uint64_t *in,
+    uint64_t *s_qiHat_mod_pj, const size_t degree_idx,
+    const size_t out_prime_idx, const DModulus *ibase, uint64_t ibase_size,
+    const DModulus *obase, uint64_t obase_size, size_t startPartIdx,
+    size_t size_PartQl) {
+    xxx_uint128_t2 accum = xxx_base_convert_acc_unroll2(
+        in, s_qiHat_mod_pj, out_prime_idx, params->N, ibase_size, degree_idx);
+
+    uint64_t obase_value = obase[out_prime_idx].value();
+    uint64_t obase_ratio[2] = {obase[out_prime_idx].const_ratio()[0],
+                               obase[out_prime_idx].const_ratio()[1]};
+
+    *res1 =
+        xxx_barrett_reduce_uint128_uint64(accum.x, obase_value, obase_ratio);
+    *res2 =
+        xxx_barrett_reduce_uint128_uint64(accum.y, obase_value, obase_ratio);
 }
 
 __forceinline__ __device__ void BConvOp(
@@ -163,7 +277,7 @@ __forceinline__ __device__ void BConvOp(
     const size_t out_prime_idx, const DModulus *ibase, uint64_t ibase_size,
     const DModulus *obase, uint64_t obase_size, size_t startPartIdx,
     size_t size_PartQl) {
-    phantom::arith::uint128_t2 accum =
+    xxx_uint128_t2 accum =
         base_convert_acc_unroll2_reg(in_reg, s_qiHat_mod_pj, out_prime_idx,
                                      params->N, ibase_size, degree_idx);
 
@@ -171,10 +285,10 @@ __forceinline__ __device__ void BConvOp(
     uint64_t obase_ratio[2] = {obase[out_prime_idx].const_ratio()[0],
                                obase[out_prime_idx].const_ratio()[1]};
 
-    *res1 = phantom::arith::barrett_reduce_uint128_uint64(accum.x, obase_value,
-                                                          obase_ratio);
-    *res2 = phantom::arith::barrett_reduce_uint128_uint64(accum.y, obase_value,
-                                                          obase_ratio);
+    *res1 =
+        xxx_barrett_reduce_uint128_uint64(accum.x, obase_value, obase_ratio);
+    *res2 =
+        xxx_barrett_reduce_uint128_uint64(accum.y, obase_value, obase_ratio);
 }
 
 void Add_h(Params *params, uint64_t *dst, uint64_t *a, uint64_t *b,

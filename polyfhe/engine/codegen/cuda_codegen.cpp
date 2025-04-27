@@ -680,7 +680,9 @@ void CudaCodegen::generate_kernel_defs(
             // ElemSlot
             // ==============================
             w << "extern __shared__ uint64_t shared[];\n";
-            w << "// TODO: malloc ibase_size\n";
+            // w << "uint64_t *reg_ibase = shared + obase_size * ibase_size;\n";
+            // w << "// TODO: malloc ibase_size\n";
+            // w << "uint64_t *reg_ibase = shared + obase_size * ibase_size;\n";
             w << "uint64_t reg_ibase[8];\n";
             w << "for (size_t i = threadIdx.x; ";
             w << "i < obase_size * ibase_size; ";
@@ -713,12 +715,10 @@ void CudaCodegen::generate_kernel_defs(
             assert(inedge->get_level() == core::EdgeLevel::Global);
             w << "for (int i = 0; i < ibase_size; i++)";
             w.block_begin();
-            w << "reg_ibase[2 * i] = *(";
-            w << inedge->get_name()
-              << " + params->N * (startPartIdx + i) + n_idx);\n";
-            w << "reg_ibase[2 * i + 1] = *(";
-            w << inedge->get_name()
-              << " + params->N * (startPartIdx + i) + n_idx + 1);\n";
+            w << "asm(\"ld.global.v2.u64 {%0,%1}, [%2];\"";
+            w << ": \"=l\"(reg_ibase[2 * i]), \"=l\"(reg_ibase[2 * i + 1])";
+            w << ": \"l\"(" << inedge->get_name();
+            w << "+ params->N * (startPartIdx + i) + n_idx));\n";
             w.block_end();
             w << "\n";
 
@@ -759,8 +759,15 @@ void CudaCodegen::generate_kernel_defs(
             }
             w << "const size_t l_out_idx = ";
             w << "l_idx + ((l_idx >= startPartIdx) ? size_PartQl : 0);\n";
-            w << "phantom::arith::st_two_uint64(out + l_out_idx * params->N + "
-                 "n_idx, res1, res2);\n";
+            /*
+            "
+            :
+            : "l"(out + l_out_idx * params->N + n_idx), "l"(res1), "l"(res2));
+            */
+            w << "asm(\"st.cs.global.v2.u64 [%0], {%1, %2};\"";
+            w << ":";
+            w << ": \"l\"(out + l_out_idx * params->N + n_idx),";
+            w << "\"l\"(res1), \"l\"(res2));";
             w.block_end();
         } else if (s_type == polyfhe::core::SubgraphType::ElemLimb1Slot) {
             // ==============================
