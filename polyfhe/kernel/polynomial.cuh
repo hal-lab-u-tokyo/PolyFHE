@@ -26,6 +26,22 @@ __forceinline__ __device__ void csub_q(uint64_t &operand,
     operand = tmp + (tmp >> 63) * modulus;
 }
 
+/** Modular multiplication, result = operand1 * operand2 % mod
+ * @param[in] operand1 The first operand (64 bits).
+ * @param[in] operand2 Second operand (64-bit operand).
+ * @param[in] operand2_shoup Second operand ( 64-bit quotient).
+ * @param[in] modulus The modulus value (64 bits).
+ *  res (64 bits).
+ */
+[[nodiscard]] __inline__ __device__ uint64_t xxx_multiply_and_reduce_shoup(
+    const uint64_t &operand1, const uint64_t &operand2,
+    const uint64_t &operand2_shoup, const uint64_t &modulus) {
+    const uint64_t hi = __umul64hi(operand1, operand2_shoup);
+    uint64_t res = operand1 * operand2 - hi * modulus;
+    csub_q(res, modulus);
+    return res;
+}
+
 /** uint64 modular multiplication, result = operand1 * operand2 % mod
  * @param[in] operand1 The first operand (64 bits).
  * @param[in] operand2 The second operand (64 bits).
@@ -33,7 +49,7 @@ __forceinline__ __device__ void csub_q(uint64_t &operand,
  * @param[in] barrett_mu 2^128/mod, (128 bits).
  *  res (64 bits).
  */
-__forceinline__ __device__ uint64_t multiply_and_barrett_reduce_uint64(
+__forceinline__ __device__ uint64_t xxx_multiply_and_barrett_reduce_uint64(
     const uint64_t &operand1, const uint64_t &operand2, const uint64_t &modulus,
     const uint64_t *barrett_mu) {
     uint64_t result;

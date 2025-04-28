@@ -12,13 +12,6 @@ namespace core {
 
 enum class GraphType { FHE, Poly, Other };
 
-enum class sPolyType {
-    sPolyP1,
-    sPolyP2,
-    sPolyLimbStrip,
-    sPolySlotStrip,
-};
-
 enum class SubgraphType {
     Elem,
     ElemLimb1,
@@ -96,19 +89,34 @@ public:
     // raise assertion
     std::shared_ptr<Node> search_op(core::OpType op_type, int n_found);
 
+    // Dominant memory access pattern
+    void set_dominant_memaccess_pattern(MemoryAccessPattern memaccess_pattern) {
+        m_dominant_memaccess_pattern = memaccess_pattern;
+    }
+    MemoryAccessPattern get_dominant_memaccess_pattern() {
+        return m_dominant_memaccess_pattern;
+    }
+
+    bool get_require_devicesync() { return m_require_devicesync; }
+    void set_require_devicesync(bool require_devicesync) {
+        m_require_devicesync = require_devicesync;
+    }
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;
     std::string m_name;
 
     SubgraphType m_subgraph_type;
-    sPolyType m_sPoly_type;
     BlockPhase m_block_phase;
+    MemoryAccessPattern m_dominant_memaccess_pattern;
     int m_nx_batch;
     int m_ny_batch;
     int m_gridX;
     int m_blockX;
     int m_smem_size;
+
+    bool m_require_devicesync = true;
 
     KernelLaunchConfig m_kernel_launch_config;
 };

@@ -41,12 +41,11 @@ bool KernelLaunchConfigPass::run_on_graph(
             k_config.block_size = "128";
             k_config.grid_size = "4096";
         } else if (s_type == core::SubgraphType::ElemSlot) {
-            // TODO: use limb instead of L
             k_config.block_size = "128";
             k_config.grid_size =
                 "params_h->N * obase.size() / 128 / unroll_factor";
             k_config.shared_mem_size =
-                "(1 + obase.size()) * ibase.size() * sizeof(uint64_t)";
+                "(128 * 2 + obase.size()) * ibase.size() * sizeof(uint64_t)";
         } else if (s_type == core::SubgraphType::ElemLimb1Slot) {
             // TODO
             k_config.block_size = "128";

@@ -308,7 +308,7 @@ void example_ckks(PhantomContext &context, const double &scale) {
     }
 
     std::vector<double> elapsed_list;
-    for (int iter = 0; iter < 5; iter++) {
+    for (int iter = 0; iter < 7; iter++) {
         auto start = std::chrono::high_resolution_clock::now();
         PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);
         relinearize_inplace_debug(context, xy_cipher, relin_keys,
