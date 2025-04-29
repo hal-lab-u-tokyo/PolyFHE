@@ -122,7 +122,9 @@ Node::Node(std::string op_label) : m_id(-1) {
     m_op_type = op_map[op_label_vec[0]];
     m_access_pattern = OpType_access_pattern(m_op_type);
 
-    if (m_op_type == OpType::BConv) {
+    if (m_op_type == OpType::Init || m_op_type == OpType::End) {
+        // No label
+    } else if (m_op_type == OpType::BConv) {
         set_beta_idx(std::stoi(op_label_vec[1]));
     } else if (core::is_ntt_op(m_op_type)) {
         // {op_name}_{start_idx}_{end_idx}_{exclude_start_idx}_{exclude_end_idx}
@@ -131,6 +133,12 @@ Node::Node(std::string op_label) : m_id(-1) {
         }
         set_limb_range(std::stoi(op_label_vec[1]), std::stoi(op_label_vec[2]));
         set_exclude_idx(std::stoi(op_label_vec[3]), std::stoi(op_label_vec[4]));
+    } else {
+        // {op_name}_{start_idx}_{end_idx}
+        if (op_label_vec.size() != 3) {
+            LOG_ERROR("Illegal op_label: %s\n", op_label.c_str());
+        }
+        set_limb_range(std::stoi(op_label_vec[1]), std::stoi(op_label_vec[2]));
     }
 }
 

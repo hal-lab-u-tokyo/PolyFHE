@@ -249,6 +249,8 @@ class PolyFHE:
             elif isinstance(op, NTTOp):
                 # in_start_limb = out_start_limb in NTTOp
                 label += f"_{op.in_start_limb}_{op.in_end_limb}_{op.exclude_start_limb}_{op.exclude_end_limb}"
+            else:
+                label += f"_{op.in_start_limb}_{op.in_end_limb}"
             return label
 
         def add_node(op: PolyOp):

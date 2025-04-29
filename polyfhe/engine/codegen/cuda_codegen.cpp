@@ -739,6 +739,7 @@ void CudaCodegen::generate_kernel_defs(
               << ";\n";
 
             bool requires_load_to_reg = true;
+            bool requires_store_from_reg = true;
             if (first_node->get_op_type() == core::OpType::NTTPhase2) {
                 requires_load_to_reg = false;
             }
@@ -805,8 +806,13 @@ void CudaCodegen::generate_kernel_defs(
                       << "twiddles_shoup, modulus, coeff_mod_size,"
                       << "start_mod_idx, twr_idx, &n_init, tid);\n";
 
+                    // define store here
+                    requires_store_from_reg = false;
+
                 } else if (op_type == core::OpType::iNTTPhase2) {
-                    generate_NTT_ElemLimb(node, w, false, false);
+                    w << "d_poly_inwt_radix8_phase2(params"
+                      << ", " << node->get_end_limb() << ", "
+                      << node->get_start_limb() << ", shared, reg, tid);\n";
                 } else {
                     LOG_ERROR(
                         "Only ElementWiseOp, NTTPhase2 and iNTTPhase2 are "
@@ -815,20 +821,23 @@ void CudaCodegen::generate_kernel_defs(
                               << std::endl;
                 }
             }
-            w << "\n// Store data from register\n";
-            w << "const size_t n_group = params->n2 / 8;\n";
-            w << "const size_t idx_base = blockIdx.x * blockDim.x * "
-                 "params->per_thread_ntt_size "
-                 "+ (threadIdx.x / n_group) * n_group * "
-                 "params->per_thread_ntt_size "
-                 "+ (threadIdx.x % n_group);\n";
 
-            w << "#pragma unroll\n";
-            w << "for (int l = 0; l < 8; l++)";
-            w.block_begin();
-            w << "    *(out + idx_base + n_group * l) = reg[l];\n";
-            w.block_end();
-            w << "__syncthreads();\n";
+            if (requires_store_from_reg) {
+                w << "\n// Store data from register\n";
+                w << "const size_t n_group = params->n2 / 8;\n";
+                w << "const size_t idx_base = blockIdx.x * blockDim.x * "
+                     "params->per_thread_ntt_size "
+                     "+ (threadIdx.x / n_group) * n_group * "
+                     "params->per_thread_ntt_size "
+                     "+ (threadIdx.x % n_group);\n";
+
+                w << "#pragma unroll\n";
+                w << "for (int l = 0; l < 8; l++)";
+                w.block_begin();
+                w << "*(out + idx_base + n_group * l) = reg[l];\n";
+                w.block_end();
+                w << "__syncthreads();\n";
+            }
             w.block_end(); // for
         } else if (s_type == polyfhe::core::SubgraphType::ElemSlot) {
             // ==============================
