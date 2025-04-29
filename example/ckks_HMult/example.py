@@ -50,17 +50,17 @@ for beta_idx in range(prm.get_beta(prm.L - 1)):
         exclude_start=prm.alpha * beta_idx,
         exclude_end=prm.alpha * (beta_idx + 1),
     )
-    # nttp2_after_bconv = pf.ntt(
-    #     nttp1_after_bconv,
-    #     f"NTTP2{beta_idx}",
-    #     if_forward=True,
-    #     if_phase1=False,
-    #     start_limb=0,
-    #     end_limb=prm.L + prm.K,
-    #     exclude_start=prm.alpha * beta_idx,
-    #     exclude_end=prm.alpha * (beta_idx + 1),
-    # )
-    res = pf.end(nttp1_after_bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
+    nttp2_after_bconv = pf.ntt(
+        nttp1_after_bconv,
+        f"NTTP2{beta_idx}",
+        if_forward=True,
+        if_phase1=False,
+        start_limb=0,
+        end_limb=prm.L + prm.K,
+        exclude_start=prm.alpha * beta_idx,
+        exclude_end=prm.alpha * (beta_idx + 1),
+    )
+    res = pf.end(nttp2_after_bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
     target.append(res)
 res_axax = pf.end(mult_axax, 0, 0)
 res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)

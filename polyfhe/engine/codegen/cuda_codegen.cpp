@@ -408,10 +408,6 @@ void CudaCodegen::generate_kernel_defs(
                 w << ", const uint64_t *twiddles";
                 w << ", const uint64_t *twiddles_shoup";
                 w << ", const DModulus *modulus";
-                w << ", size_t coeff_mod_size";
-                w << ", size_t start_mod_idx";
-                w << ", size_t excluded_range_start";
-                w << ", size_t excluded_range_end";
             } else if (op_type == core::OpType::NTTPhase2) {
                 w << ", const uint64_t *twiddles";
                 w << ", const uint64_t *twiddles_shoup";
@@ -575,12 +571,24 @@ void CudaCodegen::generate_kernel_defs(
             // ==============================
             w << "extern __shared__ uint64_t shared[];\n";
             w << "uint64_t reg[8];\n";
+
+            auto first_node = subgraph->get_nodes()[0];
             auto inedge = subgraph->get_nodes()[0]->get_in_edges()[0];
-            assert(core::is_ntt_op(inedge->get_dst()->get_op_type()));
-            w << "const int start_limb = "
-              << inedge->get_dst()->get_start_limb() << ";\n";
-            w << "const int end_limb = " << inedge->get_dst()->get_end_limb()
-              << ";\n";
+
+            int start_limb = first_node->get_start_limb();
+            int end_limb = first_node->get_end_limb();
+            for (auto node : subgraph->get_nodes()) {
+                if (node->get_start_limb() != start_limb) {
+                    LOG_ERROR("start limb doesn't match: %s\n",
+                              node->get_op_name().c_str());
+                }
+                if (node->get_end_limb() != end_limb) {
+                    LOG_ERROR("end limb doesn't match: %s\n",
+                              node->get_op_name().c_str());
+                }
+            }
+            w << "const int start_limb = " << start_limb << ";\n";
+            w << "const int end_limb = " << end_limb << ";\n";
 
             w << "uint64_t *in = " << inedge->get_name() << ";\n";
             w << "for (size_t i = blockIdx.x * blockDim.x + "
@@ -646,9 +654,13 @@ void CudaCodegen::generate_kernel_defs(
                     auto inedge = node->get_in_edges()[0];
                     auto outedge = node->get_out_edges()[0];
                     assert(outedge->get_level() == core::EdgeLevel::Global);
+                    w << "const size_t exclude_start = "
+                      << node->get_exclude_start_idx() << ";\n";
+                    w << "const size_t exclude_end = "
+                      << node->get_exclude_end_idx() << ";\n";
                     if (inedge->get_level() == core::EdgeLevel::Global) {
-                        w << "if (twr_idx >= excluded_range_start && twr_idx < "
-                             "excluded_range_end)";
+                        w << "if (twr_idx >= exclude_start && twr_idx < "
+                             "exclude_end)";
                         w.block_begin();
                         w << "continue;\n";
                         w.block_end();
@@ -666,10 +678,8 @@ void CudaCodegen::generate_kernel_defs(
                         w << "const uint64_t size_QP = params->KL;\n";
                         w << "out = " << outedge->get_name() << ";\n";
                         w << "size_t twr_idx2 = "
-                          << "(twr_idx >= start_mod_idx + coeff_mod_size - "
-                             "size_P "
-                          << "? size_QP - (start_mod_idx + coeff_mod_size - "
-                             "twr_idx)"
+                          << "(twr_idx >= start_limb + end_limb - size_P "
+                          << "? size_QP - (start_limb + end_limb - twr_idx)"
                           << " : twr_idx);\n";
                         w << "d_poly_fnwt_phase1(";
                         w << "params";
@@ -726,17 +736,10 @@ void CudaCodegen::generate_kernel_defs(
             w << "uint64_t reg[8];\n";
 
             auto first_node = subgraph->get_nodes()[0];
-
-            // TODO
-            w << "uint64_t *in = "
-              << subgraph->get_nodes()[0]->get_in_edges()[0]->get_name()
-              << ";\n";
-            const int n_subnodes = subgraph->get_nodes().size();
-            w << "uint64_t *out = "
-              << subgraph->get_nodes()[n_subnodes - 1]
-                     ->get_out_edges()[0]
-                     ->get_name()
-              << ";\n";
+            auto last_node =
+                subgraph->get_nodes()[subgraph->get_nodes().size() - 1];
+            auto inedge = first_node->get_in_edges()[0];
+            auto outedge = last_node->get_out_edges()[0];
 
             bool requires_load_to_reg = true;
             bool requires_store_from_reg = true;
@@ -756,7 +759,6 @@ void CudaCodegen::generate_kernel_defs(
                               node->get_op_name().c_str());
                 }
             }
-
             w << "const int start_limb = " << start_limb << ";\n";
             w << "const int end_limb = " << end_limb << ";\n";
             w << "const size_t n_tower = params->N / 8;\n";
@@ -769,6 +771,7 @@ void CudaCodegen::generate_kernel_defs(
 
             if (requires_load_to_reg) {
                 w << "\n// Load data to register\n";
+                w << "uint64_t *in = " << inedge->get_name() << ";\n";
                 w << "#pragma unroll\n";
                 w << "for (int l = 0; l < 8; l++)";
                 w.block_begin();
@@ -802,13 +805,25 @@ void CudaCodegen::generate_kernel_defs(
 
                     w << "uint64_t n_init;\n";
                     w << "d_poly_fnwt_phase2(";
-                    w << "params, out, shared, reg, twiddles,"
+                    w << "params, " << inedge->get_name()
+                      << ", shared, reg, twiddles,"
                       << "twiddles_shoup, modulus, coeff_mod_size,"
                       << "start_mod_idx, twr_idx, &n_init, tid);\n";
 
                     // define store here
+                    // TODO: support multiple outedges
+                    assert(node->get_out_edges().size() == 1);
+                    auto outedge = node->get_out_edges()[0];
                     requires_store_from_reg = false;
-
+                    w << "uint64_t *out_ptr = " << outedge->get_name()
+                      << " + twr_idx * params->N;\n";
+                    w << "#pragma unroll\n";
+                    w << "for (size_t j = 0; j < 8; j++)";
+                    w.block_begin();
+                    w << "*(out_ptr + n_init + params->n2 / 8 * j) = "
+                         "reg[j];\n";
+                    w.block_end();
+                    w << "__syncthreads();\n";
                 } else if (op_type == core::OpType::iNTTPhase2) {
                     w << "d_poly_inwt_radix8_phase2(params"
                       << ", " << node->get_end_limb() << ", "
@@ -830,7 +845,7 @@ void CudaCodegen::generate_kernel_defs(
                      "+ (threadIdx.x / n_group) * n_group * "
                      "params->per_thread_ntt_size "
                      "+ (threadIdx.x % n_group);\n";
-
+                w << "uint64_t *out = " << outedge->get_name() << ";\n";
                 w << "#pragma unroll\n";
                 w << "for (int l = 0; l < 8; l++)";
                 w.block_begin();
@@ -1106,11 +1121,6 @@ void CudaCodegen::generate_call_kernels(
                 w << ", params_h->ntt_tables->twiddle()";
                 w << ", params_h->ntt_tables->twiddle_shoup()";
                 w << ", params_h->ntt_tables->modulus()";
-                // TODO: range
-                w << ", params_h->KL";
-                w << ", 0";
-                w << ", " << node->get_exclude_start_idx();
-                w << ", " << node->get_exclude_end_idx();
             } else if (op_type == core::OpType::NTTPhase2) {
                 w << ", params_h->ntt_tables->twiddle()";
                 w << ", params_h->ntt_tables->twiddle_shoup()";
