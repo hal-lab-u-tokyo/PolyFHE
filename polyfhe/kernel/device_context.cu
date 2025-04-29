@@ -92,8 +92,8 @@ Params::Params(int logN, int L, int dnum) : logN(logN), L(L), dnum(dnum) {
     N = 1 << logN;
     alpha = (L + 1) / dnum;
     K = alpha;
-    n1 = 1 << (logN / 2);
-    n2 = N / n1;
+    n2 = 1 << (logN / 2);
+    n1 = N / n2;
     sigma = 3.2;
     qVec = new uint64_t[L + K];
     pVec = qVec + L;

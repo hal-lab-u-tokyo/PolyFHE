@@ -2,7 +2,7 @@ from pypolyfhe import PolyFHE, Params
 import os
 
 pf = PolyFHE()
-prm = Params(N=2 ** 15, L=18, dnum=9)
+prm = Params(N=2**15, L=18, dnum=9)
 print(prm)
 
 target = []
@@ -17,12 +17,50 @@ mult_axbx = pf.mul(e_ct0_ax, e_ct1_bx, "MultAxBx", 0, prm.L)
 mult_bxax = pf.mul(e_ct0_bx, e_ct1_ax, "MultBxAx", 0, prm.L)
 add_axbx = pf.add(mult_axbx, mult_bxax, "AddAxBx", 0, prm.L)
 mult_bxbx = pf.mul(e_ct0_bx, e_ct1_bx, "MultBxBx", 0, prm.L)
-inttp2 = pf.intt_phase2(mult_bxbx, "iNTTP2", 0, prm.L)
-inttp1 = pf.intt_phase1(inttp2, "iNTT1", 0, prm.L)
+inttp2 = pf.ntt(
+    mult_bxbx,
+    "iNTTP2",
+    if_forward=False,
+    if_phase1=False,
+    start_limb=0,
+    end_limb=prm.L,
+    exclude_start=0,
+    exclude_end=0,
+)
+inttp1 = pf.ntt(
+    inttp2,
+    "iNTTP1",
+    if_forward=False,
+    if_phase1=True,
+    start_limb=0,
+    end_limb=prm.L,
+    exclude_start=0,
+    exclude_end=0,
+)
 scale_for_bconv = pf.mul_const(inttp1, "ScaleForBConv", 0, prm.L)
 for beta_idx in range(prm.get_beta(prm.L - 1)):
     bconv = pf.bconv(scale_for_bconv, f"BConv{beta_idx}", prm.L, beta_idx, prm.alpha)
-    res = pf.end(bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
+    nttp1_after_bconv = pf.ntt(
+        bconv,
+        f"NTTP1{beta_idx}",
+        if_forward=True,
+        if_phase1=True,
+        start_limb=0,
+        end_limb=prm.L + prm.K,
+        exclude_start=prm.alpha * beta_idx,
+        exclude_end=prm.alpha * (beta_idx + 1),
+    )
+    nttp2_after_bconv = pf.ntt(
+        nttp1_after_bconv,
+        f"NTTP2{beta_idx}",
+        if_forward=True,
+        if_phase1=False,
+        start_limb=0,
+        end_limb=prm.L + prm.K,
+        exclude_start=prm.alpha * beta_idx,
+        exclude_end=prm.alpha * (beta_idx + 1),
+    )
+    res = pf.end(nttp2_after_bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
     target.append(res)
 res_axax = pf.end(mult_axax, 0, 0)
 res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)

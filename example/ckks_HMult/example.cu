@@ -33,48 +33,81 @@ inline bool compare_double(const double &lhs, const double &rhs) {
     return fabs(lhs - rhs) < EPSINON;
 }
 
-/*
-__global__ static void BConvGlobal(Params *params, uint64_t *dst,
-                                   const uint64_t *in,
-                                   const uint64_t *qiHat_mod_pj,
-                                   const DModulus *ibase, uint64_t ibase_size,
-                                   const DModulus *obase, uint64_t obase_size,
-                                   size_t startPartIdx, size_t size_PartQl) {
-    extern __shared__ uint64_t shared[];
-    // TODO: malloc ibase_size
-    uint64_t reg_ibase[8];
-
-    for (size_t i = threadIdx.x; i < obase_size * ibase_size; i += blockDim.x) {
-        shared[i] = qiHat_mod_pj[i];
-    }
-    __syncthreads();
-
-    constexpr const int unroll_number = 2;
+__global__ static void NTTPhase1(Params *params, uint64_t *inout,
+                                 const uint64_t *twiddles,
+                                 const uint64_t *twiddles_shoup,
+                                 const DModulus *modulus, size_t coeff_mod_size,
+                                 size_t start_mod_idx,
+                                 size_t excluded_range_start,
+                                 size_t excluded_range_end) {
+    extern __shared__ uint64_t buffer[];
+    uint64_t samples[8];
+    const size_t n_tower = params->N / 8;
     for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-         tid < (params->N * obase_size + unroll_number - 1) / unroll_number;
-         tid += blockDim.x * gridDim.x) {
-        const size_t n_idx = unroll_number * (tid / obase_size);
-        const size_t l_idx = tid % obase_size;
-
-        // Load
-        for (int i = 0; i < ibase_size; i++) {
-            reg_ibase[2 * i] = *(in + params->N * i + n_idx);
-            reg_ibase[2 * i + 1] = *(in + params->N * i + n_idx + 1);
+         tid < n_tower * coeff_mod_size; tid += blockDim.x * gridDim.x) {
+        const size_t twr_idx = tid / n_tower + start_mod_idx;
+        if (twr_idx >= excluded_range_start && twr_idx < excluded_range_end) {
+            continue;
         }
 
-        uint64_t res1, res2;
+        const uint64_t size_P = params->K;
+        const uint64_t size_QP = params->KL;
+        size_t twr_idx2 =
+            (twr_idx >= start_mod_idx + coeff_mod_size - size_P
+                 ? size_QP - (start_mod_idx + coeff_mod_size - twr_idx)
+                 : twr_idx);
 
-        BConvOp(params, &res1, &res2, reg_ibase, shared, n_idx, l_idx, ibase,
-                ibase_size, obase, obase_size, startPartIdx, size_PartQl);
+        const size_t group = params->n1 / 8;
+        const size_t pad = params->per_block_pad;
+        const size_t pad_tid = threadIdx.x % pad;
+        const size_t pad_idx = threadIdx.x / pad;
+        size_t n_idx = tid % n_tower;
+        const size_t n_init =
+            n_tower / group * pad_idx + pad_tid + pad * (n_idx / (group * pad));
 
-        // Leap over the overlapped region.
-        const size_t l_out_idx =
-            l_idx + ((l_idx >= startPartIdx) ? size_PartQl : 0);
-        phantom::arith::st_two_uint64(dst + l_out_idx * params->N + n_idx, res1,
-                                      res2);
+        uint64_t *in_data_ptr = inout + twr_idx * params->N;
+
+#pragma unroll
+        for (size_t j = 0; j < 8; j++) {
+            samples[j] = *(in_data_ptr + n_init + n_tower * j);
+        }
+
+        d_poly_fnwt_phase1(params, inout, buffer, samples, twiddles,
+                           twiddles_shoup, modulus, twr_idx, twr_idx2, n_init,
+                           tid);
     }
 }
-*/
+
+__global__ static void NTTPhase2(Params *params, uint64_t *inout,
+                                 const uint64_t *twiddles,
+                                 const uint64_t *twiddles_shoup,
+                                 const DModulus *modulus, size_t coeff_mod_size,
+                                 size_t start_mod_idx,
+                                 size_t excluded_range_start,
+                                 size_t excluded_range_end) {
+    extern __shared__ uint64_t buffer[];
+    uint64_t samples[8];
+    const size_t n_tower = params->N / 8;
+    for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+         tid < (n_tower * coeff_mod_size); tid += blockDim.x * gridDim.x) {
+        // prime idx
+        size_t twr_idx = coeff_mod_size - 1 - (tid / n_tower) + start_mod_idx;
+        if (twr_idx >= excluded_range_start && twr_idx < excluded_range_end) {
+            continue;
+        }
+
+        uint64_t n_init;
+        d_poly_fnwt_phase2(params, inout, buffer, samples, twiddles,
+                           twiddles_shoup, modulus, coeff_mod_size,
+                           start_mod_idx, twr_idx, &n_init, tid);
+
+        uint64_t *out_ptr = inout + twr_idx * params->N;
+#pragma unroll
+        for (size_t j = 0; j < 8; j++) {
+            *(out_ptr + n_init + params->n2 / 8 * j) = samples[j];
+        }
+    }
+}
 
 void ConvertPhantomToParams(Params &params, const PhantomContext &context) {
     const DModulus *d_modulus = context.gpu_rns_tables().modulus();
@@ -107,6 +140,9 @@ void ConvertPhantomToParams(Params &params, const PhantomContext &context) {
         phantom::DRNSTool &rns_tool = context_data.gpu_rns_tool();
         params.rns_tools.push_back(&rns_tool);
     }
+
+    // DNTTTable
+    params.ntt_tables = &context.gpu_rns_tables();
 }
 
 void example_ckks(PhantomContext &context, const double &scale) {
@@ -194,37 +230,27 @@ void example_ckks(PhantomContext &context, const double &scale) {
                  true);
     checkCudaErrors(cudaDeviceSynchronize());
     /*
-    phantom::DRNSTool *drns_tool = params_h.rns_tools[1];
-    for (size_t beta_idx = 0; beta_idx < beta; beta_idx++) {
-        const size_t startPartIdx = params_h.alpha * beta_idx;
-        const size_t size_PartQl =
-            (beta_idx == beta - 1) ? (params_h.L - params_h.alpha * (beta - 1))
-                                   : params_h.alpha;
-
-        const uint64_t *in_modup_i =
-            res_modup_polyfhe + poly_degree * startPartIdx;
-        uint64_t *out_modup_i =
-            res_modup_polyfhe2 + poly_degree * beta_idx * sizeQP;
-
-        auto &bconv_pre =
-            drns_tool->v_base_part_Ql_to_compl_part_QlP_conv()[beta_idx];
-        auto &ibase = bconv_pre.ibase();
-        auto &obase = bconv_pre.obase();
-        const auto qiHat_mod_pj = bconv_pre.QHatModp();
-
-        uint64_t gridDimGlb;
-        constexpr int unroll_factor = 2;
-        gridDimGlb = params_h.N * obase.size() / blockDimGlb.x / unroll_factor;
-        std::cout << "beta_idx: " << beta_idx << std::endl;
-        BConvGlobal<<<gridDimGlb, blockDimGlb,
-                      sizeof(uint64_t) * obase.size() * ibase.size()>>>(
-            params_d, out_modup_i, in_modup_i, qiHat_mod_pj, ibase.base(),
-            ibase.size(), obase.base(), obase.size(), startPartIdx,
-            size_PartQl);
+    for (int beta_idx = 0; beta_idx < beta; beta_idx++) {
+        uint64_t *inout_i = res_modup_polyfhe + beta_idx * poly_degree * sizeQP;
+        const int per_block_pad = params_h.per_block_pad;
+        const int start_modulus_idx = 0;
+        const int excluded_range_start = params_h.alpha * beta_idx;
+        const int excluded_range_end = params_h.alpha * (beta_idx + 1);
+        NTTPhase1<<<4096, (params_h.n1 / 8) * per_block_pad,
+                    (params_h.n1 + per_block_pad + 1) * per_block_pad *
+                        sizeof(uint64_t)>>>(
+            params_d, inout_i, params_h.ntt_tables->twiddle(),
+            params_h.ntt_tables->twiddle_shoup(),
+            params_h.ntt_tables->modulus(), 20, start_modulus_idx,
+            excluded_range_start, excluded_range_end);
         checkCudaErrors(cudaDeviceSynchronize());
+        NTTPhase2<<<4096, 128, 128 * 8 * sizeof(uint64_t)>>>(
+            params_d, inout_i, params_h.ntt_tables->twiddle(),
+            params_h.ntt_tables->twiddle_shoup(),
+            params_h.ntt_tables->modulus(), 20, start_modulus_idx,
+            excluded_range_start, excluded_range_end);
     }
     */
-    checkCudaErrors(cudaDeviceSynchronize());
 
     // Phantom's HMult
     PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);

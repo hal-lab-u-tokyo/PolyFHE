@@ -26,13 +26,13 @@ Config::Config(std::string filename) {
             if (key == "logN") {
                 logN = value;
                 N = 1 << logN;
-                n1 = 1 << (logN / 2);
-                n2 = N / n1;
+                n2 = 1 << (logN / 2);
+                n1 = N / n2;
             } else if (key == "N") {
                 N = value;
                 logN = std::log2(N);
-                n1 = 1 << (logN / 2);
-                n2 = N / n1;
+                n2 = 1 << (logN / 2);
+                n1 = N / n2;
             } else if (key == "L") {
                 L = value;
             } else if (key == "dnum") {

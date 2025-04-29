@@ -154,6 +154,24 @@ public:
     }
     BlockPhase get_block_phase() { return m_block_phase; }
 
+    // Limb
+    void set_limb_range(int start, int end) {
+        m_start_limb = start;
+        m_end_limb = end;
+    }
+    int get_start_limb() {
+        if (m_start_limb == -1) {
+            LOG_ERROR("m_start_limb not set\n");
+        }
+        return m_start_limb;
+    }
+    int get_end_limb() {
+        if (m_end_limb == -1) {
+            LOG_ERROR("m_end_limb not set\n");
+        }
+        return m_end_limb;
+    }
+
     // Subgraph
     void set_idx_subgraph(int idx) { idx_subgraph = idx; }
     int get_idx_subgraph() { return idx_subgraph; }
@@ -168,6 +186,21 @@ public:
         return m_beta_idx;
     }
 
+    // Only for NTT
+    void set_exclude_idx(int start, int end) {
+        assert(is_ntt_op(m_op_type));
+        m_exclude_start_idx = start;
+        m_exclude_end_idx = end;
+    }
+    int get_exclude_start_idx() {
+        assert(is_ntt_op(m_op_type));
+        return m_exclude_start_idx;
+    }
+    int get_exclude_end_idx() {
+        assert(is_ntt_op(m_op_type));
+        return m_exclude_end_idx;
+    }
+
 protected:
     OpType m_op_type;
     std::vector<std::shared_ptr<Edge>> m_in_edges;
@@ -177,8 +210,15 @@ protected:
     BlockPhase m_block_phase;
     int idx_subgraph = -1;
 
+    int m_start_limb = -1;
+    int m_end_limb = -1;
+
     // Only for BConv
     int m_beta_idx;
+
+    // Only for NTT
+    int m_exclude_start_idx;
+    int m_exclude_end_idx;
 
 private:
     // Only for lowerings

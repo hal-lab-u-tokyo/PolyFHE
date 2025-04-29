@@ -48,8 +48,8 @@ public:
     Params(int logN, int L, int dnum) {
         this->logN = logN;
         this->N = 1 << logN;
-        this->n1 = 1 << (logN / 2);
-        this->n2 = this->N / this->n1;
+        this->n2 = 1 << (logN / 2);
+        this->n1 = this->N / this->n2;
         this->L = L;
         this->dnum = dnum;
         this->limb = L;
@@ -90,6 +90,8 @@ public:
 
     NTTParams* ntt_params;
     std::vector<phantom::DRNSTool*> rns_tools;
+    const DNTTTable* ntt_tables;
+    const int per_block_pad = 4;
 };
 
 class FHEContext {
