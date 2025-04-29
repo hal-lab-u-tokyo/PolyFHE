@@ -322,7 +322,7 @@ void CudaCodegen::generate_NTT_ElemLimb(
                  "shared, reg, i);\n";
         } else {
             w << "d_poly_inwt_radix8_phase2(params, params->L, 0, "
-                 "shared, reg, i);\n";
+                 "shared, reg, tid);\n";
         }
     }
 }
@@ -724,10 +724,13 @@ void CudaCodegen::generate_kernel_defs(
             // ==============================
             w << "extern __shared__ uint64_t shared[];\n";
             w << "uint64_t reg[8];\n";
+
+            auto first_node = subgraph->get_nodes()[0];
+
+            // TODO
             w << "uint64_t *in = "
               << subgraph->get_nodes()[0]->get_in_edges()[0]->get_name()
               << ";\n";
-            // TODO: out node
             const int n_subnodes = subgraph->get_nodes().size();
             w << "uint64_t *out = "
               << subgraph->get_nodes()[n_subnodes - 1]
@@ -735,21 +738,45 @@ void CudaCodegen::generate_kernel_defs(
                      ->get_name()
               << ";\n";
 
-            w << "for (size_t i = blockIdx.x * blockDim.x + threadIdx.x; i "
-                 "< "
-                 "params->L * params->N / 8; i += blockDim.x * gridDim.x)";
-            w.block_begin();
-            w << "size_t batch_idx = i / (params->N / 8);\n";
-            // TODO: use i
-            // 今の実装だとthreadが十分にあるときしか正しくうごかない
-            w << "\n// Load data to register\n";
-            w << "#pragma unroll\n";
-            w << "for (int l = 0; l < 8; l++) {\n";
-            w << "    reg[l] = *(in + blockIdx.x * blockDim.x * 8 + "
-                 "threadIdx.x * 8 + l);\n";
-            w << "}\n";
-            w << "__syncthreads();\n";
+            bool requires_load_to_reg = true;
+            if (first_node->get_op_type() == core::OpType::NTTPhase2) {
+                requires_load_to_reg = false;
+            }
+
+            int start_limb = first_node->get_start_limb();
+            int end_limb = first_node->get_end_limb();
+            for (auto node : subgraph->get_nodes()) {
+                if (node->get_start_limb() != start_limb) {
+                    LOG_ERROR("start limb doesn't match: %s\n",
+                              node->get_op_name().c_str());
+                }
+                if (node->get_end_limb() != end_limb) {
+                    LOG_ERROR("end limb doesn't match: %s\n",
+                              node->get_op_name().c_str());
+                }
+            }
+
+            w << "const int start_limb = " << start_limb << ";\n";
+            w << "const int end_limb = " << end_limb << ";\n";
             w << "const size_t n_tower = params->N / 8;\n";
+
+            w << "for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x; "
+              << "tid < (end_limb - start_limb) * n_tower; "
+              << "tid += blockDim.x * gridDim.x)";
+            w.block_begin();
+            w << "size_t batch_idx = tid / n_tower;\n";
+
+            if (requires_load_to_reg) {
+                w << "\n// Load data to register\n";
+                w << "#pragma unroll\n";
+                w << "for (int l = 0; l < 8; l++)";
+                w.block_begin();
+                w << "reg[l] = *(in + blockIdx.x * blockDim.x * 8 + "
+                     "threadIdx.x * 8 + l);\n";
+                w.block_end();
+                w << "__syncthreads();\n";
+            }
+
             for (auto node : subgraph->get_nodes()) {
                 w << "\n// " << node->get_op_name() << "\n";
                 core::OpType op_type = node->get_op_type();
