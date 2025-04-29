@@ -412,10 +412,6 @@ void CudaCodegen::generate_kernel_defs(
                 w << ", const uint64_t *twiddles";
                 w << ", const uint64_t *twiddles_shoup";
                 w << ", const DModulus *modulus";
-                w << ", size_t coeff_mod_size";
-                w << ", size_t start_mod_idx";
-                w << ", size_t excluded_range_start";
-                w << ", size_t excluded_range_end";
             }
         }
         w << ")";
@@ -795,20 +791,27 @@ void CudaCodegen::generate_kernel_defs(
                     assert(node->get_in_edges().size() == 1);
                     auto inedge = node->get_in_edges()[0];
                     assert(inedge->get_level() == core::EdgeLevel::Global);
-                    w << "size_t twr_idx = coeff_mod_size - 1 - (tid / "
-                         "n_tower) + start_mod_idx;\n";
-                    w << "if (twr_idx >= excluded_range_start && twr_idx < "
-                         "excluded_range_end)";
-                    w.block_begin();
-                    w << "continue;\n";
-                    w.block_end();
+                    w << "size_t twr_idx = end_limb - 1 - (tid / "
+                         "n_tower) + start_limb;\n";
+
+                    const int exclude_start = node->get_exclude_start_idx();
+                    const int exclude_end = node->get_exclude_end_idx();
+                    w << "const size_t exclude_end = " << exclude_end << ";\n";
+                    if (exclude_start != 0) {
+                        w << "const size_t exclude_start = " << exclude_start
+                          << ";\n";
+                        w << "if (twr_idx >= exclude_start && twr_idx < "
+                             "exclude_end){continue;}\n";
+                    } else {
+                        w << "if (twr_idx < exclude_end) {continue;}\n";
+                    }
 
                     w << "uint64_t n_init;\n";
                     w << "d_poly_fnwt_phase2(";
                     w << "params, " << inedge->get_name()
                       << ", shared, reg, twiddles,"
-                      << "twiddles_shoup, modulus, coeff_mod_size,"
-                      << "start_mod_idx, twr_idx, &n_init, tid);\n";
+                      << "twiddles_shoup, modulus, end_limb,"
+                      << "start_limb, twr_idx, &n_init, tid);\n";
 
                     // define store here
                     // TODO: support multiple outedges
@@ -1125,11 +1128,6 @@ void CudaCodegen::generate_call_kernels(
                 w << ", params_h->ntt_tables->twiddle()";
                 w << ", params_h->ntt_tables->twiddle_shoup()";
                 w << ", params_h->ntt_tables->modulus()";
-                // TODO: range
-                w << ", params_h->KL";
-                w << ", 0";
-                w << ", " << node->get_exclude_start_idx();
-                w << ", " << node->get_exclude_end_idx();
             }
         }
         w << ");\n";
