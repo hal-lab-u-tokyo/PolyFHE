@@ -112,7 +112,7 @@ class PolyFHE:
         self.init_op = PolyOp(PolyOpType.Init, [], "init")
         self.end_op = PolyOp(PolyOpType.End, [], "end")
 
-    def init(self, idx_ct: int, offset: int, name: str):
+    def init(self, name: str, idx_ct: int, offset: int):
         op = PolyOp(PolyOpType.InitEdge, [], name)
         op.set_special_edge(idx_ct, offset)
         return op

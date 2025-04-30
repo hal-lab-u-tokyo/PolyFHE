@@ -201,7 +201,7 @@ void example_ckks(PhantomContext &context, const double &scale) {
 
     std::cout << "coeff_mod_size: " << coeff_mod_size << std::endl;
 
-    Params params_h(std::log2(poly_degree), coeff_mod_size, 9);
+    Params params_h(std::log2(poly_degree), coeff_mod_size, 5);
     ConvertPhantomToParams(params_h, context);
     Params *params_d;
     checkCudaErrors(cudaMalloc((void **) &params_d, sizeof(Params)));
@@ -382,13 +382,20 @@ void example_ckks(PhantomContext &context, const double &scale) {
 int main() {
     srand(time(NULL));
     double scale = pow(2.0, 40);
-    size_t poly_modulus_degree = 1 << 15;
+    size_t poly_modulus_degree = 1 << 16;
     EncryptionParameters parms(scheme_type::ckks);
     parms.set_poly_modulus_degree(poly_modulus_degree);
+    /*
     parms.set_coeff_modulus(CoeffModulus::Create(
         poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
                               40, 40, 40, 40, 40, 40, 40, 40, 60, 60}));
     parms.set_special_modulus_size(2);
+    */
+    parms.set_coeff_modulus(CoeffModulus::Create(
+        poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+                              40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+                              40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60, 60}));
+    parms.set_special_modulus_size(6);
     PhantomContext context(parms);
     print_parameters(context);
     example_ckks(context, scale);
