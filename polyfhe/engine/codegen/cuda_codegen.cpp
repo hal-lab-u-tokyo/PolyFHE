@@ -1133,6 +1133,9 @@ void CudaCodegen::generate_call_kernels(
         w << ");\n";
 
         if (subgraph->get_require_devicesync()) {
+            LOG_INFO("subgraph %s requires devicesync %d\n",
+                     subgraph->get_name().c_str(),
+                     subgraph->get_require_devicesync());
             w << "checkCudaErrors(cudaDeviceSynchronize());\n";
         }
 

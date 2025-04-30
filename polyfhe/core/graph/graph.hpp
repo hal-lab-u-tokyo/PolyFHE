@@ -88,6 +88,14 @@ public:
     // If the number of found node is different with `n_found`,
     // raise assertion
     std::shared_ptr<Node> search_op(core::OpType op_type, int n_found);
+    bool if_contains_op(core::OpType op_type) {
+        for (auto node : m_nodes) {
+            if (node->get_op_type() == op_type) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     // Dominant memory access pattern
     void set_dominant_memaccess_pattern(MemoryAccessPattern memaccess_pattern) {
