@@ -112,7 +112,7 @@ class PolyFHE:
         self.init_op = PolyOp(PolyOpType.Init, [], "init")
         self.end_op = PolyOp(PolyOpType.End, [], "end")
 
-    def init(self, idx_ct: int, offset: int, name: str):
+    def init(self, name: str, idx_ct: int, offset: int):
         op = PolyOp(PolyOpType.InitEdge, [], name)
         op.set_special_edge(idx_ct, offset)
         return op
@@ -249,6 +249,8 @@ class PolyFHE:
             elif isinstance(op, NTTOp):
                 # in_start_limb = out_start_limb in NTTOp
                 label += f"_{op.in_start_limb}_{op.in_end_limb}_{op.exclude_start_limb}_{op.exclude_end_limb}"
+            else:
+                label += f"_{op.in_start_limb}_{op.in_end_limb}"
             return label
 
         def add_node(op: PolyOp):

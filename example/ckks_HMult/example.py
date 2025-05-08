@@ -2,21 +2,22 @@ from pypolyfhe import PolyFHE, Params
 import os
 
 pf = PolyFHE()
-prm = Params(N=2**15, L=18, dnum=9)
+# prm = Params(N=2**15, L=18, dnum=9)
+prm = Params(N=2**16, L=30, dnum=5)
 print(prm)
 
 target = []
 
 # HMult
-e_ct0_ax = pf.init(0, 0, "ct0_ax")
-e_ct0_bx = pf.init(0, prm.N * prm.L, "ct0_bx")
-e_ct1_ax = pf.init(1, 0, "ct1_ax")
-e_ct1_bx = pf.init(1, prm.N * prm.L, "ct1_bx")
-mult_axax = pf.mul(e_ct0_ax, e_ct1_ax, "MultAxAx", 0, prm.L)
-mult_axbx = pf.mul(e_ct0_ax, e_ct1_bx, "MultAxBx", 0, prm.L)
-mult_bxax = pf.mul(e_ct0_bx, e_ct1_ax, "MultBxAx", 0, prm.L)
-add_axbx = pf.add(mult_axbx, mult_bxax, "AddAxBx", 0, prm.L)
-mult_bxbx = pf.mul(e_ct0_bx, e_ct1_bx, "MultBxBx", 0, prm.L)
+e_ct0_ax = pf.init("ct0_ax", idx_ct=0, offset=0)
+e_ct0_bx = pf.init("ct0_bx", idx_ct=0, offset=prm.N * prm.L)
+e_ct1_ax = pf.init("ct1_ax", idx_ct=1, offset=0)
+e_ct1_bx = pf.init("ct1_bx", idx_ct=1, offset=prm.N * prm.L)
+mult_axax = pf.mul(e_ct0_ax, e_ct1_ax, "MultAxAx", start_limb=0, end_limb=prm.L)
+mult_axbx = pf.mul(e_ct0_ax, e_ct1_bx, "MultAxBx", start_limb=0, end_limb=prm.L)
+mult_bxax = pf.mul(e_ct0_bx, e_ct1_ax, "MultBxAx", start_limb=0, end_limb=prm.L)
+add_axbx = pf.add(mult_axbx, mult_bxax, "AddAxBx", start_limb=0, end_limb=prm.L)
+mult_bxbx = pf.mul(e_ct0_bx, e_ct1_bx, "MultBxBx", start_limb=0, end_limb=prm.L)
 inttp2 = pf.ntt(
     mult_bxbx,
     "iNTTP2",
@@ -39,6 +40,7 @@ inttp1 = pf.ntt(
 )
 scale_for_bconv = pf.mul_const(inttp1, "ScaleForBConv", 0, prm.L)
 for beta_idx in range(prm.get_beta(prm.L - 1)):
+    print("beta_idx:", beta_idx)
     bconv = pf.bconv(scale_for_bconv, f"BConv{beta_idx}", prm.L, beta_idx, prm.alpha)
     nttp1_after_bconv = pf.ntt(
         bconv,
@@ -61,6 +63,9 @@ for beta_idx in range(prm.get_beta(prm.L - 1)):
         exclude_end=prm.alpha * (beta_idx + 1),
     )
     res = pf.end(nttp2_after_bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
+    """
+    res = pf.end(bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
+    """
     target.append(res)
 res_axax = pf.end(mult_axax, 0, 0)
 res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)
