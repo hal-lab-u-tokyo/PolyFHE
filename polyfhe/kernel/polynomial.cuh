@@ -193,7 +193,7 @@ xxx_multiply_uint64_uint64(const uint64_t &operand1, const uint64_t &operand2) {
     return result_;
 }
 
-__forceinline__ __device__ auto base_convert_acc_unroll2_reg(
+__forceinline__ __device__ auto xxx_base_convert_acc_unroll2_reg(
     const uint64_t *reg, const uint64_t *QHatModp, size_t out_prime_idx,
     size_t degree, size_t ibase_size, size_t degree_idx) {
     xxx_uint128_t2 accum{0};
@@ -294,8 +294,8 @@ __forceinline__ __device__ void BConvOp(
     const DModulus *obase, uint64_t obase_size, size_t startPartIdx,
     size_t size_PartQl) {
     xxx_uint128_t2 accum =
-        base_convert_acc_unroll2_reg(in_reg, s_qiHat_mod_pj, out_prime_idx,
-                                     params->N, ibase_size, degree_idx);
+        xxx_base_convert_acc_unroll2_reg(in_reg, s_qiHat_mod_pj, out_prime_idx,
+                                         params->N, ibase_size, degree_idx);
 
     uint64_t obase_value = obase[out_prime_idx].value();
     uint64_t obase_ratio[2] = {obase[out_prime_idx].const_ratio()[0],

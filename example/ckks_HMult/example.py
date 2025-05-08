@@ -40,8 +40,8 @@ inttp1 = pf.ntt(
 )
 scale_for_bconv = pf.mul_const(inttp1, "ScaleForBConv", 0, prm.L)
 for beta_idx in range(prm.get_beta(prm.L - 1)):
+    print("beta_idx:", beta_idx)
     bconv = pf.bconv(scale_for_bconv, f"BConv{beta_idx}", prm.L, beta_idx, prm.alpha)
-    """
     nttp1_after_bconv = pf.ntt(
         bconv,
         f"NTTP1{beta_idx}",
@@ -65,6 +65,7 @@ for beta_idx in range(prm.get_beta(prm.L - 1)):
     res = pf.end(nttp2_after_bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
     """
     res = pf.end(bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
+    """
     target.append(res)
 res_axax = pf.end(mult_axax, 0, 0)
 res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)

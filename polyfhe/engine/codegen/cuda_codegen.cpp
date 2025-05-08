@@ -650,13 +650,20 @@ void CudaCodegen::generate_kernel_defs(
                     auto inedge = node->get_in_edges()[0];
                     auto outedge = node->get_out_edges()[0];
                     assert(outedge->get_level() == core::EdgeLevel::Global);
-                    w << "const size_t exclude_start = "
-                      << node->get_exclude_start_idx() << ";\n";
-                    w << "const size_t exclude_end = "
-                      << node->get_exclude_end_idx() << ";\n";
+
                     if (inedge->get_level() == core::EdgeLevel::Global) {
-                        w << "if (twr_idx >= exclude_start && twr_idx < "
-                             "exclude_end)";
+                        const int exclude_start = node->get_exclude_start_idx();
+                        const int exclude_end = node->get_exclude_end_idx();
+                        w << "const size_t exclude_end = " << exclude_end
+                          << ";\n";
+                        if (exclude_start != 0) {
+                            w << "const size_t exclude_start = "
+                              << exclude_start << ";\n";
+                            w << "if (twr_idx >= exclude_start && twr_idx < "
+                                 "exclude_end)";
+                        } else {
+                            w << "if (twr_idx < exclude_end)";
+                        }
                         w.block_begin();
                         w << "continue;\n";
                         w.block_end();

@@ -33,82 +33,6 @@ inline bool compare_double(const double &lhs, const double &rhs) {
     return fabs(lhs - rhs) < EPSINON;
 }
 
-__global__ static void NTTPhase1(Params *params, uint64_t *inout,
-                                 const uint64_t *twiddles,
-                                 const uint64_t *twiddles_shoup,
-                                 const DModulus *modulus, size_t coeff_mod_size,
-                                 size_t start_mod_idx,
-                                 size_t excluded_range_start,
-                                 size_t excluded_range_end) {
-    extern __shared__ uint64_t buffer[];
-    uint64_t samples[8];
-    const size_t n_tower = params->N / 8;
-    for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-         tid < n_tower * coeff_mod_size; tid += blockDim.x * gridDim.x) {
-        const size_t twr_idx = tid / n_tower + start_mod_idx;
-        if (twr_idx >= excluded_range_start && twr_idx < excluded_range_end) {
-            continue;
-        }
-
-        const uint64_t size_P = params->K;
-        const uint64_t size_QP = params->KL;
-        size_t twr_idx2 =
-            (twr_idx >= start_mod_idx + coeff_mod_size - size_P
-                 ? size_QP - (start_mod_idx + coeff_mod_size - twr_idx)
-                 : twr_idx);
-
-        const size_t group = params->n1 / 8;
-        const size_t pad = params->per_block_pad;
-        const size_t pad_tid = threadIdx.x % pad;
-        const size_t pad_idx = threadIdx.x / pad;
-        size_t n_idx = tid % n_tower;
-        const size_t n_init =
-            n_tower / group * pad_idx + pad_tid + pad * (n_idx / (group * pad));
-
-        uint64_t *in_data_ptr = inout + twr_idx * params->N;
-
-#pragma unroll
-        for (size_t j = 0; j < 8; j++) {
-            samples[j] = *(in_data_ptr + n_init + n_tower * j);
-        }
-
-        d_poly_fnwt_phase1(params, inout, buffer, samples, twiddles,
-                           twiddles_shoup, modulus, twr_idx, twr_idx2, n_init,
-                           tid);
-    }
-}
-
-__global__ static void NTTPhase2(Params *params, uint64_t *inout,
-                                 const uint64_t *twiddles,
-                                 const uint64_t *twiddles_shoup,
-                                 const DModulus *modulus, size_t coeff_mod_size,
-                                 size_t start_mod_idx,
-                                 size_t excluded_range_start,
-                                 size_t excluded_range_end) {
-    extern __shared__ uint64_t buffer[];
-    uint64_t samples[8];
-    const size_t n_tower = params->N / 8;
-    for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-         tid < (n_tower * coeff_mod_size); tid += blockDim.x * gridDim.x) {
-        // prime idx
-        size_t twr_idx = coeff_mod_size - 1 - (tid / n_tower) + start_mod_idx;
-        if (twr_idx >= excluded_range_start && twr_idx < excluded_range_end) {
-            continue;
-        }
-
-        uint64_t n_init;
-        d_poly_fnwt_phase2(params, inout, buffer, samples, twiddles,
-                           twiddles_shoup, modulus, coeff_mod_size,
-                           start_mod_idx, twr_idx, &n_init, tid);
-
-        uint64_t *out_ptr = inout + twr_idx * params->N;
-#pragma unroll
-        for (size_t j = 0; j < 8; j++) {
-            *(out_ptr + n_init + params->n2 / 8 * j) = samples[j];
-        }
-    }
-}
-
 void ConvertPhantomToParams(Params &params, const PhantomContext &context) {
     const DModulus *d_modulus = context.gpu_rns_tables().modulus();
     const DNTTTable &ntt_tables = context.gpu_rns_tables();
@@ -216,6 +140,10 @@ void example_ckks(PhantomContext &context, const double &scale) {
     const int beta = std::ceil((params_h.L + 1) / params_h.alpha);
     const int sizeQP = coeff_mod_size + params_h.alpha;
     const int sizeQPNBeta = poly_degree * sizeQP * beta;
+    uint64_t *zero_array = (uint64_t *) malloc(sizeQPNBeta * sizeof(uint64_t));
+    for (int i = 0; i < sizeQPNBeta; i++) {
+        zero_array[i] = 0;
+    }
     std::cout << "beta: " << beta << std::endl;
     uint64_t *res_modup_polyfhe, *res_modup_polyfhe2, *res_modup_phantom;
     checkCudaErrors(cudaMalloc((void **) &res_modup_polyfhe,
@@ -224,6 +152,9 @@ void example_ckks(PhantomContext &context, const double &scale) {
                                sizeQPNBeta * sizeof(uint64_t)));
     checkCudaErrors(cudaMalloc((void **) &res_modup_phantom,
                                sizeQPNBeta * sizeof(uint64_t)));
+    checkCudaErrors(cudaMemcpy(res_modup_polyfhe, zero_array,
+                               sizeQPNBeta * sizeof(uint64_t),
+                               cudaMemcpyHostToDevice));
 
     // PolyFHE's HMult
     entry_kernel(params_d, &params_h, context, in1, in2, res, res_modup_polyfhe,
@@ -315,6 +246,7 @@ void example_ckks(PhantomContext &context, const double &scale) {
     std::cout << "Modup result" << std::endl;
     correctness = true;
     for (int beta_idx = 0; beta_idx < beta; beta_idx++) {
+        std::cout << "beta_idx: " << beta_idx << std::endl;
         for (int j = 0; j < poly_degree * params_h.KL; j++) {
             int i = beta_idx * poly_degree * params_h.KL + j;
             if (h_modup_polyfhe[i] != h_modup_phantom[i]) {
