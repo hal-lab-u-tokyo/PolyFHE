@@ -770,7 +770,17 @@ void CudaCodegen::generate_kernel_defs(
               << "tid < (end_limb - start_limb) * n_tower; "
               << "tid += blockDim.x * gridDim.x)";
             w.block_begin();
-            w << "size_t batch_idx = tid / n_tower;\n";
+
+            bool require_batch_idx = false;
+            for (auto node : subgraph->get_nodes()) {
+                if (node->get_op_type() == core::OpType::Mult) {
+                    require_batch_idx = true;
+                    break;
+                }
+            }
+            if (require_batch_idx) {
+                w << "const size_t batch_idx = tid / n_tower;\n";
+            }
 
             if (requires_load_to_reg) {
                 w << "\n// Load data to register\n";
