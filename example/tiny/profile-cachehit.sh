@@ -1,0 +1,21 @@
+#!/bin/bash
+set -xe
+
+# Usage
+# ./profile-cachehit.sh
+# argv[0]: this script
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd ${REPO_ROOT}/example/tiny
+
+# l1tex__t_sector_hit_rate.pct: L1 Cache Hit Rate
+# lts__t_sector_hit_rate.pct: LTS Cache Hit Rate
+METRICS="l1tex__t_sector_hit_rate,lts__t_sector_hit_rate"
+
+ncu -f -o cachehit --csv --metrics "${METRICS}" ./example.out 1
+ncu --csv --import cachehit.ncu-rep > cachehit-opt.csv
+
+ncu -f -o cachehit --csv --metrics "${METRICS}" ./example.out 0
+ncu --csv --import cachehit.ncu-rep > cachehit-noopt.csv
+
+uv run ./plot-cachehit.py
