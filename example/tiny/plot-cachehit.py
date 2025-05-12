@@ -4,22 +4,20 @@ import matplotlib.cm as cm
 import csv
 import numpy as np
 
-directory_path = os.path.dirname(os.path.abspath(__file__)) + "/data/"
+param_size = "small"
+directory_path = os.path.dirname(os.path.abspath(__file__)) + "/data/" + param_size + "/"
 
-label = ["Opt", "NoOpt"]
+label = ["Register", "L2", "NoOpt"]
 metrics = ["L1 Cache Hit Rate", "L2 Cache Hit Rate"]
 row_metrics = ["l1tex__t_sector_hit_rate.pct", "lts__t_sector_hit_rate.pct"]
 
-data_opt = {}
-data_noopt = {}
-datas = [data_opt, data_noopt]
-
-datas = {label[0]: [0, 0], label[1]: [0, 0]}
+datas = {l : [0, 0] for l in label}
 
 # Read CSV
-fname_opt = directory_path + "cachehit-opt.csv"
+fname_register = directory_path + "cachehit-reg.csv"
+fname_l2 = directory_path + "cachehit-l2.csv"
 fname_noopt = directory_path + "cachehit-noopt.csv"
-files = [fname_opt, fname_noopt]
+files = [fname_register, fname_l2, fname_noopt]
 
 for idx in range(len(files)):
     fname = files[idx]
@@ -61,11 +59,13 @@ print(datas)
 fig, ax = plt.subplots(figsize=(14, 10))
 
 x = np.arange(len(metrics))
-width = 0.2
+width = 0.3
 multiplier = 0
-colors = ["royalblue", "darkblue"]
+colors = ["darkblue", "royalblue", "lightsteelblue"]
 for attribute, measurement in datas.items():
     offset = width * multiplier
+    print("x:", x)
+    print("offset:", offset)
     rects = ax.bar(x + offset, measurement, width, label=attribute, color=colors[multiplier])
     ax.bar_label(rects, padding=3, fontsize=24)
     multiplier += 1
@@ -74,7 +74,7 @@ for attribute, measurement in datas.items():
 ax.set_ylabel('Cache Hit Rate (%)', fontsize=24)
 ax.set_ylim(0, 100)
 ax.legend(loc='upper left', fontsize=20)
-ax.set_xticks(x + width / 2, metrics, fontsize=24)
+ax.set_xticks(x + width, metrics, fontsize=24)
 ax.tick_params(axis='y', labelsize=24)
 outname = directory_path + "cachehit"
 plt.savefig(f"{outname}.png", dpi=500, bbox_inches='tight', pad_inches=0)
