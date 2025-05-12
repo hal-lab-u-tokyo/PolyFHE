@@ -824,16 +824,19 @@ void CudaCodegen::generate_kernel_defs(
                     // TODO: support multiple outedges
                     assert(node->get_out_edges().size() == 1);
                     auto outedge = node->get_out_edges()[0];
+                    if (outedge->get_level() == core::EdgeLevel::Global) {
+                        w << "uint64_t *out_ptr = " << outedge->get_name()
+                          << " + twr_idx * params->N;\n";
+                        w << "#pragma unroll\n";
+                        w << "for (size_t j = 0; j < 8; j++)";
+                        w.block_begin();
+                        w << "*(out_ptr + n_init + params->n2 / 8 * j) = "
+                             "reg[j];\n";
+                        w.block_end();
+                        w << "__syncthreads();\n";
+                    }
                     requires_store_from_reg = false;
-                    w << "uint64_t *out_ptr = " << outedge->get_name()
-                      << " + twr_idx * params->N;\n";
-                    w << "#pragma unroll\n";
-                    w << "for (size_t j = 0; j < 8; j++)";
-                    w.block_begin();
-                    w << "*(out_ptr + n_init + params->n2 / 8 * j) = "
-                         "reg[j];\n";
-                    w.block_end();
-                    w << "__syncthreads();\n";
+
                 } else if (op_type == core::OpType::iNTTPhase2) {
                     w << "d_poly_inwt_radix8_phase2(params"
                       << ", " << node->get_end_limb() << ", "
