@@ -4,7 +4,6 @@ BIN=example.out
 
 $(BIN): $(SRC) 
 	nvcc -o $(BIN) $(SRC)
-	./$(BIN)
 
 opt: $(BIN)
 	./$(BIN) 1

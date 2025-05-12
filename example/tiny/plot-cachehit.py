@@ -4,7 +4,7 @@ import matplotlib.cm as cm
 import csv
 import numpy as np
 
-directory_path = os.path.dirname(os.path.abspath(__file__))
+directory_path = os.path.dirname(os.path.abspath(__file__)) + "/data/"
 
 label = ["Opt", "NoOpt"]
 metrics = ["L1 Cache Hit Rate", "L2 Cache Hit Rate"]
@@ -17,8 +17,8 @@ datas = [data_opt, data_noopt]
 datas = {label[0]: [0, 0], label[1]: [0, 0]}
 
 # Read CSV
-fname_opt = directory_path + "/cachehit-opt.csv"
-fname_noopt = directory_path + "/cachehit-noopt.csv"
+fname_opt = directory_path + "cachehit-opt.csv"
+fname_noopt = directory_path + "cachehit-noopt.csv"
 files = [fname_opt, fname_noopt]
 
 for idx in range(len(files)):
@@ -63,18 +63,19 @@ fig, ax = plt.subplots(figsize=(14, 10))
 x = np.arange(len(metrics))
 width = 0.2
 multiplier = 0
+colors = ["royalblue", "darkblue"]
 for attribute, measurement in datas.items():
     offset = width * multiplier
-    rects = ax.bar(x + offset, measurement, width, label=attribute)
-    ax.bar_label(rects, padding=3)
+    rects = ax.bar(x + offset, measurement, width, label=attribute, color=colors[multiplier])
+    ax.bar_label(rects, padding=3, fontsize=24)
     multiplier += 1
 
 
 ax.set_ylabel('Cache Hit Rate (%)', fontsize=24)
 ax.set_ylim(0, 100)
-ax.legend(loc='upper left', fontsize=14)
-ax.set_xticks(x + width * 1.5, metrics, fontsize=18)
-outname = directory_path + "/cachehit"
+ax.legend(loc='upper left', fontsize=20)
+ax.set_xticks(x + width / 2, metrics, fontsize=24)
+ax.tick_params(axis='y', labelsize=24)
+outname = directory_path + "cachehit"
 plt.savefig(f"{outname}.png", dpi=500, bbox_inches='tight', pad_inches=0)
-plt.savefig(f"{outname}.eps", dpi=500, bbox_inches='tight', pad_inches=0)
-print(f"Figure saved at {outname}.png,eps")
+print(f"Figure saved at {outname}.png")

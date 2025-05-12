@@ -12,10 +12,11 @@ cd ${REPO_ROOT}/example/tiny
 # lts__t_sector_hit_rate.pct: LTS Cache Hit Rate
 METRICS="l1tex__t_sector_hit_rate,lts__t_sector_hit_rate"
 
+mkdir -p data
 ncu -f -o cachehit --csv --metrics "${METRICS}" ./example.out 1
-ncu --csv --import cachehit.ncu-rep > cachehit-opt.csv
+ncu --csv --import cachehit.ncu-rep > data/cachehit-opt.csv
 
 ncu -f -o cachehit --csv --metrics "${METRICS}" ./example.out 0
-ncu --csv --import cachehit.ncu-rep > cachehit-noopt.csv
+ncu --csv --import cachehit.ncu-rep > data/cachehit-noopt.csv
 
 uv run ./plot-cachehit.py

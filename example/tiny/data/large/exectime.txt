@@ -1,0 +1,26 @@
+if_opt: 0
+OK
+Iteration 0: 65 us
+Iteration 1: 61 us
+Iteration 2: 61 us
+Iteration 3: 61 us
+Iteration 4: 61 us
+Iteration 5: 61 us
+Iteration 6: 62 us
+Iteration 7: 60 us
+Iteration 8: 60 us
+Iteration 9: 60 us
+Average time: 61.200000 us
+if_opt: 1
+OK
+Iteration 0: 57 us
+Iteration 1: 53 us
+Iteration 2: 53 us
+Iteration 3: 53 us
+Iteration 4: 53 us
+Iteration 5: 53 us
+Iteration 6: 53 us
+Iteration 7: 53 us
+Iteration 8: 52 us
+Iteration 9: 52 us
+Average time: 53.200000 us

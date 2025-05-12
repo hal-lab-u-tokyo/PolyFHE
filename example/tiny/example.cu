@@ -5,26 +5,37 @@
 
 #include <chrono>
 
-__global__ void Scale2(uint64_t *a, int n, int l) {
+__device__ void Scale2(uint64_t *a, int n, int l) {
     for (size_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < n * l;
          idx += blockDim.x * gridDim.x) {
         a[idx] = a[idx] * 2;
     }
 }
 
-__device__ void Scale2_OneLine(uint64_t *a_i, int n) {
+__device__ void Scale2Limb(uint64_t *a_i, int n) {
     for (size_t idx = blockIdx.x * blockDim.x + threadIdx.x; idx < n;
          idx += blockDim.x * gridDim.x) {
         a_i[idx] = a_i[idx] * 2;
     }
 }
 
-__global__ void Scale2_LineByLine(uint64_t *a, int n, int l) {
+__global__ void Scale2Twice(uint64_t *a, int n, int l) {
+    Scale2(a, n, l);
+    Scale2(a, n, l);
+}
+
+__global__ void Scale2TwiceLimbByLimb(uint64_t *a, int n, int l) {
     for (int i = 0; i < l; i++) {
-        Scale2_OneLine(a + i * n, n);
-        Scale2_OneLine(a + i * n, n);
+        Scale2Limb(a + i * n, n);
+        Scale2Limb(a + i * n, n);
     }
 }
+
+enum class ParamSize {
+    Small,
+    Medium,
+    Large,
+};
 
 int main(int argc, char **argv) {
     if (argc != 2) {
@@ -34,8 +45,25 @@ int main(int argc, char **argv) {
     bool if_opt = atoi(argv[1]);
     printf("if_opt: %d\n", if_opt);
 
-    const int N = 1 << 17;
-    const int L = 50;
+    int N, L;
+    ParamSize param_size = ParamSize::Small;
+    switch (param_size) {
+    case ParamSize::Small:
+        N = 1 << 15;
+        L = 10;
+        break;
+    case ParamSize::Medium:
+        N = 1 << 16;
+        L = 20;
+        break;
+    case ParamSize::Large:
+        N = 1 << 17;
+        L = 50;
+        break;
+    default:
+        printf("Invalid parameter size\n");
+        return -1;
+    }
 
     uint64_t *a, *d_a;
     size_t size = N * L * sizeof(uint64_t);
@@ -47,11 +75,10 @@ int main(int argc, char **argv) {
     cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
 
     if (if_opt) {
-        Scale2_LineByLine<<<4096, 128>>>(d_a, N, L);
+        Scale2TwiceLimbByLimb<<<4096, 128>>>(d_a, N, L);
         cudaDeviceSynchronize();
     } else {
-        Scale2<<<4096, 128>>>(d_a, N, L);
-        Scale2<<<4096, 128>>>(d_a, N, L);
+        Scale2Twice<<<4096, 128>>>(d_a, N, L);
         cudaDeviceSynchronize();
     }
 
@@ -68,11 +95,10 @@ int main(int argc, char **argv) {
     for (int iter = 0; iter < 10; iter++) {
         auto start = std::chrono::high_resolution_clock::now();
         if (if_opt) {
-            Scale2_LineByLine<<<4096, 128>>>(d_a, N, L);
+            Scale2TwiceLimbByLimb<<<4096, 128>>>(d_a, N, L);
             cudaDeviceSynchronize();
         } else {
-            Scale2<<<4096, 128>>>(d_a, N, L);
-            Scale2<<<4096, 128>>>(d_a, N, L);
+            Scale2Twice<<<4096, 128>>>(d_a, N, L);
             cudaDeviceSynchronize();
         }
         auto end = std::chrono::high_resolution_clock::now();
