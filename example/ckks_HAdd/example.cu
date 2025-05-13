@@ -1,16 +1,13 @@
-#include <algorithm>
 #include <chrono>
 #include <cstddef>
-#include <fstream>
 #include <iostream>
-#include <mutex>
-#include <random>
-#include <vector>
 
 #include "phantom-fhe/examples/example.h"
+#include "phantom-fhe/include/butterfly.cuh"
 #include "phantom-fhe/include/phantom.h"
-#include "phantom-fhe/include/util.cuh"
 #include "polyfhe/kernel/device_context.hpp"
+#include "polyfhe/kernel/ntt-phantom.hpp"
+#include "polyfhe/kernel/polynomial.cuh"
 
 using namespace std;
 using namespace phantom;
@@ -19,8 +16,9 @@ using namespace phantom::util;
 
 #define EPSINON 0.001
 
-void entry_kernel(Params *params_d, Params *params_h, uint64_t *in0,
-                  uint64_t *in1, uint64_t *out0, bool if_benchmark);
+void entry_kernel(Params *params_d, Params *params_h, PhantomContext &context,
+                  uint64_t *in0, uint64_t *in1, uint64_t *out0, uint64_t *out2,
+                  bool if_benchmark);
 
 inline bool operator==(const cuDoubleComplex &lhs, const cuDoubleComplex &rhs) {
     return fabs(lhs.x - rhs.x) < EPSINON;
@@ -30,33 +28,49 @@ inline bool compare_double(const double &lhs, const double &rhs) {
     return fabs(lhs - rhs) < EPSINON;
 }
 
-uint64_t *convert_DModulus_to_uint64_t(const DModulus *d_modulus, int len) {
-    uint64_t *d_modulus_new;
-    cudaMalloc(&d_modulus_new, len * sizeof(uint64_t));
-    for (int i = 0; i < len; i++) {
-        cudaMemcpy(d_modulus_new + i, d_modulus[i].data(), sizeof(uint64_t),
+void ConvertPhantomToParams(Params &params, const PhantomContext &context) {
+    const DModulus *d_modulus = context.gpu_rns_tables().modulus();
+    const DNTTTable &ntt_tables = context.gpu_rns_tables();
+    uint64_t *d_tmp;
+    cudaMalloc(&d_tmp, params.L * sizeof(uint64_t));
+    for (int i = 0; i < params.L; i++) {
+        cudaMemcpy(d_tmp + i, d_modulus[i].data(), sizeof(uint64_t),
                    cudaMemcpyDeviceToDevice);
     }
-    return d_modulus_new;
-}
+    params.qVec = d_tmp;
 
-__global__ void poly_add(uint64_t *res, uint64_t *in1, uint64_t *in2,
-                         uint64_t *modulus, uint64_t degree,
-                         uint64_t mod_size) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < degree * mod_size) {
-        uint64_t idx_mod = idx / degree;
-        uint64_t idx_poly = idx % degree;
-        uint64_t data_idx = idx_mod * degree + idx_poly;
-        res[data_idx] = (in1[data_idx] + in2[data_idx]) % modulus[idx_mod];
+    uint64_t *d_modulus_const_ratio;
+    cudaMalloc(&d_modulus_const_ratio, 2 * params.L * sizeof(uint64_t));
+    for (int i = 0; i < params.L; i++) {
+        cudaMemcpy(d_modulus_const_ratio + 2 * i, d_modulus[i].const_ratio(),
+                   2 * sizeof(uint64_t), cudaMemcpyDeviceToDevice);
     }
+    params.modulus_const_ratio = d_modulus_const_ratio;
+
+    // NTT tables
+    params.itwiddle = ntt_tables.itwiddle();
+    params.itwiddle_shoup = ntt_tables.itwiddle_shoup();
+    params.n_inv = ntt_tables.n_inv_mod_q();
+    params.n_inv_shoup = ntt_tables.n_inv_mod_q_shoup();
+
+    // DRNSTool
+    for (int i = 0; i < params.L + 1; i++) {
+        auto &context_data = context.get_context_data(i);
+        phantom::DRNSTool &rns_tool = context_data.gpu_rns_tool();
+        params.rns_tools.push_back(&rns_tool);
+    }
+
+    // DNTTTable
+    params.ntt_tables = &context.gpu_rns_tables();
 }
 
 void example_ckks(PhantomContext &context, const double &scale) {
     // KeyGen
     PhantomSecretKey secret_key(context);
     PhantomPublicKey public_key = secret_key.gen_publickey(context);
+    PhantomRelinKey relin_keys = secret_key.gen_relinkey(context);
     PhantomCKKSEncoder encoder(context);
+    const auto &s = cudaStreamPerThread;
 
     size_t slot_count = encoder.slot_count();
     vector<cuDoubleComplex> input1, input2, result;
@@ -85,83 +99,121 @@ void example_ckks(PhantomContext &context, const double &scale) {
     PhantomPlaintext x_plain, y_plain;
     encoder.encode(context, input1, scale, x_plain);
     encoder.encode(context, input2, scale, y_plain);
+    std::cout << "x_plain.chain_index(): " << x_plain.chain_index()
+              << std::endl;
 
-    PhantomCiphertext x_sym_cipher, y_sym_cipher;
-    secret_key.encrypt_symmetric(context, x_plain, x_sym_cipher);
-    secret_key.encrypt_symmetric(context, y_plain, y_sym_cipher);
+    PhantomCiphertext x_cipher, y_cipher;
+    secret_key.encrypt_symmetric(context, x_plain, x_cipher);
+    secret_key.encrypt_symmetric(context, y_plain, y_cipher);
 
-    uint64_t *in1 = x_sym_cipher.data();
-    uint64_t *in2 = y_sym_cipher.data();
-    uint64_t *res = x_sym_cipher.data();
+    // PolyFHE's HAdd
+    PhantomCiphertext xy_cipher_polyfhe = x_cipher;
     uint64_t poly_degree = context.gpu_rns_tables().n();
-    auto &context_data = context.get_context_data(x_sym_cipher.chain_index());
+    auto &context_data = context.get_context_data(x_cipher.chain_index());
     auto &parms = context_data.parms();
     auto &coeff_modulus = parms.coeff_modulus();
     uint64_t coeff_mod_size = coeff_modulus.size();
-    uint64_t *modulus = convert_DModulus_to_uint64_t(
-        context.gpu_rns_tables().modulus(), coeff_mod_size);
-    checkCudaErrors(cudaGetLastError());
-    std::cout << "poly_degree: " << poly_degree << std::endl;
-    std::cout << "coeff_mod_size: " << coeff_mod_size << std::endl;
-    std::cout << "poly_degree * coeff_mod_size: "
-              << poly_degree * coeff_mod_size << std::endl;
 
-    Params params_h;
+    Params params_h(std::log2(poly_degree), coeff_mod_size, 5);
+    ConvertPhantomToParams(params_h, context);
     Params *params_d;
     checkCudaErrors(cudaMalloc((void **) &params_d, sizeof(Params)));
-    params_h.N = poly_degree;
-    params_h.L = coeff_mod_size;
-    params_h.qVec = modulus;
     checkCudaErrors(cudaMemcpy(params_d, &params_h, sizeof(Params),
                                cudaMemcpyHostToDevice));
-    entry_kernel(params_d, &params_h, in1, in2, res, false);
 
-    /*
-    checkCudaErrors(cudaFuncSetAttribute(
-        poly_add, cudaFuncAttributeMaxDynamicSharedMemorySize, 1024));
-    poly_add<<<4096, 512>>>(res, in1, in2, params_h.qVec, params_h.N,
-                            params_h.L);
+    uint64_t *in1 = x_cipher.data();
+    uint64_t *in2 = y_cipher.data();
+    x_cipher.resize(2, coeff_mod_size, poly_degree, s);
+    xy_cipher_polyfhe.resize(3, coeff_mod_size, poly_degree, s);
+    uint64_t *res = xy_cipher_polyfhe.data();
+    res = in1;
+
+    // PolyFHE's HAdd
+    entry_kernel(params_d, &params_h, context, in1, in2, in1, res, false);
     checkCudaErrors(cudaDeviceSynchronize());
-    in1 = x_sym_cipher.data() + poly_degree * coeff_mod_size;
-    in2 = y_sym_cipher.data() + poly_degree * coeff_mod_size;
-    res = x_sym_cipher.data() + poly_degree * coeff_mod_size;
-    poly_add<<<4096, 512>>>(res, in1, in2, modulus, poly_degree,
-                            coeff_mod_size);
+
+    // Phantom's HAdd
+    PhantomCiphertext xy_cipher = add(context, x_cipher, y_cipher);
     checkCudaErrors(cudaDeviceSynchronize());
-     */
 
-    PhantomPlaintext x_plus_y_sym_plain;
-    secret_key.decrypt(context, x_sym_cipher, x_plus_y_sym_plain);
-    encoder.decode(context, x_plus_y_sym_plain, result);
-
-    cout << "Result: " << endl;
-    print_vector(result, 3, 7);
+    // Check
+    uint64_t *h_res_polyfhe =
+        (uint64_t *) malloc(poly_degree * coeff_mod_size * sizeof(uint64_t));
+    uint64_t *h_res_phantom =
+        (uint64_t *) malloc(poly_degree * coeff_mod_size * sizeof(uint64_t));
 
     bool correctness = true;
-    for (size_t i = 0; i < max(msg_size1, msg_size2); i++) {
-        if (i >= msg_size1)
-            correctness &= result[i] == input2[i];
-        else if (i >= msg_size2)
-            correctness &= result[i] == input1[i];
-        else
-            correctness &= result[i] == cuCadd(input1[i], input2[i]);
+    for (int idx = 0; idx < xy_cipher.size(); idx++) {
+        std::cout << "idx: " << idx << std::endl;
+        correctness = true;
+        uint64_t *d_res_polyfhe = in1 + idx * poly_degree * coeff_mod_size;
+        uint64_t *d_res_phantom =
+            xy_cipher.data() + idx * poly_degree * coeff_mod_size;
+        checkCudaErrors(
+            cudaMemcpy(h_res_polyfhe, d_res_polyfhe,
+                       poly_degree * coeff_mod_size * sizeof(uint64_t),
+                       cudaMemcpyDeviceToHost));
+        checkCudaErrors(
+            cudaMemcpy(h_res_phantom, d_res_phantom,
+                       poly_degree * coeff_mod_size * sizeof(uint64_t),
+                       cudaMemcpyDeviceToHost));
+        for (int i = 0; i < poly_degree * coeff_mod_size; i++) {
+            if (h_res_polyfhe[i] != h_res_phantom[i]) {
+                correctness = false;
+                cout << "  PolyFHE != Phantom at index " << i << endl;
+                cout << "   PolyFHE: " << h_res_polyfhe[i] << endl;
+                cout << "   Phantom: " << h_res_phantom[i] << endl;
+                break;
+            }
+        }
+        if (correctness) {
+            cout << "  OK" << endl;
+        } else {
+            cout << "  Fail" << endl;
+        }
     }
-    if (correctness) {
-        cout << "Correctness check passed!" << endl;
-    } else {
-        cout << "Correctness check failed!" << endl;
+
+    std::vector<double> elapsed_list;
+    for (int iter = 0; iter < 7; iter++) {
+        auto start = std::chrono::high_resolution_clock::now();
+        PhantomCiphertext xy_cipher = add(context, x_cipher, y_cipher);
+        checkCudaErrors(cudaDeviceSynchronize());
+        auto end = std::chrono::high_resolution_clock::now();
+        double elapsed =
+            std::chrono::duration_cast<std::chrono::microseconds>(end - start)
+                .count();
+        if (iter != 0) {
+            elapsed_list.push_back(elapsed);
+        }
     }
+    double avg_time =
+        std::accumulate(elapsed_list.begin(), elapsed_list.end(), 0.0) /
+        elapsed_list.size();
+    std::cout << "Average elapsed time (Phantom): " << avg_time << " us"
+              << std::endl;
 }
 
 int main() {
     srand(time(NULL));
     double scale = pow(2.0, 40);
-    size_t poly_modulus_degree = 1 << 15;
     EncryptionParameters parms(scheme_type::ckks);
+    size_t poly_modulus_degree = 1 << 16;
+    parms.set_poly_modulus_degree(poly_modulus_degree);
+    parms.set_coeff_modulus(CoeffModulus::Create(
+        poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+                              40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+                              40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60, 60}));
+    parms.set_special_modulus_size(6);
+
+    /*
+    size_t poly_modulus_degree = 1 << 15;
     parms.set_poly_modulus_degree(poly_modulus_degree);
     parms.set_coeff_modulus(CoeffModulus::Create(
         poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-                              40, 40, 40, 40, 40, 40, 40, 40, 40, 60}));
+                              40, 40, 40, 40, 40, 40, 40, 40, 60, 60}));
+    parms.set_special_modulus_size(2);
+    */
+
     PhantomContext context(parms);
     print_parameters(context);
     example_ckks(context, scale);
