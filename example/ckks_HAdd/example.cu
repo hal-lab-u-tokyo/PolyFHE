@@ -107,7 +107,6 @@ void example_ckks(PhantomContext &context, const double &scale) {
     secret_key.encrypt_symmetric(context, y_plain, y_cipher);
 
     // PolyFHE's HAdd
-    PhantomCiphertext xy_cipher_polyfhe = x_cipher;
     uint64_t poly_degree = context.gpu_rns_tables().n();
     auto &context_data = context.get_context_data(x_cipher.chain_index());
     auto &parms = context_data.parms();
@@ -123,13 +122,12 @@ void example_ckks(PhantomContext &context, const double &scale) {
 
     uint64_t *in1 = x_cipher.data();
     uint64_t *in2 = y_cipher.data();
-    x_cipher.resize(2, coeff_mod_size, poly_degree, s);
-    xy_cipher_polyfhe.resize(3, coeff_mod_size, poly_degree, s);
-    uint64_t *res = xy_cipher_polyfhe.data();
-    res = in1;
+    PhantomCiphertext res_cipher;
+    res_cipher.resize(2, coeff_mod_size, poly_degree, s);
+    uint64_t *res = res_cipher.data();
 
     // PolyFHE's HAdd
-    entry_kernel(params_d, &params_h, context, in1, in2, in1, res, false);
+    entry_kernel(params_d, &params_h, context, in1, in2, res, res, true);
     checkCudaErrors(cudaDeviceSynchronize());
 
     // Phantom's HAdd
@@ -146,7 +144,7 @@ void example_ckks(PhantomContext &context, const double &scale) {
     for (int idx = 0; idx < xy_cipher.size(); idx++) {
         std::cout << "idx: " << idx << std::endl;
         correctness = true;
-        uint64_t *d_res_polyfhe = in1 + idx * poly_degree * coeff_mod_size;
+        uint64_t *d_res_polyfhe = res + idx * poly_degree * coeff_mod_size;
         uint64_t *d_res_phantom =
             xy_cipher.data() + idx * poly_degree * coeff_mod_size;
         checkCudaErrors(
