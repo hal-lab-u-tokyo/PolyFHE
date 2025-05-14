@@ -412,6 +412,8 @@ void CudaCodegen::generate_kernel_defs(
                 w << ", const uint64_t *twiddles";
                 w << ", const uint64_t *twiddles_shoup";
                 w << ", const DModulus *modulus";
+            } else if (op_type == core::OpType::MultKeyAccum) {
+                w << ", uint64_t **relin_keys";
             }
         }
         w << ")";
@@ -1149,6 +1151,8 @@ void CudaCodegen::generate_call_kernels(
                 w << ", params_h->ntt_tables->twiddle()";
                 w << ", params_h->ntt_tables->twiddle_shoup()";
                 w << ", params_h->ntt_tables->modulus()";
+            } else if (op_type == core::OpType::MultKeyAccum) {
+                w << ", relin_keys";
             }
         }
         w << ");\n";
@@ -1205,6 +1209,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     w << "void entry_kernel(Params *params_d, Params *params_h, "
          "PhantomContext "
          "&context, "
+         "uint64_t **relin_keys, "
          "uint64_t *in0, "
          "uint64_t *in1, "
          "uint64_t *out0, uint64_t *out1, bool if_benchmark)";
