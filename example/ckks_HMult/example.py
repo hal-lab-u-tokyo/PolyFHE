@@ -39,8 +39,7 @@ inttp1 = pf.ntt(
     exclude_end=0,
 )
 scale_for_bconv = pf.mul_const(inttp1, "ScaleForBConv", 0, prm.L)
-accum_ax_list = []
-accum_bx_list = []
+accum_list = []
 for beta_idx in range(prm.get_beta(prm.L - 1)):
     print("beta_idx:", beta_idx)
     bconv = pf.bconv(scale_for_bconv, f"BConv{beta_idx}", prm.L, beta_idx, prm.alpha)
@@ -64,8 +63,7 @@ for beta_idx in range(prm.get_beta(prm.L - 1)):
         exclude_start=prm.alpha * beta_idx,
         exclude_end=prm.alpha * (beta_idx + 1),
     )
-    accum_ax_list.append(nttp2_after_bconv)
-    accum_bx_list.append(nttp2_after_bconv)
+    accum_list.append(nttp2_after_bconv)
     """
     mulkey_ax = pf.mul_key(
         nttp2_after_bconv,
@@ -92,10 +90,9 @@ accum_ax = pf.accum(accum_ax_list, "AccumAx", start_limb=0, end_limb=prm.L + prm
 accum_bx = pf.accum(accum_bx_list, "AccumBx", start_limb=0, end_limb=prm.L + prm.K)
 """
 
-accum_ax = pf.mul_key_accum(accum_ax_list, "AccumAx", start_limb=0, end_limb=prm.L + prm.K)
-accum_bx = pf.mul_key_accum(accum_bx_list, "AccumBx", start_limb=0, end_limb=prm.L + prm.K)
-res_ax = pf.end(accum_ax, 1, 0)
-res_bx = pf.end(accum_bx, 1, prm.N * (prm.L + prm.K))
+accum = pf.mul_key_accum(accum_list, "MultKeyAccum", start_limb=0, end_limb=prm.L + prm.K)
+res_ax = pf.end(accum, 1, 0)
+res_bx = pf.end(accum, 1, prm.N * (prm.L + prm.K))
 
 res_axax = pf.end(mult_axax, 0, 0)
 res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)
