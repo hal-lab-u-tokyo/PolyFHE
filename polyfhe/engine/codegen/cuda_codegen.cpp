@@ -821,10 +821,17 @@ void CudaCodegen::generate_kernel_defs(
                       << "start_limb, twr_idx, &n_init, tid);\n";
 
                     // define store here
-                    // TODO: support multiple outedges
-                    assert(node->get_out_edges().size() == 1);
-                    auto outedge = node->get_out_edges()[0];
-                    if (outedge->get_level() == core::EdgeLevel::Global) {
+                    std::shared_ptr<core::Edge> g_store_to = nullptr;
+                    for (auto outedge : node->get_out_edges()) {
+                        if (outedge->get_level() == core::EdgeLevel::Global) {
+                            if (g_store_to == nullptr) {
+                                g_store_to = outedge;
+                            } else {
+                                outedge->set_same_edge(g_store_to);
+                            }
+                        }
+                    }
+                    if (g_store_to) {
                         w << "uint64_t *out_ptr = " << outedge->get_name()
                           << " + twr_idx * params->N;\n";
                         w << "#pragma unroll\n";

@@ -53,6 +53,7 @@ enum class OpType {
     Sub,
     Mult,
     MultConst,
+    MultKeyAccum,
     Decomp,
     BConv,
     ModDown,
