@@ -136,6 +136,9 @@ Node::Node(std::string op_label) : m_id(-1) {
     } else {
         // {op_name}_{start_idx}_{end_idx}
         if (op_label_vec.size() != 3) {
+            for (auto &s : op_label_vec) {
+                LOG_INFO("%s\n", s.c_str());
+            }
             LOG_ERROR("Illegal op_label: %s\n", op_label.c_str());
         }
         set_limb_range(std::stoi(op_label_vec[1]), std::stoi(op_label_vec[2]));

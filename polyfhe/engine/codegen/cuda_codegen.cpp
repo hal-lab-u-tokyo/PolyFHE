@@ -1235,6 +1235,8 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     w << "// Edges\n";
     w << "// Define global edges for GPU\n";
     w << "// =====================================\n";
+    std::cout << "### Edges defined" << std::endl;
+    // reversed order
     for (auto subgraph : graph->get_subgraphs()) {
         for (auto node : subgraph->get_nodes()) {
             for (auto edge : node->get_out_edges()) {
@@ -1245,18 +1247,58 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                 if (edge->get_dst()->get_op_type() == core::OpType::End) {
                     continue;
                 }
-                if (edge->get_same_edge()) {
-                    w << "uint64_t *" << edge->get_name();
-                    w << "_d = " << edge->get_same_edge()->get_name()
-                      << "_d;\n";
-                    continue;
-                }
                 if (edge->get_level() == core::EdgeLevel::Global) {
+                    if (edge->get_same_edge()) {
+                        continue;
+                    }
+                    if (edge->get_overwrite_edge()) {
+                        auto overwrite_edge = edge->get_overwrite_edge();
+                        if (overwrite_edge->get_same_edge() == nullptr) {
+                            if (overwrite_edge->get_shared_counter() == 0) {
+                                continue;
+                            }
+                        }
+                    }
                     define_edge(w, edge, true);
                 }
             }
         }
     }
+    for (auto subgraph : graph->get_subgraphs()) {
+        for (auto node : subgraph->get_nodes()) {
+            for (auto edge : node->get_out_edges()) {
+                auto src = edge->get_src();
+                if (src->get_op_type() == core::OpType::Init) {
+                    continue;
+                }
+                if (edge->get_dst()->get_op_type() == core::OpType::End) {
+                    continue;
+                }
+                if (edge->get_level() == core::EdgeLevel::Global) {
+                    if (edge->get_same_edge()) {
+                        w << "uint64_t *" << edge->get_name();
+                        w << "_d = " << edge->get_same_edge()->get_name()
+                          << "_d;\n";
+                        continue;
+                    }
+                    if (edge->get_overwrite_edge()) {
+                        auto overwrite_edge = edge->get_overwrite_edge();
+                        if (overwrite_edge->get_same_edge() == nullptr) {
+                            if (overwrite_edge->get_shared_counter() == 0) {
+                                w << "uint64_t *" << edge->get_name();
+                                w << "_d = "
+                                  << edge->get_overwrite_edge_final()
+                                         ->get_name()
+                                  << "_d;\n";
+                                continue;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    std::cout << "### Edges defined" << std::endl;
 
     // Warm up and Test
     w << "// =====================================\n";

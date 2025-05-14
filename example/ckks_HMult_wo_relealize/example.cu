@@ -101,15 +101,22 @@ void example_ckks(PhantomContext &context, const double &scale) {
     cout << "Input vector 2: length = " << msg_size2 << endl;
     print_vector(input2, 3, 7);
 
-    PhantomPlaintext x_plain, y_plain_const;
+    PhantomPlaintext x_plain, y_plain;
     encoder.encode(context, input1, scale, x_plain);
-    encoder.encode(context, input2, scale, y_plain_const);
+    encoder.encode(context, input2, scale, y_plain);
     std::cout << "x_plain.chain_index(): " << x_plain.chain_index()
               << std::endl;
 
-    PhantomCiphertext x_cipher;
+    PhantomCiphertext x_cipher, y_cipher;
     secret_key.encrypt_symmetric(context, x_plain, x_cipher);
+    secret_key.encrypt_symmetric(context, y_plain, y_cipher);
+    std::cout << "x_plain.chain_index(): " << x_plain.chain_index()
+              << std::endl;
+    std::cout << "x_cipher.chain_index(): " << x_cipher.chain_index()
+              << std::endl;
 
+    // PolyFHE's HMult
+    PhantomCiphertext xy_cipher_polyfhe = x_cipher;
     uint64_t poly_degree = context.gpu_rns_tables().n();
     auto &context_data = context.get_context_data(x_cipher.chain_index());
     auto &parms = context_data.parms();
@@ -126,21 +133,19 @@ void example_ckks(PhantomContext &context, const double &scale) {
                                cudaMemcpyHostToDevice));
 
     uint64_t *in1 = x_cipher.data();
-    uint64_t *in2 = y_plain_const.data();
-    PhantomCiphertext res_cipher;
-    res_cipher.resize(2, coeff_mod_size, poly_degree, s);
-    uint64_t *res = res_cipher.data();
-    uint64_t *res_dummy = res;
+    uint64_t *in2 = y_cipher.data();
+    xy_cipher_polyfhe.resize(3, coeff_mod_size, poly_degree, s);
+    uint64_t *res = xy_cipher_polyfhe.data();
 
-    // PolyFHE's CMult
-    entry_kernel(params_d, &params_h, context, in1, in2, res, res_dummy, true);
+    // PolyFHE's HMult
+    entry_kernel(params_d, &params_h, context, in1, in2, res, res, true);
     checkCudaErrors(cudaDeviceSynchronize());
 
-    // Phantom's CMult
-    // multiply_plain_inplace(context, x_cipher_phantom, y_plain_const);
-    PhantomCiphertext res_phantom =
-        multiply_plain(context, x_cipher, y_plain_const);
+    // Phantom's HMult
+    PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);
     checkCudaErrors(cudaDeviceSynchronize());
+    std::cout << "xy_cipher.chain_index(): " << xy_cipher.chain_index()
+              << std::endl;
 
     // Check if PolyFHE's HMult and Phantom's HMult are the same
     uint64_t *h_res_polyfhe =
@@ -149,12 +154,13 @@ void example_ckks(PhantomContext &context, const double &scale) {
         (uint64_t *) malloc(poly_degree * coeff_mod_size * sizeof(uint64_t));
 
     bool correctness = true;
-    for (int idx = 0; idx < x_cipher.size(); idx++) {
+    for (int idx = 0; idx < xy_cipher.size(); idx++) {
         std::cout << "idx: " << idx << std::endl;
         correctness = true;
-        uint64_t *d_res_polyfhe = res + idx * poly_degree * coeff_mod_size;
+        uint64_t *d_res_polyfhe =
+            xy_cipher_polyfhe.data() + idx * poly_degree * coeff_mod_size;
         uint64_t *d_res_phantom =
-            res_phantom.data() + idx * poly_degree * coeff_mod_size;
+            xy_cipher.data() + idx * poly_degree * coeff_mod_size;
         checkCudaErrors(
             cudaMemcpy(h_res_polyfhe, d_res_polyfhe,
                        poly_degree * coeff_mod_size * sizeof(uint64_t),
@@ -182,8 +188,7 @@ void example_ckks(PhantomContext &context, const double &scale) {
     std::vector<double> elapsed_list;
     for (int iter = 0; iter < 7; iter++) {
         auto start = std::chrono::high_resolution_clock::now();
-        PhantomCiphertext xy_cipher =
-            multiply_plain(context, x_cipher, y_plain_const);
+        PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);
         checkCudaErrors(cudaDeviceSynchronize());
         auto end = std::chrono::high_resolution_clock::now();
         double elapsed =
