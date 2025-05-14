@@ -37,16 +37,16 @@ void ConvertPhantomToParams(Params &params, const PhantomContext &context) {
     const DModulus *d_modulus = context.gpu_rns_tables().modulus();
     const DNTTTable &ntt_tables = context.gpu_rns_tables();
     uint64_t *d_tmp;
-    cudaMalloc(&d_tmp, params.L * sizeof(uint64_t));
-    for (int i = 0; i < params.L; i++) {
+    cudaMalloc(&d_tmp, params.KL * sizeof(uint64_t));
+    for (int i = 0; i < params.KL; i++) {
         cudaMemcpy(d_tmp + i, d_modulus[i].data(), sizeof(uint64_t),
                    cudaMemcpyDeviceToDevice);
     }
     params.qVec = d_tmp;
 
     uint64_t *d_modulus_const_ratio;
-    cudaMalloc(&d_modulus_const_ratio, 2 * params.L * sizeof(uint64_t));
-    for (int i = 0; i < params.L; i++) {
+    cudaMalloc(&d_modulus_const_ratio, 2 * params.KL * sizeof(uint64_t));
+    for (int i = 0; i < params.KL; i++) {
         cudaMemcpy(d_modulus_const_ratio + 2 * i, d_modulus[i].const_ratio(),
                    2 * sizeof(uint64_t), cudaMemcpyDeviceToDevice);
     }
@@ -220,17 +220,19 @@ void example_ckks(PhantomContext &context, const double &scale) {
                                cudaMemcpyDeviceToHost));
     std::cout << "Modup result" << std::endl;
     correctness = true;
-    for (int beta_idx = 0; beta_idx < beta; beta_idx++) {
+    for (int beta_idx = 0; beta_idx < 2; beta_idx++) {
         std::cout << "beta_idx: " << beta_idx << std::endl;
-        for (int j = 0; j < poly_degree * params_h.KL; j++) {
-            int i = beta_idx * poly_degree * params_h.KL + j;
-            if (h_modup_polyfhe[i] != h_modup_phantom[i]) {
-                cout << "  PolyFHE != Phantom at index[" << beta_idx << "]["
-                     << j << "]" << endl;
-                cout << "   PolyFHE: " << h_modup_polyfhe[i] << endl;
-                cout << "   Phantom: " << h_modup_phantom[i] << endl;
-                correctness = false;
-                break;
+        for (int i = 0; i < params_h.KL; i++) {
+            for (int j = 0; j < poly_degree; j++) {
+                int idx = beta_idx * i * poly_degree + j;
+                if (h_modup_polyfhe[idx] != h_modup_phantom[idx]) {
+                    cout << "  PolyFHE != Phantom at index[" << beta_idx << "]["
+                         << i << "][" << j << "]" << endl;
+                    cout << "   PolyFHE: " << h_modup_polyfhe[idx] << endl;
+                    cout << "   Phantom: " << h_modup_phantom[idx] << endl;
+                    correctness = false;
+                    break;
+                }
             }
         }
     }

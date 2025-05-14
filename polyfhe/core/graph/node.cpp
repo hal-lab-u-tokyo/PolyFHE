@@ -128,6 +128,13 @@ Node::Node(std::string op_label) : m_id(-1) {
 
     if (m_op_type == OpType::Init || m_op_type == OpType::End) {
         // No label
+    } else if (m_op_type == OpType::MultKeyAccum) {
+        // {op_name}_{start_idx}_{end_idx}_{beta}
+        if (op_label_vec.size() != 4) {
+            LOG_ERROR("Illegal op_label: %s\n", op_label.c_str());
+        }
+        set_limb_range(std::stoi(op_label_vec[1]), std::stoi(op_label_vec[2]));
+        set_beta(std::stoi(op_label_vec[3]));
     } else if (m_op_type == OpType::BConv) {
         set_beta_idx(std::stoi(op_label_vec[1]));
     } else if (core::is_ntt_op(m_op_type)) {

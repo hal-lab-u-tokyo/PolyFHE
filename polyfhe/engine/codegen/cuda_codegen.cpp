@@ -555,6 +555,26 @@ void CudaCodegen::generate_kernel_defs(
                     }
                 } else if (op_type == core::OpType::MultKeyAccum) {
                     w << "// " << node->get_op_name() << "\n";
+                    w << "uint64_t *in_list[" << node->get_beta() << "] = {";
+                    assert(node->get_in_edges().size() == node->get_beta());
+                    for (size_t i = 0; i < node->get_beta(); i++) {
+                        w << node->get_in_edges()[i]->get_name();
+                        if (i != node->get_beta() - 1) {
+                            w << ", ";
+                        } else {
+                            w << "};\n";
+                        }
+                    }
+                    assert(node->get_out_edges().size() == 2);
+                    w << "MulKeyAccumOp(params,"
+                      << node->get_out_edges()[0]->get_name() << ", "
+                      << node->get_out_edges()[1]->get_name() << ", in_list"
+                      << ", relin_keys"
+                      << ", " << node->get_beta() << ", idx"
+                      << ", l_idx"
+                      << ", params->N"
+                      << ", start_limb"
+                      << ", end_limb);\n";
                 } else {
                     LOG_ERROR(
                         "Only Add, Sub, Mult, MultConst and Copy are "

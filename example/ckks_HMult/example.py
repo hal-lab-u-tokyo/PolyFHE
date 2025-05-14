@@ -90,7 +90,7 @@ accum_ax = pf.accum(accum_ax_list, "AccumAx", start_limb=0, end_limb=prm.L + prm
 accum_bx = pf.accum(accum_bx_list, "AccumBx", start_limb=0, end_limb=prm.L + prm.K)
 """
 
-accum = pf.mul_key_accum(accum_list, "MultKeyAccum", start_limb=0, end_limb=prm.L + prm.K)
+accum = pf.mul_key_accum(accum_list, "MultKeyAccum", start_limb=0, end_limb=prm.L + prm.K, beta=prm.get_beta(prm.L - 1))
 res_ax = pf.end(accum, 1, 0)
 res_bx = pf.end(accum, 1, prm.N * (prm.L + prm.K))
 

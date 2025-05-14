@@ -232,29 +232,28 @@ __forceinline__ __device__ uint64_t xxx_barrett_reduce_uint128_uint64(
     return result;
 }
 
-__forceinline__ __device__ void MulKeyAccumOp(
-    uint64_t *dst_ax, uint64_t *dst_bx, const uint64_t *in,
-    const uint64_t **key, const DModulus *modulus, int beta, size_t tid,
-    int twr, int n, int start_limb, int end_limb) {
+__forceinline__ __device__ void MulKeyAccumOp(Params *params, uint64_t *dst_ax,
+                                              uint64_t *dst_bx, uint64_t **in,
+                                              uint64_t **key, int beta,
+                                              size_t tid, int twr, int n,
+                                              int start_limb, int end_limb) {
     const int size_QP_n = n * (end_limb - start_limb);
     xxx_uint128_t prod0, prod1;
     xxx_uint128_t acc0, acc1;
-    acc0 = xxx_multiply_uint64_uint64(in[tid], key[0][tid]);
-    acc1 = xxx_multiply_uint64_uint64(in[tid], key[1][tid + size_QP_n]);
+    acc0 = xxx_multiply_uint64_uint64(in[0][tid], key[0][tid]);
+    acc1 = xxx_multiply_uint64_uint64(in[0][tid], key[1][tid + size_QP_n]);
 
     for (int i = 1; i < beta; i++) {
-        prod0 =
-            xxx_multiply_uint64_uint64(in[tid + i * size_QP_n], key[i][tid]);
-        prod1 = xxx_multiply_uint64_uint64(in[tid + i * size_QP_n],
-                                           key[i][tid + size_QP_n]);
+        prod0 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid]);
+        prod1 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid + size_QP_n]);
         xxx_add_uint128_uint128(prod0, acc0, acc0);
         xxx_add_uint128_uint128(prod1, acc1, acc1);
     }
 
     uint64_t res0 = xxx_barrett_reduce_uint128_uint64(
-        acc0, modulus[twr].value(), modulus[twr].const_ratio());
+        acc0, params->qVec[twr], params->modulus_const_ratio + 2 * twr);
     uint64_t res1 = xxx_barrett_reduce_uint128_uint64(
-        acc1, modulus[twr].value(), modulus[twr].const_ratio());
+        acc1, params->qVec[twr], params->modulus_const_ratio + 2 * twr);
     dst_ax[tid] = res0;
     dst_bx[tid] = res1;
 }
