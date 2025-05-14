@@ -17,11 +17,14 @@ bool CheckEdgeOverwritePass::run_on_graph(
                 (node->get_in_edges().size() == 1)) {
                 auto inedge = node->get_in_edges()[0];
                 auto outedge = node->get_out_edges()[0];
-                if (inedge->get_level() == polyfhe::core::EdgeLevel::Global) {
-                    if (outedge->get_level() ==
+                if (inedge->get_src()->get_out_edges().size() == 1) {
+                    if (inedge->get_level() ==
                         polyfhe::core::EdgeLevel::Global) {
-                        // Use bottom edge as overwrite edge
-                        inedge->set_overwrite_edge(outedge);
+                        if (outedge->get_level() ==
+                            polyfhe::core::EdgeLevel::Global) {
+                            // Use bottom edge as overwrite edge
+                            inedge->set_overwrite_edge(outedge);
+                        }
                     }
                 }
             }

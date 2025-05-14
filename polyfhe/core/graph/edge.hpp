@@ -92,7 +92,12 @@ public:
     void set_has_defined(bool has_defined) { m_has_defined = has_defined; }
     bool get_has_defined() { return m_has_defined; }
 
-    void set_same_edge(std::shared_ptr<Edge> edge) { same_edge = edge; }
+    void increment_shared_counter() { m_shared_counter++; }
+    int get_shared_counter() { return m_shared_counter; }
+    void set_same_edge(std::shared_ptr<Edge> edge) {
+        same_edge = edge;
+        edge->increment_shared_counter();
+    }
     std::shared_ptr<Edge> get_same_edge() { return same_edge; }
 
     void set_overwrite_edge(std::shared_ptr<Edge> edge) {
@@ -134,6 +139,7 @@ private:
     // For codegen
     bool m_has_defined = false;
 
+    int m_shared_counter = 0;
     std::shared_ptr<Edge> same_edge;
     std::shared_ptr<Edge> overwrite_edge;
 };

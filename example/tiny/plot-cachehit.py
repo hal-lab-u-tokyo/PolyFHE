@@ -4,20 +4,22 @@ import matplotlib.cm as cm
 import csv
 import numpy as np
 
-param_size = "small"
+param_size = "large"
 directory_path = os.path.dirname(os.path.abspath(__file__)) + "/data/" + param_size + "/"
 
-label = ["Register", "L2", "NoOpt"]
+# label = ["Register", "L2", "NoOpt"]
+label = ["L2", "NoOpt"]
 metrics = ["L1 Cache Hit Rate", "L2 Cache Hit Rate"]
 row_metrics = ["l1tex__t_sector_hit_rate.pct", "lts__t_sector_hit_rate.pct"]
 
 datas = {l : [0, 0] for l in label}
 
 # Read CSV
-fname_register = directory_path + "cachehit-reg.csv"
+# fname_register = directory_path + "cachehit-reg.csv"
 fname_l2 = directory_path + "cachehit-l2.csv"
 fname_noopt = directory_path + "cachehit-noopt.csv"
-files = [fname_register, fname_l2, fname_noopt]
+# files = [fname_register, fname_l2, fname_noopt]
+files = [fname_l2, fname_noopt]
 
 for idx in range(len(files)):
     fname = files[idx]

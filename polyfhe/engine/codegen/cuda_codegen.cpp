@@ -1254,7 +1254,9 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                     if (edge->get_overwrite_edge()) {
                         auto overwrite_edge = edge->get_overwrite_edge();
                         if (overwrite_edge->get_same_edge() == nullptr) {
-                            continue;
+                            if (overwrite_edge->get_shared_counter() == 0) {
+                                continue;
+                            }
                         }
                     }
                     define_edge(w, edge, true);
@@ -1282,11 +1284,14 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                     if (edge->get_overwrite_edge()) {
                         auto overwrite_edge = edge->get_overwrite_edge();
                         if (overwrite_edge->get_same_edge() == nullptr) {
-                            w << "uint64_t *" << edge->get_name();
-                            w << "_d = "
-                              << edge->get_overwrite_edge_final()->get_name()
-                              << "_d;\n";
-                            continue;
+                            if (overwrite_edge->get_shared_counter() == 0) {
+                                w << "uint64_t *" << edge->get_name();
+                                w << "_d = "
+                                  << edge->get_overwrite_edge_final()
+                                         ->get_name()
+                                  << "_d;\n";
+                                continue;
+                            }
                         }
                     }
                 }

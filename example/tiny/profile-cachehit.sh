@@ -11,7 +11,7 @@ cd ${REPO_ROOT}/example/tiny
 # l1tex__t_sector_hit_rate.pct: L1 Cache Hit Rate
 # lts__t_sector_hit_rate.pct: LTS Cache Hit Rate
 METRICS="l1tex__t_sector_hit_rate,lts__t_sector_hit_rate"
-PARAM_SIZE=small
+PARAM_SIZE=large
 
 mkdir -p data
 mkdir -p data/${PARAM_SIZE}
