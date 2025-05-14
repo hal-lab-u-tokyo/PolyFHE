@@ -9,9 +9,11 @@ from enum import Enum, auto
 
 class PolyOpType(Enum):
     Add = auto()
+    Accum = auto()
     Sub = auto()
     Mult = auto()
     MultConst = auto()
+    MultKey = auto()
     Decomp = auto()
     BConv = auto()
     ModDown = auto()
@@ -127,6 +129,11 @@ class PolyFHE:
             PolyOpType.Add, [a, b], name, start_limb, end_limb, start_limb, end_limb
         )
 
+    def accum(self, a: [PolyOp], name: str, start_limb: int, end_limb: int):
+        return PolyOp(
+            PolyOpType.Accum, a, name, start_limb, end_limb, start_limb, end_limb
+        )
+
     def mul(self, a: PolyOp, b: PolyOp, name: str, start_limb: int, end_limb: int):
         return PolyOp(
             PolyOpType.Mult, [a, b], name, start_limb, end_limb, start_limb, end_limb
@@ -135,6 +142,11 @@ class PolyFHE:
     def mul_const(self, a: PolyOp, name: str, start_limb: int, end_limb: int):
         return PolyOp(
             PolyOpType.MultConst, [a], name, start_limb, end_limb, start_limb, end_limb
+        )
+
+    def mul_key(self, a: PolyOp, name: str, start_limb: int, end_limb: int):
+        return PolyOp(
+            PolyOpType.MultKey, [a], name, start_limb, end_limb, start_limb, end_limb
         )
 
     def bconv(self, a: PolyOp, name: str, current_limb: int, beta_idx: int, alpha: int):
