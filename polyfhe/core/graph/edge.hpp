@@ -95,6 +95,22 @@ public:
     void set_same_edge(std::shared_ptr<Edge> edge) { same_edge = edge; }
     std::shared_ptr<Edge> get_same_edge() { return same_edge; }
 
+    void set_overwrite_edge(std::shared_ptr<Edge> edge) {
+        overwrite_edge = edge;
+    }
+    std::shared_ptr<Edge> get_overwrite_edge() { return overwrite_edge; }
+    std::shared_ptr<Edge> get_overwrite_edge_final() {
+        if (overwrite_edge) {
+            if (overwrite_edge->get_overwrite_edge()) {
+                return overwrite_edge->get_overwrite_edge_final();
+            } else {
+                return overwrite_edge;
+            }
+        } else {
+            return nullptr;
+        }
+    }
+
 private:
     std::shared_ptr<Node> m_src;
     std::shared_ptr<Node> m_dst;
@@ -119,6 +135,7 @@ private:
     bool m_has_defined = false;
 
     std::shared_ptr<Edge> same_edge;
+    std::shared_ptr<Edge> overwrite_edge;
 };
 
 } // namespace core
