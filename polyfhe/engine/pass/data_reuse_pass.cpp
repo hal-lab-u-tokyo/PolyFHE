@@ -31,6 +31,10 @@ bool CanReuse(std::shared_ptr<polyfhe::core::Node> src,
         dst->get_op_type() == core::OpType::BConv) {
         return false;
     }
+    if (dst->get_op_type() == core::OpType::MultKeyAccum ||
+        src->get_op_type() == core::OpType::MultKeyAccum) {
+        return false;
+    }
 
     if (src->get_access_pattern() == core::MemoryAccessPattern::ElementWise ||
         dst->get_access_pattern() == core::MemoryAccessPattern::ElementWise) {

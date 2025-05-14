@@ -551,6 +551,8 @@ void CudaCodegen::generate_kernel_defs(
                             outedge->set_same_edge(g_store_to);
                         }
                     }
+                } else if (op_type == core::OpType::MultKeyAccum) {
+                    w << "// " << node->get_op_name() << "\n";
                 } else {
                     LOG_ERROR(
                         "Only Add, Sub, Mult, MultConst and Copy are "
@@ -794,6 +796,8 @@ void CudaCodegen::generate_kernel_defs(
                     generate_ElemWiseOp(node, w, node->get_out_edges(),
                                         node->get_in_edges()[0],
                                         node->get_in_edges()[1], s_type);
+                } else if (op_type == core::OpType::MultKeyAccum) {
+                    w << "// MultKeyAccum\n";
                 } else if (op_type == core::OpType::NTTPhase2) {
                     assert(node->get_in_edges().size() == 1);
                     auto inedge = node->get_in_edges()[0];
