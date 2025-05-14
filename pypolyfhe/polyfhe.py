@@ -14,6 +14,7 @@ class PolyOpType(Enum):
     Mult = auto()
     MultConst = auto()
     MultKey = auto()
+    MultKeyAccum = auto()
     Decomp = auto()
     BConv = auto()
     ModDown = auto()
@@ -147,6 +148,11 @@ class PolyFHE:
     def mul_key(self, a: PolyOp, name: str, start_limb: int, end_limb: int):
         return PolyOp(
             PolyOpType.MultKey, [a], name, start_limb, end_limb, start_limb, end_limb
+        )
+
+    def mul_key_accum(self, a: [PolyOp], name: str, start_limb: int, end_limb: int):
+        return PolyOp(
+            PolyOpType.MultKeyAccum, a, name, start_limb, end_limb, start_limb, end_limb
         )
 
     def bconv(self, a: PolyOp, name: str, current_limb: int, beta_idx: int, alpha: int):
