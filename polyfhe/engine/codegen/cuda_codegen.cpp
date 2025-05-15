@@ -572,7 +572,6 @@ void CudaCodegen::generate_kernel_defs(
                       << ", relin_keys"
                       << ", " << node->get_beta() << ", idx"
                       << ", l_idx"
-                      << ", params->N"
                       << ", start_limb"
                       << ", end_limb);\n";
                 } else {
