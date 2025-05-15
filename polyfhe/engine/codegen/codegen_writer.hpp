@@ -38,6 +38,26 @@ public:
         return out;
     }
 
+    friend CodeWriter& operator<<(CodeWriter& out, const CodeWriter& in) {
+        std::string content = in.m_ss.str();
+
+        for (char c : content) {
+            if (c == '\n') {
+                out.m_pending_indent = true;
+            } else {
+                if (out.m_pending_indent) {
+                    out.m_pending_indent = false;
+                    for (size_t i = 0; i < out.indent; i++) {
+                        out.m_ss << "    ";
+                    }
+                }
+            }
+            out.m_ss << c;
+        }
+
+        return out;
+    }
+
     void block_begin() {
         *this << "{\n";
         indent++;
