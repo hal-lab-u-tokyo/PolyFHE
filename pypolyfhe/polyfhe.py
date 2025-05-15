@@ -103,8 +103,10 @@ class NTTOp(PolyOp):
         name: str,
         start_limb: int,
         end_limb: int,
-        exclude_start_limb: int,
-        exclude_end_limb: int,
+        out_start_limb: int,
+        out_end_limb: int,
+        exclude_start_limb: int = 0,
+        exclude_end_limb: int = 0,
     ) -> None:
         assert (
             op_type == PolyOpType.NTTPhase1
@@ -113,7 +115,7 @@ class NTTOp(PolyOp):
             or op_type == PolyOpType.iNTTPhase2
         )
         super().__init__(
-            op_type, inputs, name, start_limb, end_limb, start_limb, end_limb
+            op_type, inputs, name, start_limb, end_limb, out_start_limb, out_end_limb
         )
         self.exclude_start_limb: int = exclude_start_limb
         self.exclude_end_limb: int = exclude_end_limb
@@ -182,8 +184,10 @@ class PolyFHE:
         if_phase1: bool,
         start_limb: int,
         end_limb: int,
-        exclude_start: int,
-        exclude_end: int,
+        out_start_limb: int = -1,
+        out_end_limb: int = -1,
+        exclude_start: int = 0,
+        exclude_end: int = 0,
     ):
         op_type = None
         if if_forward:
@@ -202,6 +206,8 @@ class PolyFHE:
             name,
             start_limb,
             end_limb,
+            out_start_limb if out_start_limb != -1 else start_limb,
+            out_end_limb if out_end_limb != -1 else end_limb,
             exclude_start,
             exclude_end,
         )
@@ -268,7 +274,7 @@ class PolyFHE:
             elif dst.op_type == PolyOpType.EndEdge:
                 label = f"{src.out_end_limb}_end_{dst.idx_ct}_{dst.offset}"
             else:
-                label = f"{dst.in_end_limb - dst.in_start_limb}"
+                label = f"{dst.out_end_limb - dst.out_start_limb}"
             return label
 
         def gen_node_label(op: PolyOp):
