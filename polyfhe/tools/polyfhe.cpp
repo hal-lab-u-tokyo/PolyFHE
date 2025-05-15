@@ -8,6 +8,7 @@
 #include "polyfhe/engine/pass/calculate_memory_traffic_pass.hpp"
 #include "polyfhe/engine/pass/calculate_smem_size_pass.hpp"
 #include "polyfhe/engine/pass/check_edge_overwrite_pass.hpp"
+#include "polyfhe/engine/pass/check_edge_same_pass.hpp"
 #include "polyfhe/engine/pass/check_subgraph_dependencies_pass.hpp"
 #include "polyfhe/engine/pass/data_reuse_pass.hpp"
 #include "polyfhe/engine/pass/extract_subgraph_pass.hpp"
@@ -127,6 +128,8 @@ int main(int argc, char** argv) {
             std::make_shared<polyfhe::engine::CalculateSmemSizePass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::CheckSubgraphDependenciesPass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::CheckEdgeSamePass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::CheckEdgeOverwritePass>());
     }

@@ -18,6 +18,7 @@ bool CheckEdgeOverwritePass::run_on_graph(
                 if (outedge->get_level() != polyfhe::core::EdgeLevel::Global) {
                     continue;
                 }
+
                 auto dst = node->get_out_edges()[0]->get_dst();
                 if (dst->get_op_type() == polyfhe::core::OpType::End) {
                     continue;
