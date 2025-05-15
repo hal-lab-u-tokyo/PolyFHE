@@ -193,42 +193,6 @@ xxx_multiply_uint64_uint64(const uint64_t &operand1, const uint64_t &operand2) {
     return result_;
 }
 
-__forceinline__ __device__ auto xxx_base_convert_acc_unroll2_reg(
-    const uint64_t *reg, const uint64_t *QHatModp, size_t out_prime_idx,
-    size_t degree, size_t ibase_size, size_t degree_idx) {
-    xxx_uint128_t2 accum{0};
-    for (int i = 0; i < ibase_size; i++) {
-        const uint64_t op2 = QHatModp[out_prime_idx * ibase_size + i];
-        xxx_uint128_t2 out{};
-
-        uint64_t op1_x = reg[2 * i];
-        uint64_t op1_y = reg[2 * i + 1];
-        out.x = xxx_multiply_uint64_uint64(op1_x, op2);
-        xxx_add_uint128_uint128(out.x, accum.x, accum.x);
-        out.y = xxx_multiply_uint64_uint64(op1_y, op2);
-        xxx_add_uint128_uint128(out.y, accum.y, accum.y);
-    }
-    return accum;
-}
-
-__forceinline__ __device__ auto xxx_base_convert_acc_unroll2(
-    const uint64_t *ptr, const uint64_t *QHatModp, size_t out_prime_idx,
-    size_t degree, size_t ibase_size, size_t degree_idx) {
-    xxx_uint128_t2 accum{0};
-    for (int i = 0; i < ibase_size; i++) {
-        const uint64_t op2 = QHatModp[out_prime_idx * ibase_size + i];
-        xxx_uint128_t2 out{};
-
-        uint64_t op1_x = ptr[i * degree + degree_idx];
-        uint64_t op1_y = ptr[i * degree + degree_idx + 1];
-        out.x = xxx_multiply_uint64_uint64(op1_x, op2);
-        xxx_add_uint128_uint128(out.x, accum.x, accum.x);
-        out.y = xxx_multiply_uint64_uint64(op1_y, op2);
-        xxx_add_uint128_uint128(out.y, accum.y, accum.y);
-    }
-    return accum;
-}
-
 /** Reduce an 128-bit product into 64-bit modulus field using Barrett reduction
  * @param[in] product The input 128-bit product.
  * @param[in] modulus The modulus.
@@ -266,6 +230,68 @@ __forceinline__ __device__ uint64_t xxx_barrett_reduce_uint128_uint64(
         : "l"(lo), "l"(hi), "l"(ratio0), "l"(ratio1), "l"(q));
     csub_q(result, q);
     return result;
+}
+
+__forceinline__ __device__ void MulKeyAccumOp(Params *params, uint64_t *dst_ax,
+                                              uint64_t *dst_bx, uint64_t **in,
+                                              uint64_t **key, int beta,
+                                              size_t tid, int twr,
+                                              int start_limb, int end_limb) {
+    const int size_QP_n = params->N * (end_limb - start_limb);
+    xxx_uint128_t prod0, prod1;
+    xxx_uint128_t acc0, acc1;
+    acc0 = xxx_multiply_uint64_uint64(in[0][tid], key[0][tid]);
+    acc1 = xxx_multiply_uint64_uint64(in[0][tid], key[1][tid + size_QP_n]);
+
+    for (int i = 1; i < beta; i++) {
+        prod0 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid]);
+        prod1 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid + size_QP_n]);
+        xxx_add_uint128_uint128(prod0, acc0, acc0);
+        xxx_add_uint128_uint128(prod1, acc1, acc1);
+    }
+
+    uint64_t res0 = xxx_barrett_reduce_uint128_uint64(
+        acc0, params->qVec[twr], params->modulus_const_ratio + 2 * twr);
+    uint64_t res1 = xxx_barrett_reduce_uint128_uint64(
+        acc1, params->qVec[twr], params->modulus_const_ratio + 2 * twr);
+    dst_ax[tid] = res0;
+    dst_bx[tid] = res1;
+}
+
+__forceinline__ __device__ auto xxx_base_convert_acc_unroll2_reg(
+    const uint64_t *reg, const uint64_t *QHatModp, size_t out_prime_idx,
+    size_t degree, size_t ibase_size, size_t degree_idx) {
+    xxx_uint128_t2 accum{0};
+    for (int i = 0; i < ibase_size; i++) {
+        const uint64_t op2 = QHatModp[out_prime_idx * ibase_size + i];
+        xxx_uint128_t2 out{};
+
+        uint64_t op1_x = reg[2 * i];
+        uint64_t op1_y = reg[2 * i + 1];
+        out.x = xxx_multiply_uint64_uint64(op1_x, op2);
+        xxx_add_uint128_uint128(out.x, accum.x, accum.x);
+        out.y = xxx_multiply_uint64_uint64(op1_y, op2);
+        xxx_add_uint128_uint128(out.y, accum.y, accum.y);
+    }
+    return accum;
+}
+
+__forceinline__ __device__ auto xxx_base_convert_acc_unroll2(
+    const uint64_t *ptr, const uint64_t *QHatModp, size_t out_prime_idx,
+    size_t degree, size_t ibase_size, size_t degree_idx) {
+    xxx_uint128_t2 accum{0};
+    for (int i = 0; i < ibase_size; i++) {
+        const uint64_t op2 = QHatModp[out_prime_idx * ibase_size + i];
+        xxx_uint128_t2 out{};
+
+        uint64_t op1_x = ptr[i * degree + degree_idx];
+        uint64_t op1_y = ptr[i * degree + degree_idx + 1];
+        out.x = xxx_multiply_uint64_uint64(op1_x, op2);
+        xxx_add_uint128_uint128(out.x, accum.x, accum.x);
+        out.y = xxx_multiply_uint64_uint64(op1_y, op2);
+        xxx_add_uint128_uint128(out.y, accum.y, accum.y);
+    }
+    return accum;
 }
 
 __forceinline__ __device__ void BConvOpNoReg(

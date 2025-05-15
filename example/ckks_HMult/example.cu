@@ -22,8 +22,8 @@ using namespace phantom::util;
 #define EPSINON 0.001
 
 void entry_kernel(Params *params_d, Params *params_h, PhantomContext &context,
-                  uint64_t *in0, uint64_t *in1, uint64_t *out0, uint64_t *out2,
-                  bool if_benchmark);
+                  uint64_t **relin_keys, uint64_t *in0, uint64_t *in1,
+                  uint64_t *out0, uint64_t *out2, bool if_benchmark);
 
 inline bool operator==(const cuDoubleComplex &lhs, const cuDoubleComplex &rhs) {
     return fabs(lhs.x - rhs.x) < EPSINON;
@@ -37,16 +37,16 @@ void ConvertPhantomToParams(Params &params, const PhantomContext &context) {
     const DModulus *d_modulus = context.gpu_rns_tables().modulus();
     const DNTTTable &ntt_tables = context.gpu_rns_tables();
     uint64_t *d_tmp;
-    cudaMalloc(&d_tmp, params.L * sizeof(uint64_t));
-    for (int i = 0; i < params.L; i++) {
+    cudaMalloc(&d_tmp, params.KL * sizeof(uint64_t));
+    for (int i = 0; i < params.KL; i++) {
         cudaMemcpy(d_tmp + i, d_modulus[i].data(), sizeof(uint64_t),
                    cudaMemcpyDeviceToDevice);
     }
     params.qVec = d_tmp;
 
     uint64_t *d_modulus_const_ratio;
-    cudaMalloc(&d_modulus_const_ratio, 2 * params.L * sizeof(uint64_t));
-    for (int i = 0; i < params.L; i++) {
+    cudaMalloc(&d_modulus_const_ratio, 2 * params.KL * sizeof(uint64_t));
+    for (int i = 0; i < params.KL; i++) {
         cudaMemcpy(d_modulus_const_ratio + 2 * i, d_modulus[i].const_ratio(),
                    2 * sizeof(uint64_t), cudaMemcpyDeviceToDevice);
     }
@@ -115,7 +115,6 @@ void example_ckks(PhantomContext &context, const double &scale) {
     std::cout << "x_cipher.chain_index(): " << x_cipher.chain_index()
               << std::endl;
 
-    // PolyFHE's HMult
     PhantomCiphertext xy_cipher_polyfhe = x_cipher;
     uint64_t poly_degree = context.gpu_rns_tables().n();
     auto &context_data = context.get_context_data(x_cipher.chain_index());
@@ -157,31 +156,9 @@ void example_ckks(PhantomContext &context, const double &scale) {
                                cudaMemcpyHostToDevice));
 
     // PolyFHE's HMult
-    entry_kernel(params_d, &params_h, context, in1, in2, res, res_modup_polyfhe,
-                 true);
+    entry_kernel(params_d, &params_h, context, relin_keys.public_keys_ptr(),
+                 in1, in2, res, res_modup_polyfhe, true);
     checkCudaErrors(cudaDeviceSynchronize());
-    /*
-    for (int beta_idx = 0; beta_idx < beta; beta_idx++) {
-        uint64_t *inout_i = res_modup_polyfhe + beta_idx * poly_degree * sizeQP;
-        const int per_block_pad = params_h.per_block_pad;
-        const int start_modulus_idx = 0;
-        const int excluded_range_start = params_h.alpha * beta_idx;
-        const int excluded_range_end = params_h.alpha * (beta_idx + 1);
-        NTTPhase1<<<4096, (params_h.n1 / 8) * per_block_pad,
-                    (params_h.n1 + per_block_pad + 1) * per_block_pad *
-                        sizeof(uint64_t)>>>(
-            params_d, inout_i, params_h.ntt_tables->twiddle(),
-            params_h.ntt_tables->twiddle_shoup(),
-            params_h.ntt_tables->modulus(), 20, start_modulus_idx,
-            excluded_range_start, excluded_range_end);
-        checkCudaErrors(cudaDeviceSynchronize());
-        NTTPhase2<<<4096, 128, 128 * 8 * sizeof(uint64_t)>>>(
-            params_d, inout_i, params_h.ntt_tables->twiddle(),
-            params_h.ntt_tables->twiddle_shoup(),
-            params_h.ntt_tables->modulus(), 20, start_modulus_idx,
-            excluded_range_start, excluded_range_end);
-    }
-    */
 
     // Phantom's HMult
     PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);
@@ -192,8 +169,6 @@ void example_ckks(PhantomContext &context, const double &scale) {
     std::cout << "xy_cipher.chain_index(): " << xy_cipher.chain_index()
               << std::endl;
 
-    /*
-     */
     // Check if PolyFHE's HMult and Phantom's HMult are the same
     uint64_t *h_res_polyfhe =
         (uint64_t *) malloc(poly_degree * coeff_mod_size * sizeof(uint64_t));
@@ -245,17 +220,19 @@ void example_ckks(PhantomContext &context, const double &scale) {
                                cudaMemcpyDeviceToHost));
     std::cout << "Modup result" << std::endl;
     correctness = true;
-    for (int beta_idx = 0; beta_idx < beta; beta_idx++) {
+    for (int beta_idx = 0; beta_idx < 2; beta_idx++) {
         std::cout << "beta_idx: " << beta_idx << std::endl;
-        for (int j = 0; j < poly_degree * params_h.KL; j++) {
-            int i = beta_idx * poly_degree * params_h.KL + j;
-            if (h_modup_polyfhe[i] != h_modup_phantom[i]) {
-                cout << "  PolyFHE != Phantom at index[" << beta_idx << "]["
-                     << j << "]" << endl;
-                cout << "   PolyFHE: " << h_modup_polyfhe[i] << endl;
-                cout << "   Phantom: " << h_modup_phantom[i] << endl;
-                correctness = false;
-                break;
+        for (int i = 0; i < params_h.KL; i++) {
+            for (int j = 0; j < poly_degree; j++) {
+                int idx = beta_idx * i * poly_degree + j;
+                if (h_modup_polyfhe[idx] != h_modup_phantom[idx]) {
+                    cout << "  PolyFHE != Phantom at index[" << beta_idx << "]["
+                         << i << "][" << j << "]" << endl;
+                    cout << "   PolyFHE: " << h_modup_polyfhe[idx] << endl;
+                    cout << "   Phantom: " << h_modup_phantom[idx] << endl;
+                    correctness = false;
+                    break;
+                }
             }
         }
     }

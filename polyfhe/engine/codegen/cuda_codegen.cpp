@@ -412,6 +412,8 @@ void CudaCodegen::generate_kernel_defs(
                 w << ", const uint64_t *twiddles";
                 w << ", const uint64_t *twiddles_shoup";
                 w << ", const DModulus *modulus";
+            } else if (op_type == core::OpType::MultKeyAccum) {
+                w << ", uint64_t **relin_keys";
             }
         }
         w << ")";
@@ -551,6 +553,27 @@ void CudaCodegen::generate_kernel_defs(
                             outedge->set_same_edge(g_store_to);
                         }
                     }
+                } else if (op_type == core::OpType::MultKeyAccum) {
+                    w << "// " << node->get_op_name() << "\n";
+                    w << "uint64_t *in_list[" << node->get_beta() << "] = {";
+                    assert(node->get_in_edges().size() == node->get_beta());
+                    for (size_t i = 0; i < node->get_beta(); i++) {
+                        w << node->get_in_edges()[i]->get_name();
+                        if (i != node->get_beta() - 1) {
+                            w << ", ";
+                        } else {
+                            w << "};\n";
+                        }
+                    }
+                    assert(node->get_out_edges().size() == 2);
+                    w << "MulKeyAccumOp(params,"
+                      << node->get_out_edges()[0]->get_name() << ", "
+                      << node->get_out_edges()[1]->get_name() << ", in_list"
+                      << ", relin_keys"
+                      << ", " << node->get_beta() << ", idx"
+                      << ", l_idx"
+                      << ", start_limb"
+                      << ", end_limb);\n";
                 } else {
                     LOG_ERROR(
                         "Only Add, Sub, Mult, MultConst and Copy are "
@@ -794,6 +817,8 @@ void CudaCodegen::generate_kernel_defs(
                     generate_ElemWiseOp(node, w, node->get_out_edges(),
                                         node->get_in_edges()[0],
                                         node->get_in_edges()[1], s_type);
+                } else if (op_type == core::OpType::MultKeyAccum) {
+                    w << "// MultKeyAccum\n";
                 } else if (op_type == core::OpType::NTTPhase2) {
                     assert(node->get_in_edges().size() == 1);
                     auto inedge = node->get_in_edges()[0];
@@ -821,10 +846,17 @@ void CudaCodegen::generate_kernel_defs(
                       << "start_limb, twr_idx, &n_init, tid);\n";
 
                     // define store here
-                    // TODO: support multiple outedges
-                    assert(node->get_out_edges().size() == 1);
-                    auto outedge = node->get_out_edges()[0];
-                    if (outedge->get_level() == core::EdgeLevel::Global) {
+                    std::shared_ptr<core::Edge> g_store_to = nullptr;
+                    for (auto outedge : node->get_out_edges()) {
+                        if (outedge->get_level() == core::EdgeLevel::Global) {
+                            if (g_store_to == nullptr) {
+                                g_store_to = outedge;
+                            } else {
+                                outedge->set_same_edge(g_store_to);
+                            }
+                        }
+                    }
+                    if (g_store_to) {
                         w << "uint64_t *out_ptr = " << outedge->get_name()
                           << " + twr_idx * params->N;\n";
                         w << "#pragma unroll\n";
@@ -1138,6 +1170,8 @@ void CudaCodegen::generate_call_kernels(
                 w << ", params_h->ntt_tables->twiddle()";
                 w << ", params_h->ntt_tables->twiddle_shoup()";
                 w << ", params_h->ntt_tables->modulus()";
+            } else if (op_type == core::OpType::MultKeyAccum) {
+                w << ", relin_keys";
             }
         }
         w << ");\n";
@@ -1194,6 +1228,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     w << "void entry_kernel(Params *params_d, Params *params_h, "
          "PhantomContext "
          "&context, "
+         "uint64_t **relin_keys, "
          "uint64_t *in0, "
          "uint64_t *in1, "
          "uint64_t *out0, uint64_t *out1, bool if_benchmark)";

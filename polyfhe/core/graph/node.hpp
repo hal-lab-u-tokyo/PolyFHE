@@ -53,6 +53,7 @@ enum class OpType {
     Sub,
     Mult,
     MultConst,
+    MultKeyAccum,
     Decomp,
     BConv,
     ModDown,
@@ -201,6 +202,16 @@ public:
         return m_exclude_end_idx;
     }
 
+    // Only for MulKeyAccum
+    void set_beta(int beta) {
+        assert(m_op_type == OpType::MultKeyAccum);
+        m_beta = beta;
+    }
+    int get_beta() {
+        assert(m_op_type == OpType::MultKeyAccum);
+        return m_beta;
+    }
+
 protected:
     OpType m_op_type;
     std::vector<std::shared_ptr<Edge>> m_in_edges;
@@ -219,6 +230,9 @@ protected:
     // Only for NTT
     int m_exclude_start_idx;
     int m_exclude_end_idx;
+
+    // Only for MulKeyAccum
+    int m_beta;
 
 private:
     // Only for lowerings

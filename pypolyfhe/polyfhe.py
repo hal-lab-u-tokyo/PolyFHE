@@ -9,9 +9,12 @@ from enum import Enum, auto
 
 class PolyOpType(Enum):
     Add = auto()
+    Accum = auto()
     Sub = auto()
     Mult = auto()
     MultConst = auto()
+    MultKey = auto()
+    MultKeyAccum = auto()
     Decomp = auto()
     BConv = auto()
     ModDown = auto()
@@ -80,6 +83,17 @@ class PolyOp:
         assert self.op_type == PolyOpType.BConv
         self.beta_idx = beta_idx
 
+class MulKeyAccumOp(PolyOp):
+    def __init__(
+        self,
+        inputs: list[PolyOp],
+        name: str,
+        start_limb: int,
+        end_limb: int,
+        beta: int,
+    ) -> None:
+        super().__init__(PolyOpType.MultKeyAccum, inputs, name, start_limb, end_limb, start_limb, end_limb)
+        self.beta: int = beta
 
 class NTTOp(PolyOp):
     def __init__(
@@ -127,6 +141,11 @@ class PolyFHE:
             PolyOpType.Add, [a, b], name, start_limb, end_limb, start_limb, end_limb
         )
 
+    def accum(self, a: [PolyOp], name: str, start_limb: int, end_limb: int):
+        return PolyOp(
+            PolyOpType.Accum, a, name, start_limb, end_limb, start_limb, end_limb
+        )
+
     def mul(self, a: PolyOp, b: PolyOp, name: str, start_limb: int, end_limb: int):
         return PolyOp(
             PolyOpType.Mult, [a, b], name, start_limb, end_limb, start_limb, end_limb
@@ -135,6 +154,16 @@ class PolyFHE:
     def mul_const(self, a: PolyOp, name: str, start_limb: int, end_limb: int):
         return PolyOp(
             PolyOpType.MultConst, [a], name, start_limb, end_limb, start_limb, end_limb
+        )
+
+    def mul_key(self, a: PolyOp, name: str, start_limb: int, end_limb: int):
+        return PolyOp(
+            PolyOpType.MultKey, [a], name, start_limb, end_limb, start_limb, end_limb
+        )
+
+    def mul_key_accum(self, a: [PolyOp], name: str, start_limb: int, end_limb: int, beta: int):
+        return MulKeyAccumOp(
+            a, name, start_limb, end_limb, beta
         )
 
     def bconv(self, a: PolyOp, name: str, current_limb: int, beta_idx: int, alpha: int):
@@ -246,8 +275,9 @@ class PolyFHE:
             label = f"{op.op_type}"
             if op.op_type == PolyOpType.BConv:
                 label += f"_{op.beta_idx}"
+            elif isinstance(op, MulKeyAccumOp):
+                label += f"_{op.in_start_limb}_{op.in_end_limb}_{op.beta}"
             elif isinstance(op, NTTOp):
-                # in_start_limb = out_start_limb in NTTOp
                 label += f"_{op.in_start_limb}_{op.in_end_limb}_{op.exclude_start_limb}_{op.exclude_end_limb}"
             else:
                 label += f"_{op.in_start_limb}_{op.in_end_limb}"
