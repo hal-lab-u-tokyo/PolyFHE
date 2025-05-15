@@ -76,16 +76,16 @@ inttp2_ax = pf.ntt(
     out_start_limb=0,
     out_end_limb=prm.L + prm.K,
 )
-inttp1_ax = pf.ntt(
-    inttp2_ax,
-    "INTT1_Ax",
-    if_forward=False,
-    if_phase1=True,
-    start_limb=prm.L,
-    end_limb=prm.L + prm.K,
-    out_start_limb=0,
-    out_end_limb=prm.L + prm.K,
-)
+# inttp1_ax = pf.ntt(
+#     inttp2_ax,
+#     "INTT1_Ax",
+#     if_forward=False,
+#     if_phase1=True,
+#     start_limb=prm.L,
+#     end_limb=prm.L + prm.K,
+#     out_start_limb=0,
+#     out_end_limb=prm.L + prm.K,
+# )
 inttp2_bx = pf.ntt(
     accum,
     "INTT_Bx",
@@ -96,18 +96,18 @@ inttp2_bx = pf.ntt(
     out_start_limb=0,
     out_end_limb=prm.L + prm.K,
 )
-inttp1_bx = pf.ntt(
-    inttp2_bx,
-    "INTT1_Bx",
-    if_forward=False,
-    if_phase1=True,
-    start_limb=prm.L,
-    end_limb=prm.L + prm.K,
-    out_start_limb=0,
-    out_end_limb=prm.L + prm.K,
-)
-res_ax = pf.end(inttp1_ax, 1, 0)
-res_bx = pf.end(inttp1_bx, 1, prm.N * (prm.L + prm.K))
+# inttp1_bx = pf.ntt(
+#     inttp2_bx,
+#     "INTT1_Bx",
+#     if_forward=False,
+#     if_phase1=True,
+#     start_limb=prm.L,
+#     end_limb=prm.L + prm.K,
+#     out_start_limb=0,
+#     out_end_limb=prm.L + prm.K,
+# )
+res_ax = pf.end(inttp2_ax, 1, 0)
+res_bx = pf.end(inttp2_bx, 1, prm.N * (prm.L + prm.K))
 """
 res_ax = pf.end(accum, 1, 0)
 res_bx = pf.end(accum, 1, prm.N * (prm.L + prm.K))
