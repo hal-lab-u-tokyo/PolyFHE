@@ -1,5 +1,6 @@
 set(POLYFHE_SOURCE_FILES ${POLYFHE_SOURCE_FILES}
     ${CMAKE_CURRENT_LIST_DIR}/analyze_intra_node_pass.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/cache_aware_reorder_pass.cpp
     ${CMAKE_CURRENT_LIST_DIR}/calculate_memory_traffic_pass.cpp
     ${CMAKE_CURRENT_LIST_DIR}/calculate_smem_size_pass.cpp
     ${CMAKE_CURRENT_LIST_DIR}/check_edge_overwrite_pass.cpp
