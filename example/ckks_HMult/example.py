@@ -64,36 +64,54 @@ for beta_idx in range(prm.get_beta(prm.L - 1)):
         exclude_end=prm.alpha * (beta_idx + 1),
     )
     accum_list.append(nttp2_after_bconv)
-    """
-    mulkey_ax = pf.mul_key(
-        nttp2_after_bconv,
-        f"MulKeyAx{beta_idx}",
-        start_limb=0,
-        end_limb=prm.L + prm.K,
-    )
-    mulkey_bx = pf.mul_key(
-        nttp2_after_bconv,
-        f"MulKeyBx{beta_idx}",
-        start_limb=0,
-        end_limb=prm.L + prm.K,
-    )
-    accum_ax_list.append(mulkey_ax)
-    accum_bx_list.append(mulkey_bx)
-    """
-    """
-    res = pf.end(nttp2_after_bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
-    target.append(res)
-    """
-
-"""
-accum_ax = pf.accum(accum_ax_list, "AccumAx", start_limb=0, end_limb=prm.L + prm.K)
-accum_bx = pf.accum(accum_bx_list, "AccumBx", start_limb=0, end_limb=prm.L + prm.K)
-"""
 
 accum = pf.mul_key_accum(accum_list, "MultKeyAccum", start_limb=0, end_limb=prm.L + prm.K, beta=prm.get_beta(prm.L - 1))
+inttp2_ax = pf.ntt(
+    accum,
+    "INTT_Ax",
+    if_forward=False,
+    if_phase1=False,
+    start_limb=prm.L,
+    end_limb=prm.L + prm.K,
+    out_start_limb=0,
+    out_end_limb=prm.L + prm.K,
+)
+inttp1_ax = pf.ntt(
+    inttp2_ax,
+    "INTT1_Ax",
+    if_forward=False,
+    if_phase1=True,
+    start_limb=prm.L,
+    end_limb=prm.L + prm.K,
+    out_start_limb=0,
+    out_end_limb=prm.L + prm.K,
+)
+inttp2_bx = pf.ntt(
+    accum,
+    "INTT_Bx",
+    if_forward=False,
+    if_phase1=False,
+    start_limb=prm.L,
+    end_limb=prm.L + prm.K,
+    out_start_limb=0,
+    out_end_limb=prm.L + prm.K,
+)
+inttp1_bx = pf.ntt(
+    inttp2_bx,
+    "INTT1_Bx",
+    if_forward=False,
+    if_phase1=True,
+    start_limb=prm.L,
+    end_limb=prm.L + prm.K,
+    out_start_limb=0,
+    out_end_limb=prm.L + prm.K,
+)
+res_ax = pf.end(inttp1_ax, 1, 0)
+res_bx = pf.end(inttp1_bx, 1, prm.N * (prm.L + prm.K))
+"""
 res_ax = pf.end(accum, 1, 0)
 res_bx = pf.end(accum, 1, prm.N * (prm.L + prm.K))
-
+"""
 res_axax = pf.end(mult_axax, 0, 0)
 res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)
 res_bxbx = pf.end(mult_bxbx, 0, prm.N * prm.L * 2)

@@ -13,21 +13,18 @@ bool CheckEdgeOverwritePass::run_on_graph(
         graph->get_subgraphs();
     for (auto sgraph : subgraphs) {
         for (auto node : sgraph->get_nodes()) {
-            if (node->get_out_edges().size() == 1) {
-                auto outedge = node->get_out_edges()[0];
-                if (outedge->get_level() != polyfhe::core::EdgeLevel::Global) {
+            for (auto outedge : node->get_out_edges()) {
+                if (outedge->get_shared_counter() > 0) {
                     continue;
                 }
-                auto dst = node->get_out_edges()[0]->get_dst();
-                if (dst->get_op_type() == polyfhe::core::OpType::End) {
-                    continue;
-                }
-                if (dst->get_out_edges().size() > 0) {
-                    auto nextedge = dst->get_out_edges()[0];
-                    if (nextedge->get_level() ==
+                auto dst_node = outedge->get_dst();
+                if (dst_node && dst_node->get_out_edges().size() == 1) {
+                    auto overwrite_to = dst_node->get_out_edges()[0];
+                    if (overwrite_to->get_level() !=
                         polyfhe::core::EdgeLevel::Global) {
-                        nextedge->set_overwrite_edge(outedge);
+                        continue;
                     }
+                    outedge->set_overwrite_edge(overwrite_to);
                 }
             }
         }

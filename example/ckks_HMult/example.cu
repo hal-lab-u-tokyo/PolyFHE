@@ -219,12 +219,15 @@ void example_ckks(PhantomContext &context, const double &scale) {
                                sizeQPNBeta * sizeof(uint64_t),
                                cudaMemcpyDeviceToHost));
     std::cout << "Modup result" << std::endl;
+    std::cout << "params_h.KL: " << params_h.KL << std::endl;
+    std::cout << "poly_degree: " << poly_degree << std::endl;
     correctness = true;
     for (int beta_idx = 0; beta_idx < 2; beta_idx++) {
         std::cout << "beta_idx: " << beta_idx << std::endl;
         for (int i = 0; i < params_h.KL; i++) {
             for (int j = 0; j < poly_degree; j++) {
-                int idx = beta_idx * i * poly_degree + j;
+                int idx =
+                    beta_idx * params_h.KL * poly_degree + i * poly_degree + j;
                 if (h_modup_polyfhe[idx] != h_modup_phantom[idx]) {
                     cout << "  PolyFHE != Phantom at index[" << beta_idx << "]["
                          << i << "][" << j << "]" << endl;
