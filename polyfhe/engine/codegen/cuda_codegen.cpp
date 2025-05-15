@@ -461,12 +461,7 @@ void CudaCodegen::generate_kernel_defs(
                 std::cout << "node: " << node->get_op_name() << std::endl;
                 core::OpType op_type = node->get_op_type();
 
-                if (op_type == core::OpType::Add ||
-                    op_type == core::OpType::Sub ||
-                    op_type == core::OpType::Mult) {
-                    assert(node->get_in_edges().size() == 2);
-                    assert(node->get_out_edges().size() >= 1);
-
+                if (op_type != core::OpType::MultKeyAccum) {
                     if (!has_defined_q) {
                         w_head << "const uint64_t q = params->qVec[l_idx];\n";
                         w_head << "uint64_t res;\n";
@@ -474,6 +469,13 @@ void CudaCodegen::generate_kernel_defs(
                                   "params->N;\n";
                         has_defined_q = true;
                     }
+                }
+
+                if (op_type == core::OpType::Add ||
+                    op_type == core::OpType::Sub ||
+                    op_type == core::OpType::Mult) {
+                    assert(node->get_in_edges().size() == 2);
+                    assert(node->get_out_edges().size() >= 1);
 
                     w_body << "// " << node->get_op_name() << "\n";
                     // Make sure all levels of outedges are the same
@@ -538,8 +540,7 @@ void CudaCodegen::generate_kernel_defs(
                 } else if (op_type == core::OpType::MultConst) {
                     assert(node->get_in_edges().size() == 1);
                     auto inedge = node->get_in_edges()[0];
-                    w_body
-                        << "res = phantom::arith::multiply_and_reduce_shoup(";
+                    w_body << "res = xxx_multiply_and_reduce_shoup(";
                     w_body << gen_edge_access(
                         inedge, "n_idx",
                         std::to_string(inedge->get_offset_smem()) +
@@ -654,7 +655,7 @@ void CudaCodegen::generate_kernel_defs(
                     w << "for (int l = 0; l < 8; l++)";
                     w.block_begin();
                     w << "reg[l] = "
-                         "phantom::arith::multiply_and_reduce_shoup(";
+                         "xxx_multiply_and_reduce_shoup(";
                     w << "reg[l]";
                     w << ", partQlHatInv_mod_Ql_concat[twr_idx]";
                     w << ", partQlHatInv_mod_Ql_concat_shoup[twr_idx]";
