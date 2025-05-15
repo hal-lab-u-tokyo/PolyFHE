@@ -813,7 +813,9 @@ void CudaCodegen::generate_kernel_defs(
 
             if (requires_load_to_reg) {
                 w_head << "\n// Load data to register\n";
-                w_head << "uint64_t *in = " << inedge->get_name() << ";\n";
+                w_head << "const int twr_idx = tid / params->N + start_limb;\n";
+                w_head << "uint64_t *in = " << inedge->get_name()
+                       << " + twr_idx * params->N;\n";
                 w_head << "#pragma unroll\n";
                 w_head << "for (int l = 0; l < 8; l++)";
                 w_head.block_begin();
