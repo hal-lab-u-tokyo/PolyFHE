@@ -15,6 +15,10 @@ bool CheckEdgeSamePass::run_on_graph(
         for (auto node : sgraph->get_nodes()) {
             const int n_outedges = node->get_out_edges().size();
             if (n_outedges >= 2) {
+                if (node->get_op_type() == core::OpType::MultKeyAccum) {
+                    // MultKeyAccum's outedges are not same
+                    continue;
+                }
                 auto outedge_0 = node->get_out_edges()[0];
                 for (int i = 1; i < n_outedges; i++) {
                     node->get_out_edges()[i]->set_same_edge(outedge_0);

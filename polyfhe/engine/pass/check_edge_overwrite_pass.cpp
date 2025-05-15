@@ -19,7 +19,7 @@ bool CheckEdgeOverwritePass::run_on_graph(
                     continue;
                 }
 
-                auto dst = node->get_out_edges()[0]->get_dst();
+                auto dst = outedge->get_dst();
                 if (dst->get_op_type() == polyfhe::core::OpType::End) {
                     continue;
                 }

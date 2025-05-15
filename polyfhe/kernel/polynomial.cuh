@@ -237,11 +237,11 @@ __forceinline__ __device__ void MulKeyAccumOp(Params *params, uint64_t *dst_ax,
                                               uint64_t **key, int beta,
                                               size_t tid, int twr,
                                               int start_limb, int end_limb) {
-    const int size_QP_n = params->N * (end_limb - start_limb);
+    const int size_QP_n = params->N * params->KL;
     xxx_uint128_t prod0, prod1;
     xxx_uint128_t acc0, acc1;
     acc0 = xxx_multiply_uint64_uint64(in[0][tid], key[0][tid]);
-    acc1 = xxx_multiply_uint64_uint64(in[0][tid], key[1][tid + size_QP_n]);
+    acc1 = xxx_multiply_uint64_uint64(in[0][tid], key[0][tid + size_QP_n]);
 
     for (int i = 1; i < beta; i++) {
         prod0 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid]);
