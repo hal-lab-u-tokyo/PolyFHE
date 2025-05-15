@@ -125,8 +125,8 @@ __device__ __forceinline__ void intt4(uint64_t* s, const uint64_t* tw,
 }
 
 __device__ __forceinline__ void d_poly_inwt_radix8_phase2(
-    Params* params, const size_t coeff_mod_size, const size_t start_mod_idx,
-    uint64_t* buffer, uint64_t* samples, size_t i) {
+    Params* params, const size_t start_mod_idx, uint64_t* buffer,
+    uint64_t* samples, size_t i) {
     const size_t n = params->N;
     const size_t n1 = params->n1;
     const size_t n2 = params->n2;
@@ -203,8 +203,8 @@ __device__ __forceinline__ void d_poly_inwt_radix8_phase2(
 }
 
 __device__ __forceinline__ void d_poly_inplace_inwt_radix8_phase1(
-    uint64_t* in, Params* params, const size_t coeff_mod_size,
-    const size_t start_mod_idx, uint64_t* buffer, uint64_t* samples, size_t i) {
+    uint64_t* in, Params* params, const size_t start_mod_idx, uint64_t* buffer,
+    uint64_t* samples, size_t i) {
     const uint64_t* itwiddles = params->itwiddle;
     const uint64_t* itwiddles_shoup = params->itwiddle_shoup;
     const uint64_t* modulus_table = params->qVec;

@@ -318,11 +318,11 @@ void CudaCodegen::generate_NTT_ElemLimb(
         }
     } else {
         if (if_phase1) {
-            w << "d_poly_inplace_inwt_radix8_phase1(in, params, params->L, 0, "
-                 "shared, reg, i);\n";
+            w << "d_poly_inplace_inwt_radix8_phase1(in, params, "
+                 "start_limb, shared, reg, i);\n";
         } else {
-            w << "d_poly_inwt_radix8_phase2(params, params->L, 0, "
-                 "shared, reg, tid);\n";
+            w << "d_poly_inwt_radix8_phase2(params, "
+                 "start_limb, shared, reg, tid);\n";
         }
     }
 }
@@ -632,7 +632,7 @@ void CudaCodegen::generate_kernel_defs(
             w.block_begin();
             w << "const size_t n_twr = params->N / 8;\n";
             w << "const size_t n_idx = i % n_twr;\n";
-            w << "const size_t twr_idx = i / n_twr;\n";
+            w << "const size_t twr_idx = i / n_twr + start_limb;\n";
             w << "const size_t group = params->n1 / 8;\n";
             w << "const size_t pad_tid = threadIdx.x % params->pad;\n";
             w << "const size_t pad_idx = threadIdx.x / params->pad;\n";
@@ -889,8 +889,7 @@ void CudaCodegen::generate_kernel_defs(
                     requires_store_from_reg = false;
 
                 } else if (op_type == core::OpType::iNTTPhase2) {
-                    w_body << "d_poly_inwt_radix8_phase2(params"
-                           << ", " << node->get_end_limb() << ", "
+                    w_body << "d_poly_inwt_radix8_phase2(params, "
                            << node->get_start_limb()
                            << ", shared, reg, tid);\n";
                 } else {
@@ -905,7 +904,8 @@ void CudaCodegen::generate_kernel_defs(
             if (requires_store_from_reg) {
                 w_body << "\n// Store data from register\n";
                 w_body << "const size_t n_group = params->n2 / 8;\n";
-                w_body << "const size_t idx_base = blockIdx.x * blockDim.x * "
+                w_body << "const size_t idx_base = start_limb * params->N + "
+                          "blockIdx.x * blockDim.x * "
                           "params->per_thread_ntt_size "
                           "+ (threadIdx.x / n_group) * n_group * "
                           "params->per_thread_ntt_size "
