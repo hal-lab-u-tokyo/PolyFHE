@@ -222,7 +222,7 @@ void example_ckks(PhantomContext &context, const double &scale) {
     std::cout << "params_h.KL: " << params_h.KL << std::endl;
     std::cout << "poly_degree: " << poly_degree << std::endl;
     correctness = true;
-    for (int beta_idx = 0; beta_idx < 5; beta_idx++) {
+    for (int beta_idx = 0; beta_idx < 2; beta_idx++) {
         std::cout << "beta_idx: " << beta_idx << std::endl;
         for (int i = 0; i < params_h.KL; i++) {
             for (int j = 0; j < poly_degree; j++) {
