@@ -8,8 +8,12 @@ namespace frontend {
 
 std::string EdgeLevelColor(polyfhe::core::EdgeLevel level) {
     switch (level) {
+    case polyfhe::core::EdgeLevel::Register:
+        return "skyblue";
     case polyfhe::core::EdgeLevel::Shared:
         return "blue";
+    case polyfhe::core::EdgeLevel::L2:
+        return "green";
     case polyfhe::core::EdgeLevel::Global:
         return "red";
     case polyfhe::core::EdgeLevel::YetToDetermine:

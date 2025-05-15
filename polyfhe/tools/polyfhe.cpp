@@ -122,13 +122,13 @@ int main(int argc, char** argv) {
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::DataReusePass>());
         pass_manager.push_back(
-            std::make_shared<polyfhe::engine::CacheAwareReorderpass>());
-        pass_manager.push_back(
             std::make_shared<polyfhe::engine::CalculateMemoryTrafficPass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::ExtractSubgraphPass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::CalculateSmemSizePass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::CacheAwareReorderpass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::CheckSubgraphDependenciesPass>());
         pass_manager.push_back(

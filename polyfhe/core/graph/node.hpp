@@ -162,7 +162,7 @@ public:
     }
     int get_start_limb() {
         if (m_start_limb == -1) {
-            LOG_ERROR("m_start_limb not set\n");
+            LOG_ERROR("m_start_limb not set for %s\n", get_op_name().c_str());
         }
         return m_start_limb;
     }

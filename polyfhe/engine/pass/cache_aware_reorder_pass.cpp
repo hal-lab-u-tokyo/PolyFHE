@@ -11,46 +11,41 @@
 namespace polyfhe {
 namespace engine {
 
+void SetSubgraphLimbRange(std::shared_ptr<polyfhe::core::Graph>& graph) {
+    for (auto subgraph : graph->get_subgraphs()) {
+        int start_limb = -1;
+        int end_limb = -1;
+        bool can_define_common_range = true;
+        for (auto node : subgraph->get_nodes()) {
+            if (node->get_access_pattern() ==
+                core::MemoryAccessPattern::SlotWise) {
+                can_define_common_range = false;
+                break;
+            }
+            if (start_limb == -1 && end_limb == -1) {
+                start_limb = node->get_start_limb();
+                end_limb = node->get_end_limb();
+            } else {
+                if (node->get_start_limb() != start_limb ||
+                    node->get_end_limb() != end_limb) {
+                    can_define_common_range = false;
+                    break;
+                }
+            }
+        }
+        if (can_define_common_range) {
+            LOG_INFO("Set subgraph[%d] limb range: [%d, %d]\n",
+                     subgraph->get_idx(), start_limb, end_limb);
+            subgraph->set_limb_range(start_limb, end_limb);
+        }
+    }
+}
+
 bool CacheAwareReorderpass::run_on_graph(
     std::shared_ptr<polyfhe::core::Graph>& graph) {
     LOG_INFO("Running CacheAwareReorderpass\n");
 
-    /*
-    // Put all node into unreused
-    std::set<std::shared_ptr<polyfhe::core::Node>> unreused;
-    for (auto node : graph->get_nodes()) {
-        if (node == nullptr) {
-            continue;
-        }
-        unreused.insert(node);
-    }
-
-    // Loop while unreused is not empty
-    while (auto seed = GenSeed(unreused)) {
-        LOG_INFO("Seed: %s\n", seed->get_op_name().c_str());
-        // Subgraph to reuse data
-        std::vector<std::shared_ptr<polyfhe::core::Node>> subgraph;
-
-        // Add seed to subgraph
-        subgraph.push_back(seed);
-
-        // Check if append successors to subgraph
-        for (auto edge : seed->get_out_edges()) {
-            edge->set_level(polyfhe::core::EdgeLevel::Shared);
-        }
-        ReuseWithSuccessor(graph, seed, subgraph);
-
-        for (auto edge : seed->get_in_edges()) {
-            edge->set_level(polyfhe::core::EdgeLevel::Shared);
-        }
-        ReuseWithPredecessor(graph, seed, subgraph);
-
-        // Remove subgraph from unreused
-        for (auto node : subgraph) {
-            unreused.erase(node);
-        }
-    }
-    */
+    SetSubgraphLimbRange(graph);
 
     return true;
 }

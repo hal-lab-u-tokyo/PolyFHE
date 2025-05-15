@@ -378,6 +378,13 @@ void CudaCodegen::generate_kernel_defs(
           << "\n";
         w << "__global__ void " << subgraph->get_name() << "(Params *params";
 
+        bool has_limb_range_arg = false;
+        if (subgraph->get_start_limb() != -1 &&
+            subgraph->get_end_limb() != -1) {
+            w << ", int start_limb, int end_limb";
+            has_limb_range_arg = true;
+        }
+
         for (auto node : subgraph->get_nodes()) {
             // Input edges
             for (auto edge : node->get_in_edges()) {
@@ -444,10 +451,13 @@ void CudaCodegen::generate_kernel_defs(
                 }
             }
 
-            w_head << "const int start_limb = "
-                   << node->get_in_edges()[0]->get_start_limb() << ";\n";
-            w_head << "const int end_limb = "
-                   << node->get_in_edges()[0]->get_end_limb() << ";\n";
+            if (!has_limb_range_arg) {
+                w_head << "const int start_limb = "
+                       << node->get_in_edges()[0]->get_start_limb() << ";\n";
+                w_head << "const int end_limb = "
+                       << node->get_in_edges()[0]->get_end_limb() << ";\n";
+            }
+
             w_head << "for (int idx = threadIdx.x + blockIdx.x * "
                       "blockDim.x;";
             w_head << "idx < params->N * (end_limb - start_limb);";
@@ -621,8 +631,10 @@ void CudaCodegen::generate_kernel_defs(
                               node->get_op_name().c_str());
                 }
             }
-            w << "const int start_limb = " << start_limb << ";\n";
-            w << "const int end_limb = " << end_limb << ";\n";
+            if (!has_limb_range_arg) {
+                w << "const int start_limb = " << start_limb << ";\n";
+                w << "const int end_limb = " << end_limb << ";\n";
+            }
 
             w << "uint64_t *in = " << inedge->get_name() << ";\n";
             w << "for (size_t i = blockIdx.x * blockDim.x + "
@@ -801,8 +813,11 @@ void CudaCodegen::generate_kernel_defs(
                               node->get_op_name().c_str());
                 }
             }
-            w_head << "const int start_limb = " << start_limb << ";\n";
-            w_head << "const int end_limb = " << end_limb << ";\n";
+
+            if (!has_limb_range_arg) {
+                w_head << "const int start_limb = " << start_limb << ";\n";
+                w_head << "const int end_limb = " << end_limb << ";\n";
+            }
             w_head << "const size_t n_tower = params->N / 8;\n";
 
             w_head
@@ -1152,6 +1167,12 @@ void CudaCodegen::generate_call_kernels(
         w << subgraph->get_name() << "<<<" << kconfig.grid_size << ", "
           << kconfig.block_size << ", " << kconfig.shared_mem_size << ">>>";
         w << "(params_d";
+
+        if (subgraph->get_start_limb() != -1) {
+            w << ", " << subgraph->get_start_limb() << ", "
+              << subgraph->get_end_limb();
+        }
+
         for (auto node : subgraph->get_nodes()) {
             // Input edges
             for (auto edge : node->get_in_edges()) {
