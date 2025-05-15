@@ -14,6 +14,9 @@ bool CheckEdgeOverwritePass::run_on_graph(
     for (auto sgraph : subgraphs) {
         for (auto node : sgraph->get_nodes()) {
             for (auto outedge : node->get_out_edges()) {
+                if (outedge->get_shared_counter() > 0) {
+                    continue;
+                }
                 auto dst_node = outedge->get_dst();
                 if (dst_node && dst_node->get_out_edges().size() == 1) {
                     auto overwrite_to = dst_node->get_out_edges()[0];

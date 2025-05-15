@@ -64,7 +64,10 @@ for beta_idx in range(prm.get_beta(prm.L - 1)):
         exclude_end=prm.alpha * (beta_idx + 1),
     )
     accum_list.append(nttp2_after_bconv)
+    res = pf.end(nttp2_after_bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
+    target.append(res)
 
+"""
 accum = pf.mul_key_accum(accum_list, "MultKeyAccum", start_limb=0, end_limb=prm.L + prm.K, beta=prm.get_beta(prm.L - 1))
 inttp2_ax = pf.ntt(
     accum,
@@ -108,7 +111,6 @@ inttp2_bx = pf.ntt(
 # )
 res_ax = pf.end(inttp2_ax, 1, 0)
 res_bx = pf.end(inttp2_bx, 1, prm.N * (prm.L + prm.K))
-"""
 res_ax = pf.end(accum, 1, 0)
 res_bx = pf.end(accum, 1, prm.N * (prm.L + prm.K))
 """
@@ -119,8 +121,8 @@ res_bxbx = pf.end(mult_bxbx, 0, prm.N * prm.L * 2)
 target.append(res_axax)
 target.append(res_axbx)
 target.append(res_bxbx)
-target.append(res_ax)
-target.append(res_bx)
+# target.append(res_ax)
+# target.append(res_bx)
 
 # Compile
 current_dir = os.path.dirname(os.path.abspath(__file__))
