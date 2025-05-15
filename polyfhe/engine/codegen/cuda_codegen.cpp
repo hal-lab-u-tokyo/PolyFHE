@@ -455,19 +455,25 @@ void CudaCodegen::generate_kernel_defs(
             w_head.block_begin();
 
             w_head << "const int l_idx = idx / params->N + start_limb;\n";
-            w_head
-                << "const int n_idx = l_idx * params->N + idx % params->N;\n";
-            w_head << "const uint64_t q = params->qVec[l_idx];\n";
-            w_head << "uint64_t res;\n";
 
+            bool has_defined_q = false;
             for (auto node : subgraph->get_nodes()) {
                 std::cout << "node: " << node->get_op_name() << std::endl;
                 core::OpType op_type = node->get_op_type();
+
                 if (op_type == core::OpType::Add ||
                     op_type == core::OpType::Sub ||
                     op_type == core::OpType::Mult) {
                     assert(node->get_in_edges().size() == 2);
                     assert(node->get_out_edges().size() >= 1);
+
+                    if (!has_defined_q) {
+                        w_head << "const uint64_t q = params->qVec[l_idx];\n";
+                        w_head << "uint64_t res;\n";
+                        w_head << "const int n_idx = l_idx * params->N + idx % "
+                                  "params->N;\n";
+                        has_defined_q = true;
+                    }
 
                     w_body << "// " << node->get_op_name() << "\n";
                     // Make sure all levels of outedges are the same
