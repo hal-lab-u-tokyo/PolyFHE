@@ -23,7 +23,8 @@ using namespace phantom::util;
 
 void entry_kernel(Params *params_d, Params *params_h, PhantomContext &context,
                   uint64_t **relin_keys, uint64_t *in0, uint64_t *in1,
-                  uint64_t *out0, uint64_t *out2, bool if_benchmark);
+                  uint64_t *out0, uint64_t *out2, bool if_benchmark,
+                  int n_divide);
 
 inline bool operator==(const cuDoubleComplex &lhs, const cuDoubleComplex &rhs) {
     return fabs(lhs.x - rhs.x) < EPSINON;
@@ -69,7 +70,7 @@ void ConvertPhantomToParams(Params &params, const PhantomContext &context) {
     params.ntt_tables = &context.gpu_rns_tables();
 }
 
-void example_ckks(PhantomContext &context, const double &scale) {
+void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
     // KeyGen
     PhantomSecretKey secret_key(context);
     PhantomPublicKey public_key = secret_key.gen_publickey(context);
@@ -157,7 +158,7 @@ void example_ckks(PhantomContext &context, const double &scale) {
 
     // PolyFHE's HMult
     entry_kernel(params_d, &params_h, context, relin_keys.public_keys_ptr(),
-                 in1, in2, res, res_modup_polyfhe, true);
+                 in1, in2, res, res_modup_polyfhe, true, n_divide);
     checkCudaErrors(cudaDeviceSynchronize());
 
     // Phantom's HMult
@@ -291,7 +292,13 @@ void example_ckks(PhantomContext &context, const double &scale) {
      */
 }
 
-int main() {
+int main(int argc, char **argv) {
+    // argv[1]: n_divide
+    if (argc != 2) {
+        std::cerr << "Usage: " << argv[0] << " <n_divide>" << std::endl;
+        return 1;
+    }
+    int n_divide = atoi(argv[1]);
     srand(time(NULL));
     double scale = pow(2.0, 40);
     size_t poly_modulus_degree = 1 << 16;
@@ -310,5 +317,5 @@ int main() {
     parms.set_special_modulus_size(6);
     PhantomContext context(parms);
     print_parameters(context);
-    example_ckks(context, scale);
+    example_ckks(context, scale, n_divide);
 }
