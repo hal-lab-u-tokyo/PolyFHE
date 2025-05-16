@@ -12,7 +12,7 @@ CONFIG = config.csv
 all: $(BIN_EXAMPLE)
 	@echo "Running example..."
 	@mkdir -p build
-	./$(BIN_EXAMPLE)
+	./$(BIN_EXAMPLE) 1
 
 $(BIN_EXAMPLE): $(COMPILER_OUT) example.cu
 	@echo "Compiling example code..."
