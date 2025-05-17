@@ -1,8 +1,8 @@
 import csv
 import numpy as np
 
-csv_files = [f"./data/ncu-{i}.csv" for i in [1, 2, 4, 6, 9, 12, 18, 36]]
-# csv_files = ["data/sample.csv"]
+# csv_files = [f"./data/ncu-ntt12-A4090-{i}.csv" for i in [1, 2, 4, 6, 9, 12, 18, 36]]
+csv_files = ["data/ncu-stallreason-evalkey-1.csv"]
 
 
 for file in csv_files:
