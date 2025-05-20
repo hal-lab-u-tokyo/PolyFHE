@@ -2,7 +2,7 @@ import csv
 import numpy as np
 
 # csv_files = [f"./data/ncu-ntt12-A4090-{i}.csv" for i in [1, 2, 4, 6, 9, 12, 18, 36]]
-csv_files = [f"data/ncu-memory-accum-v6{i}.csv" for i in [0, 2]]
+csv_files = [f"data/ncu-memory-accum-v7-{i}.csv" for i in [0, 2]]
 
 
 for file in csv_files:
