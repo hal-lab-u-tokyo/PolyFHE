@@ -2,8 +2,9 @@ import csv
 import numpy as np
 
 # csv_files = [f"./data/ncu-ntt12-A4090-{i}.csv" for i in [1, 2, 4, 6, 9, 12, 18, 36]]
-csv_files = [f"data/ncu-memory-accum-v7-{i}.csv" for i in [0, 2]]
+csv_files = [f"data/ncu-memory-accum-v7-wrong-{i}.csv" for i in [2]]
 
+dic_metricname_unit = {}
 
 for file in csv_files:
     profiled_data = {}
@@ -30,15 +31,25 @@ for file in csv_files:
                 metric_value = float(row[idx_metric_value])
                 metric_unit = row[idx_metric_unit]
 
-                # Convert metric value to Kbytes
+                # Convert metric value to Mbytes
                 if metric_unit == "byte":
-                    metric_value /= 1024
+                    metric_value /= 1024 * 1024
                 elif metric_unit == "Kbyte":
-                    pass
+                    metric_value /= 1024
                 elif metric_unit == "Mbyte":
-                    metric_value *= 1024
+                    pass
                 elif metric_unit == "Gbyte":
-                    metric_value *= 1024 * 1024
+                    metric_value *= 1024
+                elif metric_unit == "sector":
+                    metric_value = (metric_value * 32) / (1024 * 1024)
+
+                if metric_name not in dic_metricname_unit:
+                    display_name = metric_unit
+                    if metric_unit.endswith("byte"):
+                        display_name = "MB"
+                    elif metric_unit == "sector":
+                        display_name = "MB"
+                    dic_metricname_unit[metric_name] = display_name
 
                 skip_list = ["max_rate", "ratio"]
                 if any(skip in metric_name for skip in skip_list):
@@ -58,4 +69,4 @@ for file in csv_files:
             # Calculate mean and std
             mean_value = np.mean(profiled_data[kernel_name][metric_name])
             std_value = np.std(profiled_data[kernel_name][metric_name])
-            print(f"  {metric_name} : {mean_value:.2f} (std: {std_value:.2f})")
+            print(f"  {metric_name} : {mean_value:.2f} {dic_metricname_unit[metric_name]} (std: {std_value:.2f})")
