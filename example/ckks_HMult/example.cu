@@ -247,23 +247,40 @@ void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
     }
 
     std::vector<double> elapsed_list;
-    for (int iter = 0; iter < 7; iter++) {
+    std::vector<double> elapsed_list_cuda;
+    for (int iter = 0; iter < 100; iter++) {
         auto start = std::chrono::high_resolution_clock::now();
+        cudaEvent_t ce_start, ce_stop;
+        cudaEventCreate(&ce_start);
+        cudaEventCreate(&ce_stop);
+        cudaEventRecord(ce_start);
         PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);
         relinearize_inplace_debug(context, xy_cipher, relin_keys,
                                   res_modup_phantom);
         checkCudaErrors(cudaDeviceSynchronize());
+        cudaEventRecord(ce_stop);
+        cudaEventSynchronize(ce_stop);
+        float milliseconds = 0;
+        cudaEventElapsedTime(&milliseconds, ce_start, ce_stop);
+        cudaEventDestroy(ce_start);
+        cudaEventDestroy(ce_stop);
         auto end = std::chrono::high_resolution_clock::now();
         double elapsed =
             std::chrono::duration_cast<std::chrono::microseconds>(end - start)
                 .count();
         if (iter != 0) {
             elapsed_list.push_back(elapsed);
+            elapsed_list_cuda.push_back(milliseconds);
         }
     }
     double avg_time =
         std::accumulate(elapsed_list.begin(), elapsed_list.end(), 0.0) /
         elapsed_list.size();
+    double avg_time_cuda = std::accumulate(elapsed_list_cuda.begin(),
+                                           elapsed_list_cuda.end(), 0.0) /
+                           elapsed_list_cuda.size();
+    std::cout << "Average elapsed time (Phanotm CudaEvent): " << avg_time_cuda
+              << " ms" << std::endl;
     std::cout << "Average elapsed time (Phantom): " << avg_time << " us"
               << std::endl;
 

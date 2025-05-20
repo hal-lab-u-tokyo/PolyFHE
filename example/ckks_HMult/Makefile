@@ -29,7 +29,7 @@ nsys: $(BIN_EXAMPLE)
 	nsys launch -w true ./$(BIN_EXAMPLE)
 
 ncu: $(BIN_EXAMPLE)
-	ncu --nvtx --nvtx-include "compute/" ./$(BIN_EXAMPLE)
+	ncu --nvtx --nvtx-include "compute/" ./$(BIN_EXAMPLE) 1
 
 dot:
 	find ./build -type f -name "*.dot" -exec sh -c 'for f; do dot -Tpng "$$f" -o "$${f%.dot}.png"; done' _ {} +
