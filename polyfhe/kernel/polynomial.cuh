@@ -232,21 +232,75 @@ __forceinline__ __device__ uint64_t xxx_barrett_reduce_uint128_uint64(
     return result;
 }
 
+__device__ inline uint64_t load_global_nc_u64(const uint64_t *ptr) {
+    uint64_t val;
+    asm volatile("ld.global.nc.u64 %0, [%1];" : "=l"(val) : "l"(ptr));
+    return val;
+}
+
 __forceinline__ __device__ void MulKeyAccumOp(Params *params, uint64_t *dst_ax,
                                               uint64_t *dst_bx, uint64_t **in,
                                               uint64_t **key, int beta,
-                                              size_t tid, int twr,
-                                              int start_limb, int end_limb) {
+                                              size_t tid, int twr) {
     const int size_QP_n = params->N * params->KL;
-    tid += start_limb * params->N;
     xxx_uint128_t prod0, prod1;
     xxx_uint128_t acc0, acc1;
-    acc0 = xxx_multiply_uint64_uint64(in[0][tid], key[0][tid]);
-    acc1 = xxx_multiply_uint64_uint64(in[0][tid], key[0][tid + size_QP_n]);
+    // acc0 = xxx_multiply_uint64_uint64(in[0][tid], key[0][tid]);
+    // acc1 = xxx_multiply_uint64_uint64(in[0][tid], key[0][tid + size_QP_n]);
+
+    acc0 = xxx_multiply_uint64_uint64(in[0][tid],
+                                      load_global_nc_u64(&key[0][tid]));
+    acc1 = xxx_multiply_uint64_uint64(
+        in[0][tid], load_global_nc_u64(&key[0][tid + size_QP_n]));
 
     for (int i = 1; i < beta; i++) {
-        prod0 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid]);
-        prod1 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid + size_QP_n]);
+        // prod0 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid]);
+        // prod1 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid +
+        // size_QP_n]);
+        prod0 = xxx_multiply_uint64_uint64(in[i][tid],
+                                           load_global_nc_u64(&key[i][tid]));
+        prod1 = xxx_multiply_uint64_uint64(
+            in[i][tid], load_global_nc_u64(&key[i][tid + size_QP_n]));
+
+        xxx_add_uint128_uint128(prod0, acc0, acc0);
+        xxx_add_uint128_uint128(prod1, acc1, acc1);
+    }
+
+    uint64_t res0 = xxx_barrett_reduce_uint128_uint64(
+        acc0, params->qVec[twr], params->modulus_const_ratio + 2 * twr);
+    uint64_t res1 = xxx_barrett_reduce_uint128_uint64(
+        acc1, params->qVec[twr], params->modulus_const_ratio + 2 * twr);
+    dst_ax[tid] = res0;
+    dst_bx[tid] = res1;
+}
+
+__forceinline__ __device__ void MulKeyAccumOp_opt(
+    Params *params, uint64_t *dst_ax, uint64_t *dst_bx, uint64_t **in,
+    uint64_t **key, int beta, size_t tid, int twr, uint64_t *shared,
+    uint64_t *reg, int idx_j) {
+    const int size_QP_n = params->N * params->KL;
+    xxx_uint128_t prod0, prod1;
+    xxx_uint128_t acc0, acc1;
+    // acc0 = xxx_multiply_uint64_uint64(in[0][tid], key[0][tid]);
+    // acc1 = xxx_multiply_uint64_uint64(in[0][tid], key[0][tid + size_QP_n]);
+    // acc0 = xxx_multiply_uint64_uint64(reg[idx_j],
+    //                                   load_global_nc_u64(&key[beta -
+    //                                   1][tid]));
+    // acc1 = xxx_multiply_uint64_uint64(
+    //     reg[idx_j], load_global_nc_u64(&key[beta - 1][tid + size_QP_n]));
+    acc0 = xxx_multiply_uint64_uint64(in[beta - 1][tid],
+                                      load_global_nc_u64(&key[beta - 1][tid]));
+    acc1 = xxx_multiply_uint64_uint64(
+        in[beta - 1][tid], load_global_nc_u64(&key[beta - 1][tid + size_QP_n]));
+
+    for (int i = 0; i < beta - 1; i++) {
+        // prod0 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid]);
+        // prod1 = xxx_multiply_uint64_uint64(in[i][tid], key[i][tid +
+        // size_QP_n]);
+        prod0 = xxx_multiply_uint64_uint64(in[i][tid],
+                                           load_global_nc_u64(&key[i][tid]));
+        prod1 = xxx_multiply_uint64_uint64(
+            in[i][tid], load_global_nc_u64(&key[i][tid + size_QP_n]));
         xxx_add_uint128_uint128(prod0, acc0, acc0);
         xxx_add_uint128_uint128(prod1, acc1, acc1);
     }
@@ -307,6 +361,26 @@ __forceinline__ __device__ void BConvOpNoReg(
     uint64_t obase_value = obase[out_prime_idx].value();
     uint64_t obase_ratio[2] = {obase[out_prime_idx].const_ratio()[0],
                                obase[out_prime_idx].const_ratio()[1]};
+
+    *res1 =
+        xxx_barrett_reduce_uint128_uint64(accum.x, obase_value, obase_ratio);
+    *res2 =
+        xxx_barrett_reduce_uint128_uint64(accum.y, obase_value, obase_ratio);
+}
+
+__forceinline__ __device__ void BConvOpNoReg_debug(
+    Params *params, uint64_t *res1, uint64_t *res2, const uint64_t *in,
+    const uint64_t *s_qiHat_mod_pj, const size_t degree_idx,
+    const size_t out_prime_idx, const size_t out_prime_idx2,
+    uint64_t ibase_size, size_t startPartIdx, size_t size_PartQl,
+    const uint64_t *twiddles, const uint64_t *twiddles_shoup,
+    const DModulus *modulus) {
+    xxx_uint128_t2 accum = xxx_base_convert_acc_unroll2(
+        in, s_qiHat_mod_pj, out_prime_idx, params->N, ibase_size, degree_idx);
+
+    uint64_t obase_value = modulus[out_prime_idx2].value();
+    uint64_t obase_ratio[2] = {modulus[out_prime_idx2].const_ratio()[0],
+                               modulus[out_prime_idx2].const_ratio()[1]};
 
     *res1 =
         xxx_barrett_reduce_uint128_uint64(accum.x, obase_value, obase_ratio);

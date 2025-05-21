@@ -248,7 +248,7 @@ void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
 
     std::vector<double> elapsed_list;
     std::vector<double> elapsed_list_cuda;
-    for (int iter = 0; iter < 100; iter++) {
+    for (int iter = 0; iter < 10; iter++) {
         auto start = std::chrono::high_resolution_clock::now();
         cudaEvent_t ce_start, ce_stop;
         cudaEventCreate(&ce_start);
