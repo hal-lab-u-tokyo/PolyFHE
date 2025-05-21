@@ -16,11 +16,11 @@ METRICS+=",lts__t_sector_op_read_hit_rate.pct,lts__t_sector_op_write_hit_rate.pc
 
 mkdir -p data
 # NUM_DIVIDES_LIST=(1 2 4 6 9 12 18 36)
-NUM_DIVIDES_LIST=(0 2)
+NUM_DIVIDES_LIST=(0 1)
 
 for NUM_DIVIDES in ${NUM_DIVIDES_LIST[@]}; do
     echo "NUM_DIVIDES=${NUM_DIVIDES}"
     rm -f cachehit.ncu-rep
     ncu -f -o cachehit --nvtx --nvtx-include "compute/" --csv --metrics "${METRICS}" ./build/example.out ${NUM_DIVIDES}
-    ncu --csv --import cachehit.ncu-rep > data/ncu-memory-accum-v9-${NUM_DIVIDES}.csv
+    ncu --csv --import cachehit.ncu-rep > data/ncu-memory-accum-v18-${NUM_DIVIDES}.csv
 done
