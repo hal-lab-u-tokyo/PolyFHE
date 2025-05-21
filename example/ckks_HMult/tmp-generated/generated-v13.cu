@@ -232,6 +232,71 @@ __global__ void BConv_general_part(
     }
 }
 
+__global__ void BConv_NTTP1_part(
+    Params *params, int start_limb, int end_limb, int start_limb_original,
+    int end_limb_original, uint64_t *BConv_in, uint64_t *BConv_NTTP1,
+    uint64_t *NTTPhase1_out, const uint64_t *qiHat_mod_pj, uint64_t ibase_size,
+    uint64_t obase_start, uint64_t obase_start_in30, uint64_t obase_size,
+    size_t startPartIdx, size_t size_PartQl, const uint64_t *twiddles,
+    const uint64_t *twiddles_shoup, const DModulus *modulus) {
+    extern __shared__ uint64_t shared[];
+    __syncthreads();
+    const int unroll_number = 2;
+    {
+        for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+             tid < (params->N * obase_size + unroll_number - 1) / unroll_number;
+             tid += blockDim.x * gridDim.x) {
+            const size_t n_idx = unroll_number * (tid / obase_size);
+            const size_t l_out_idx = tid % obase_size + obase_start;
+            const size_t l_idx = tid % obase_size + obase_start_in30;
+            // l_idx + ((l_idx >= startPartIdx) ? size_PartQl : 0);
+            uint64_t res1, res2;
+            // BConv_5
+            BConvOpNoReg_debug(
+                params, &res1, &res2, BConv_in + params->N * startPartIdx,
+                qiHat_mod_pj, n_idx, l_idx, l_out_idx, ibase_size, startPartIdx,
+                size_PartQl, twiddles, twiddles_shoup, modulus);
+            asm("st.cs.global.v2.u64 [%0], {%1, %2};" ::"l"(
+                    BConv_NTTP1 + l_out_idx * params->N + n_idx),
+                "l"(res1), "l"(res2));
+        }
+    }
+    __syncthreads();
+    {
+        uint64_t reg[8];
+        for (size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+             i < (params->N / 8 * (end_limb - start_limb));
+             i += blockDim.x * gridDim.x) {
+            const size_t n_twr = params->N / 8;
+            const size_t n_idx = i % n_twr;
+            const size_t twr_idx = i / n_twr + start_limb;
+            const size_t group = params->n1 / 8;
+            const size_t pad_tid = threadIdx.x % params->pad;
+
+            const size_t pad_idx = threadIdx.x / params->pad;
+            const size_t n_init = n_twr / group * pad_idx + pad_tid +
+                                  params->pad * (n_idx / (group * params->pad));
+            // NTTPhase1_24
+// Load to register
+#pragma unroll
+            for (int l = 0; l < 8; l++) {
+                reg[l] =
+                    *(BConv_NTTP1 + twr_idx * params->N + n_init + n_twr * l);
+            }
+            const uint64_t size_P = params->K;
+            const uint64_t size_QP = params->KL;
+            size_t twr_idx2 =
+                (twr_idx >= start_limb_original + end_limb_original - size_P
+                     ? size_QP -
+                           (start_limb_original + end_limb_original - twr_idx)
+                     : twr_idx);
+            d_poly_fnwt_phase1(params, NTTPhase1_out, shared, reg, twiddles,
+                               twiddles_shoup, modulus, twr_idx, twr_idx2,
+                               n_init, i);
+        }
+    }
+}
+
 // Define kernel for subgraph[3], type: ElemLimb1
 __global__ void NTTPhase1_6(Params *params, int start_limb, int end_limb,
                             uint64_t *edge_BConv_5_0_NTTPhase1_6_0,
@@ -1788,6 +1853,23 @@ void entry_kernel(Params *params_d, Params *params_h, PhantomContext &context,
                             larger_than_startPartIdx = 1;
                             continue;
                         }
+                        /*
+                        BConv_NTTP1_part<<<
+                            4096, (params_h->n1 / 8) * params_h->pad,
+                            (params_h->n1 + params_h->pad + 1) * params_h->pad *
+                                sizeof(uint64_t)>>>(
+                            params_d, start_li, end_li, 0, 36,
+                            edge_MultConst_4_4_BConv_5_0_d,
+                            edge_BConv_5_0_NTTPhase1_6_0_d,
+                            edge_NTTPhase1_6_0_NTTPhase2_7_0_d,
+                            bconv_pre.QHatModp(), 6, start_li,
+                            (iter - larger_than_startPartIdx) * limb_per,
+                            limb_per, startPartIdx, size_PartQl,
+                            params_h->ntt_tables->twiddle(),
+                            params_h->ntt_tables->twiddle_shoup(),
+                            params_h->ntt_tables->modulus());
+                        */
+
                         BConv_general_part<<<params_h->N * obase_size / 128 /
                                                  unroll_factor,
                                              128>>>(
@@ -1799,6 +1881,7 @@ void entry_kernel(Params *params_d, Params *params_h, PhantomContext &context,
                             params_h->ntt_tables->twiddle(),
                             params_h->ntt_tables->twiddle_shoup(),
                             params_h->ntt_tables->modulus());
+
                         NTTPhase1_general_per<<<
                             4096, (params_h->n1 / 8) * params_h->pad,
                             (params_h->n1 + params_h->pad + 1) * params_h->pad *
