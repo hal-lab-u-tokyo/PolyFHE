@@ -313,6 +313,34 @@ __forceinline__ __device__ void MulKeyAccumOp_opt(
     dst_bx[tid] = res1;
 }
 
+__forceinline__ __device__ void MulKeyAccumOp_opt2(
+    Params *params, uint64_t *dst_ax, uint64_t *dst_bx, uint64_t **in,
+    uint64_t **key, int beta, size_t tid, int twr) {
+    const int size_QP_n = params->N * params->KL;
+    xxx_uint128_t prod0, prod1;
+    xxx_uint128_t acc0, acc1;
+    acc0 = xxx_multiply_uint64_uint64(in[0][tid],
+                                      load_global_nc_u64(&key[0][tid]));
+    acc1 = xxx_multiply_uint64_uint64(
+        in[0][tid], load_global_nc_u64(&key[0][tid + size_QP_n]));
+
+    for (int i = 1; i < beta; i++) {
+        prod0 = xxx_multiply_uint64_uint64(in[i][tid],
+                                           load_global_nc_u64(&key[i][tid]));
+        prod1 = xxx_multiply_uint64_uint64(
+            in[i][tid], load_global_nc_u64(&key[i][tid + size_QP_n]));
+        xxx_add_uint128_uint128(prod0, acc0, acc0);
+        xxx_add_uint128_uint128(prod1, acc1, acc1);
+    }
+
+    uint64_t res0 = xxx_barrett_reduce_uint128_uint64(
+        acc0, params->qVec[twr], params->modulus_const_ratio + 2 * twr);
+    uint64_t res1 = xxx_barrett_reduce_uint128_uint64(
+        acc1, params->qVec[twr], params->modulus_const_ratio + 2 * twr);
+    dst_ax[tid] = res0;
+    dst_bx[tid] = res1;
+}
+
 __forceinline__ __device__ auto xxx_base_convert_acc_unroll2_reg(
     const uint64_t *reg, const uint64_t *QHatModp, size_t out_prime_idx,
     size_t degree, size_t ibase_size, size_t degree_idx) {
