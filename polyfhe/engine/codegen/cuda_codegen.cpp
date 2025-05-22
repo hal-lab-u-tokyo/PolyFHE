@@ -1151,6 +1151,28 @@ void CudaCodegen::generate_call_kernels(
             w << "int n_divide_ = modup_limb / limb_per;\n";
             w << "for (int iter = 0; iter < n_divide_; iter++)\n";
             w.block_begin();
+            w << "int start_li = iter * limb_per;\n";
+            w << "int end_li = (iter + 1) * limb_per;\n";
+            w << "BConv_general_part_allbeta<<<4096, 128>>>("
+              << "params_d, d_bconv_in_list, d_bconv_out_list,"
+              << "d_qhat_modp_list, params_h->alpha, start_li, limb_per,"
+              << "params_h->alpha, beta, params_h->ntt_tables->twiddle(),"
+              << "params_h->ntt_tables->twiddle_shoup(),"
+              << "params_h->ntt_tables->modulus());\n";
+            w << "NTTP1_part_allbeta<<<4096, 128, 128 * 8 * "
+                 "sizeof(uint64_t)>>>("
+              << "params_d, start_li, end_li, 0, modup_limb,"
+              << "params_h->ntt_tables->twiddle(),"
+              << "params_h->ntt_tables->twiddle_shoup(),"
+              << "params_h->ntt_tables->modulus(), d_accum_in_list);\n";
+            w << "NTTP2_MultKeyAccum_part<<<4096, 128,"
+                 "8 * 128 * sizeof(uint64_t)>>>("
+                 "params_d, start_li, end_li, 0, modup_limb, beta,"
+                 "params_h->ntt_tables->twiddle(),"
+                 "params_h->ntt_tables->twiddle_shoup(),"
+                 "params_h->ntt_tables->modulus(), d_accum_in_list,"
+                 "edge_MultKeyAccum_8_0_iNTTPhase2_12_0_d,"
+                 "edge_MultKeyAccum_8_1_iNTTPhase2_9_0_d, relin_keys);\n";
             w.block_end();
             continue;
         }
@@ -1432,7 +1454,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
             w << "// BConv output\n";
             w << "uint64_t **bconv_out_list = new uint64_t *[beta];\n";
             for (int j = 0; j < n_beta; j++) {
-                w << "bconv_in_list[" << j << "] = ";
+                w << "bconv_out_list[" << j << "] = ";
                 assert(subgraph->get_nodes()[j] != nullptr);
                 assert(subgraph->get_nodes()[j]->get_out_edges().size() == 1);
                 assert(subgraph->get_nodes()[j]->get_out_edges()[0] != nullptr);

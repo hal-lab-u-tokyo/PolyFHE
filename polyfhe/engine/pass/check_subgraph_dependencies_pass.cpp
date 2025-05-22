@@ -27,13 +27,13 @@ bool CheckSubgraphDependenciesPass::run_on_graph(
             sgraph->if_contains_op(core::OpType::iNTTPhase1)) {
             if (next_sgraph->if_contains_op(core::OpType::NTTPhase2) ||
                 next_sgraph->if_contains_op(core::OpType::iNTTPhase2)) {
-                requires_devicesync = true;
+                // requires_devicesync = true;
             }
         } else if (sgraph->if_contains_op(core::OpType::NTTPhase2) ||
                    sgraph->if_contains_op(core::OpType::iNTTPhase2)) {
             if (next_sgraph->if_contains_op(core::OpType::NTTPhase1) ||
                 next_sgraph->if_contains_op(core::OpType::iNTTPhase1)) {
-                requires_devicesync = true;
+                // requires_devicesync = true;
             }
         }
         if (requires_devicesync) {

@@ -164,6 +164,12 @@ int main(int argc, char** argv) {
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::ExtractSubgraphPass>());
         pass_manager.push_back(
+            std::make_shared<polyfhe::engine::CheckSubgraphDependenciesPass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::CheckEdgeSamePass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::CheckEdgeOverwritePass>());
+        pass_manager.push_back(
             std::make_shared<polyfhe::engine::ExtractL2ReusePass>());
     }
     pass_manager.push_back(
