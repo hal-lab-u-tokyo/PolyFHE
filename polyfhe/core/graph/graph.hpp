@@ -110,6 +110,13 @@ public:
         m_require_devicesync = require_devicesync;
     }
 
+    void set_limb_range(int start_limb, int end_limb) {
+        m_start_limb = start_limb;
+        m_end_limb = end_limb;
+    }
+    int get_start_limb() { return m_start_limb; }
+    int get_end_limb() { return m_end_limb; }
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;
@@ -127,6 +134,9 @@ private:
     bool m_require_devicesync = true;
 
     KernelLaunchConfig m_kernel_launch_config;
+
+    int m_start_limb = -1;
+    int m_end_limb = -1;
 };
 
 class Graph {

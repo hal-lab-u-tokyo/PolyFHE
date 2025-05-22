@@ -5,6 +5,7 @@
 #include "polyfhe/engine/codegen/codegen_manager.hpp"
 #include "polyfhe/engine/codegen/cuda_codegen.hpp"
 #include "polyfhe/engine/pass/analyze_intra_node_pass.hpp"
+#include "polyfhe/engine/pass/cache_aware_reorder_pass.hpp"
 #include "polyfhe/engine/pass/calculate_memory_traffic_pass.hpp"
 #include "polyfhe/engine/pass/calculate_smem_size_pass.hpp"
 #include "polyfhe/engine/pass/check_edge_overwrite_pass.hpp"
@@ -126,6 +127,8 @@ int main(int argc, char** argv) {
             std::make_shared<polyfhe::engine::ExtractSubgraphPass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::CalculateSmemSizePass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::CacheAwareReorderpass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::CheckSubgraphDependenciesPass>());
         pass_manager.push_back(

@@ -1,0 +1,8 @@
+=========================
+data/ncu-memory-evalkey-1.csv
+=========================
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 289930.97 (std: 7.46)
+  dram__bytes_write.sum : 28856.32 (std: 1024.34)
+  l1tex__t_sector_hit_rate.pct : 8.20 (std: 0.00)
+  lts__t_sector_hit_rate.pct : 11.87 (std: 0.00)

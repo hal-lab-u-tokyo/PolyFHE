@@ -11,6 +11,7 @@ namespace core {
 enum class EdgeLevel {
     Register,
     Shared,
+    L2,
     Global,
     YetToDetermine,
 };

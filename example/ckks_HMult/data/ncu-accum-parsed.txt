@@ -1,0 +1,104 @@
+=========================
+./data/ncu-1.csv
+=========================
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 48198.80 (std: 17.02)
+  dram__bytes_write.sum : 0.07 (std: 0.34)
+  l1tex__t_sector_hit_rate.pct : 54.02 (std: 0.02)
+  lts__t_sector_hit_rate.pct : 25.97 (std: 0.14)
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 289929.51 (std: 5.07)
+  dram__bytes_write.sum : 28427.70 (std: 29.69)
+  l1tex__t_sector_hit_rate.pct : 8.20 (std: 0.00)
+  lts__t_sector_hit_rate.pct : 11.87 (std: 0.00)
+=========================
+./data/ncu-2.csv
+=========================
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 24103.35 (std: 4821.44)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 54.33 (std: 0.07)
+  lts__t_sector_hit_rate.pct : 25.94 (std: 0.19)
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 144963.29 (std: 5.07)
+  dram__bytes_write.sum : 8611.84 (std: 139.28)
+  l1tex__t_sector_hit_rate.pct : 8.33 (std: 0.00)
+  lts__t_sector_hit_rate.pct : 11.92 (std: 0.02)
+=========================
+./data/ncu-4.csv
+=========================
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 12050.43 (std: 3574.80)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 56.10 (std: 1.15)
+  lts__t_sector_hit_rate.pct : 25.95 (std: 0.31)
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 72481.65 (std: 4.63)
+  dram__bytes_write.sum : 26.58 (std: 14.57)
+  l1tex__t_sector_hit_rate.pct : 8.59 (std: 0.00)
+  lts__t_sector_hit_rate.pct : 12.00 (std: 0.04)
+=========================
+./data/ncu-6.csv
+=========================
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 8031.46 (std: 3591.70)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 64.28 (std: 15.66)
+  lts__t_sector_hit_rate.pct : 38.04 (std: 27.38)
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 48323.29 (std: 2.64)
+  dram__bytes_write.sum : 0.93 (std: 2.59)
+  l1tex__t_sector_hit_rate.pct : 8.86 (std: 0.00)
+  lts__t_sector_hit_rate.pct : 12.07 (std: 0.05)
+=========================
+./data/ncu-9.csv
+=========================
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 5359.74 (std: 2143.91)
+  dram__bytes_write.sum : 0.00 (std: 0.01)
+  l1tex__t_sector_hit_rate.pct : 62.37 (std: 13.05)
+  lts__t_sector_hit_rate.pct : 34.24 (std: 22.97)
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 32216.34 (std: 3.41)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 9.26 (std: 0.00)
+  lts__t_sector_hit_rate.pct : 12.14 (std: 0.06)
+=========================
+./data/ncu-12.csv
+=========================
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 4019.81 (std: 1797.65)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 64.87 (std: 15.37)
+  lts__t_sector_hit_rate.pct : 38.55 (std: 27.21)
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 24157.74 (std: 3.70)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 9.63 (std: 0.01)
+  lts__t_sector_hit_rate.pct : 12.23 (std: 0.08)
+=========================
+./data/ncu-18.csv
+=========================
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 2679.88 (std: 1198.42)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 65.67 (std: 15.01)
+  lts__t_sector_hit_rate.pct : 38.66 (std: 27.17)
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 16108.33 (std: 2.77)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 10.40 (std: 0.00)
+  lts__t_sector_hit_rate.pct : 12.37 (std: 0.10)
+=========================
+./data/ncu-36.csv
+=========================
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 1340.03 (std: 599.13)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 67.38 (std: 14.25)
+  lts__t_sector_hit_rate.pct : 39.03 (std: 26.93)
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 8049.53 (std: 3.03)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 12.58 (std: 0.00)
+  lts__t_sector_hit_rate.pct : 12.93 (std: 0.15)
