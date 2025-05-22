@@ -409,8 +409,7 @@ __forceinline__ __device__ void BConvOpNoReg_debug(
 __forceinline__ __device__ void BConvOpNoReg_debug2(
     Params *params, uint64_t *out, const uint64_t *in,
     const uint64_t *s_qiHat_mod_pj, const size_t degree_idx, const size_t o_idx,
-    const size_t out_prime_idx2, uint64_t ibase_size, size_t startPartIdx,
-    size_t size_PartQl, const uint64_t *twiddles,
+    const size_t out_prime_idx2, uint64_t ibase_size, const uint64_t *twiddles,
     const uint64_t *twiddles_shoup, const DModulus *modulus) {
     xxx_uint128_t2 accum = xxx_base_convert_acc_unroll2(
         in, s_qiHat_mod_pj, o_idx, params->N, ibase_size, degree_idx);

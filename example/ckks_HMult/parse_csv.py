@@ -2,7 +2,7 @@ import csv
 import numpy as np
 
 # csv_files = [f"./data/ncu-ntt12-A4090-{i}.csv" for i in [1, 2, 4, 6, 9, 12, 18, 36]]
-csv_files = [f"data/ncu-v26-{i}.csv" for i in [0, 1]]
+csv_files = [f"data/ncu-v28-{i}.csv" for i in [0, 1]]
 
 dic_metricname_unit = {}
 
