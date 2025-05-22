@@ -26,6 +26,15 @@ __forceinline__ __device__ void csub_q(uint64_t &operand,
     operand = tmp + (tmp >> 63) * modulus;
 }
 
+__forceinline__ __device__ void load_two_uint64_v2(uint64_t *ptr,
+                                                   uint64_t &val1,
+                                                   uint64_t &val2) {
+    asm volatile("ld.cs.global.v2.u64 {%0, %1}, [%2];\n\t"
+                 : "=l"(val1), "=l"(val2)
+                 : "l"(ptr)
+                 : "memory");
+}
+
 /** Modular multiplication, result = operand1 * operand2 % mod
  * @param[in] operand1 The first operand (64 bits).
  * @param[in] operand2 Second operand (64-bit operand).
