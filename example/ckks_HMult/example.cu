@@ -331,18 +331,18 @@ int main(int argc, char **argv) {
     double scale = pow(2.0, 40);
     EncryptionParameters parms(scheme_type::ckks);
 
-    ParamSize prmsize = ParamSize::Medium;
+    ParamSize prmsize = ParamSize::Large;
     size_t poly_modulus_degree;
     int dnum;
 
     if (prmsize == ParamSize::Small) {
         poly_modulus_degree = 1 << 15;
-        dnum = 9;
+        dnum = 6;
         // L = 18
         parms.set_coeff_modulus(CoeffModulus::Create(
-            poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-                                  40, 40, 40, 40, 40, 40, 40, 40, 60, 60}));
-        parms.set_special_modulus_size(2); // alpha = (L + 1) / dnum
+            poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+                                  40, 40, 40, 40, 40, 40, 40, 60, 60, 60}));
+        parms.set_special_modulus_size(3); // alpha = (L + 1) / dnum
 
     } else if (prmsize == ParamSize::Medium) {
         poly_modulus_degree = 1 << 16;
@@ -355,13 +355,15 @@ int main(int argc, char **argv) {
         parms.set_special_modulus_size(6);
     } else if (prmsize == ParamSize::Large) {
         poly_modulus_degree = 1 << 16;
-        dnum = 9;
+        // L = 29
+        dnum = 5;
         parms.set_coeff_modulus(CoeffModulus::Create(
             poly_modulus_degree,
             {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
              40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-             40, 40, 40, 40, 40, 40, 40, 40, 60, 60, 60, 60}));
-        parms.set_special_modulus_size(4); // alpha = (L+ 1) / dnum
+             40, 60, 60, 60, 60, 60,60}));
+
+        parms.set_special_modulus_size(6); // dnum = ceil((L+ 1) / alpha)
     }
 
     parms.set_poly_modulus_degree(poly_modulus_degree);

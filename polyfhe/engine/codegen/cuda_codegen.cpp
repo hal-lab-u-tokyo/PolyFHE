@@ -579,6 +579,7 @@ void CudaCodegen::generate_kernel_defs(
                     w_body << "// " << node->get_op_name() << "\n";
                     w_body << "uint64_t *in_list[" << node->get_beta()
                            << "] = {";
+                    std::cout << "beta: " << node->get_beta() << std::endl;
                     assert(node->get_in_edges().size() == node->get_beta());
                     for (size_t i = 0; i < node->get_beta(); i++) {
                         w_body << node->get_in_edges()[i]->get_name();
