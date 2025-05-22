@@ -1136,9 +1136,6 @@ void CudaCodegen::generate_call_kernels(
     w << "// Call kernel\n";
     w << "// Timer start\n";
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
-    w << "phantom::DRNSTool *drns_tool = params_h->rns_tools[1];\n";
-    w << "const int beta = std::ceil((params_h->L + 1) / "
-         "params_h->alpha);\n";
     for (auto subgraph : graph->get_subgraphs()) {
         if (subgraph->get_subgraph_type() ==
             polyfhe::core::SubgraphType::NoAccess) {
@@ -1399,23 +1396,68 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     // w << "std::cout << \"------------------------------\" <<
     // std::endl;\n";
 
-    // TODO: cudaFuncSetAttribute based on DeviceProp
-    // w << "cudaDeviceProp prop;\n";
-    // w << "cudaGetDeviceProperties(&prop, 0);\n";
+    w << "phantom::DRNSTool *drns_tool = params_h->rns_tools[1];\n";
+    w << "const int beta = std::ceil((params_h->L + 1) / "
+         "params_h->alpha);\n";
+
     for (auto subgraph : graph->get_subgraphs()) {
-        // w << "cudaFuncSetAttribute(" << subgraph->get_name() << ", "
-        //   << "cudaFuncAttributeMaxDynamicSharedMemorySize, "
-        //   << subgraph->get_smem_size() << ");\n";
+        if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
+            w << "// Accum input\n";
+            w << "uint64_t **accum_in_list = new uint64_t *[beta];\n";
+            w << "uint64_t **d_accum_in_list;\n";
+            w << "checkCudaErrors(cudaMalloc((void ***)&d_accum_in_list, "
+                 "beta * sizeof(uint64_t *)));\n";
+            w << "checkCudaErrors(cudaMemcpy(d_accum_in_list, "
+                 "accum_in_list, beta * sizeof(uint64_t *), "
+                 "cudaMemcpyHostToDevice));\n";
+            w << "\n";
+
+            w << "// BConv input\n";
+            w << "uint64_t **bconv_in_list = new uint64_t *[beta];\n";
+            w << "uint64_t **d_bconv_in_list;\n";
+            w << "checkCudaErrors(cudaMalloc((void ***)&d_bconv_in_list, "
+                 "beta * sizeof(uint64_t *)));\n";
+            w << "checkCudaErrors(cudaMemcpy(d_bconv_in_list, "
+                 "bconv_in_list, beta * sizeof(uint64_t *), "
+                 "cudaMemcpyHostToDevice));\n";
+            w << "\n";
+
+            w << "// BConv output\n";
+            w << "uint64_t **bconv_out_list = new uint64_t *[beta];\n";
+            w << "uint64_t **d_bconv_out_list;\n";
+            w << "checkCudaErrors(cudaMalloc((void ***)&d_bconv_out_list, "
+                 "beta * sizeof(uint64_t *)));\n";
+            w << "checkCudaErrors(cudaMemcpy(d_bconv_out_list, "
+                 "bconv_out_list, beta * sizeof(uint64_t *), "
+                 "cudaMemcpyHostToDevice));\n";
+            w << "\n";
+
+            w << "// qHatModp\n";
+            w << "uint64_t **qhat_modp_list = new uint64_t *[beta];\n";
+            w << "for (int j = 0; j < beta; j++) {\n";
+            w << "qhat_modp_list[j] = "
+                 "drns_tool->v_base_part_Ql_to_compl_part_QlP_conv()[j]."
+                 "QHatModp();\n";
+            w << "}\n";
+            w << "uint64_t** d_qhat_modp_list;\n";
+            w << "checkCudaErrors(cudaMalloc((void**) &d_qhat_modp_list, "
+                 "sizeof(uint64_t*) * beta));\n";
+            w << "checkCudaErrors(cudaMemcpy(d_qhat_modp_list, "
+                 "qhat_modp_list,"
+                 "sizeof(uint64_t*) * beta,"
+                 "cudaMemcpyHostToDevice));\n";
+            w << "\n";
+        }
     }
     w << "\n";
 
-    w << "// =====================================\n";
-    w << "// Warm up\n";
-    w << "// =====================================\n";
-    w.block_begin();
-    generate_call_kernels(graph, w);
-    w.block_end();
-    w << "\n";
+    // w << "// =====================================\n";
+    // w << "// Warm up\n";
+    // w << "// =====================================\n";
+    // w.block_begin();
+    // generate_call_kernels(graph, w);
+    // w.block_end();
+    // w << "\n";
 
     // Timer
     w << "\n";
@@ -1426,7 +1468,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     w.block_begin();
     w << "std::cout << \"### Benchmark\" << std::endl;\n";
     w << "std::vector<double> elapsed_times;\n";
-    w << "for (int i = 0; i < 7; i++)\n";
+    w << "for (int i = 0; i < 10; i++)\n";
     w.block_begin();
 
     w << "\n";
