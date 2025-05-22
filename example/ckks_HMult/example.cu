@@ -335,8 +335,8 @@ int main(int argc, char **argv) {
         poly_modulus_degree = 1 << 15;
         dnum = 9;
         parms.set_coeff_modulus(CoeffModulus::Create(
-            poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-                                  40, 40, 40, 40, 40, 40, 60, 60}));
+            poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+                                  40, 40, 40, 40, 40, 40, 40, 40, 60, 60}));
         parms.set_special_modulus_size(2);
 
     } else if (prmsize == ParamSize::Medium) {
