@@ -1469,6 +1469,29 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                  "cudaMemcpyHostToDevice));\n";
             w << "\n";
 
+            w << "// NTT inout\n";
+            w << "uint64_t **ntt_in_list = new uint64_t *[beta];\n";
+            for (int j = 0; j < n_beta; j++) {
+                w << "ntt_in_list[" << j << "] = ";
+                assert(subgraph->get_nodes()[n_beta + j] != nullptr);
+                assert(
+                    subgraph->get_nodes()[n_beta + j]->get_out_edges().size() ==
+                    1);
+                assert(subgraph->get_nodes()[n_beta + j]->get_out_edges()[0] !=
+                       nullptr);
+                w << subgraph->get_nodes()[n_beta + j]
+                         ->get_out_edges()[0]
+                         ->get_name()
+                  << "_d;\n";
+            }
+            w << "uint64_t **d_ntt_in_list;\n";
+            w << "checkCudaErrors(cudaMalloc((void ***)&d_ntt_in_list, "
+                 "beta * sizeof(uint64_t *)));\n";
+            w << "checkCudaErrors(cudaMemcpy(d_ntt_in_list, "
+                 "ntt_in_list, beta * sizeof(uint64_t *), "
+                 "cudaMemcpyHostToDevice));\n";
+            w << "\n";
+
             w << "// Accum input\n";
             w << "uint64_t **accum_in_list = new uint64_t *[beta];\n";
             auto accum =

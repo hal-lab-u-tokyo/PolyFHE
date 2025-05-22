@@ -13,6 +13,7 @@ set(POLYFHE_SOURCE_FILES ${POLYFHE_SOURCE_FILES}
     ${CMAKE_CURRENT_LIST_DIR}/lowering_ckks_to_poly_pass.cpp
     ${CMAKE_CURRENT_LIST_DIR}/rewrite_ntt_pass.cpp
     ${CMAKE_CURRENT_LIST_DIR}/set_block_phase_pass.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/sort_subgraph_pass.cpp
 )
 
 set(POLYFHE_SOURCE_FILES ${POLYFHE_SOURCE_FILES} PARENT_SCOPE)

@@ -19,6 +19,7 @@
 #include "polyfhe/engine/pass/pass_manager.hpp"
 #include "polyfhe/engine/pass/rewrite_ntt_pass.hpp"
 #include "polyfhe/engine/pass/set_block_phase_pass.hpp"
+#include "polyfhe/engine/pass/sort_subgraph_pass.hpp"
 #include "polyfhe/frontend/exporter.hpp"
 #include "polyfhe/frontend/parser.hpp"
 
@@ -171,6 +172,8 @@ int main(int argc, char** argv) {
             std::make_shared<polyfhe::engine::CheckEdgeOverwritePass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::ExtractL2ReusePass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::SortSubgraphPass>());
     }
     pass_manager.push_back(
         std::make_shared<polyfhe::engine::KernelLaunchConfigPass>());

@@ -201,6 +201,14 @@ public:
     std::shared_ptr<Config> get_m_config() { return m_config; }
     std::shared_ptr<Config> m_config;
 
+    void set_subgraphs(std::vector<std::shared_ptr<SubGraph>> subgraph) {
+        LOG_WARN("set_subgraphs: replace subgraph\n");
+        m_subgraphs.clear();
+        for (auto s : subgraph) {
+            m_subgraphs.push_back(s);
+        }
+    }
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     std::shared_ptr<Node> m_init_node;
