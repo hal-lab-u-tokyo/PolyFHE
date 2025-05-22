@@ -125,6 +125,10 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum) {
     std::cout << "coeff_mod_size: " << coeff_mod_size << std::endl;
 
     Params params_h(std::log2(poly_degree), coeff_mod_size, dnum);
+    std::cout << "L: " << params_h.L << std::endl;
+    std::cout << "alpha: " << params_h.alpha << std::endl;
+    std::cout << "dnum: " << params_h.dnum << std::endl;
+
     ConvertPhantomToParams(params_h, context);
     Params *params_d;
     checkCudaErrors(cudaMalloc((void **) &params_d, sizeof(Params)));
@@ -136,8 +140,6 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum) {
     xy_cipher_polyfhe.resize(3, coeff_mod_size, poly_degree, s);
     uint64_t *res = xy_cipher_polyfhe.data();
 
-    std::cout << "L: " << params_h.L << std::endl;
-    std::cout << "alpha: " << params_h.alpha << std::endl;
     const int beta = std::ceil((params_h.L + 1) / params_h.alpha);
     const int sizeQP = coeff_mod_size + params_h.alpha;
     const int sizeQPNBeta = poly_degree * sizeQP * beta;
@@ -158,11 +160,13 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum) {
                                cudaMemcpyHostToDevice));
 
     // PolyFHE's HMult
+    std::cout << "Entry kernel" << std::endl;
     entry_kernel(params_d, &params_h, context, relin_keys.public_keys_ptr(),
                  in1, in2, res, res_modup_polyfhe, true);
     checkCudaErrors(cudaDeviceSynchronize());
 
     // Phantom's HMult
+    std::cout << "Phantom" << std::endl;
     PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);
     relinearize_inplace_debug(context, xy_cipher, relin_keys,
                               res_modup_phantom);
@@ -327,17 +331,18 @@ int main(int argc, char **argv) {
     double scale = pow(2.0, 40);
     EncryptionParameters parms(scheme_type::ckks);
 
-    ParamSize prmsize = ParamSize::Small;
+    ParamSize prmsize = ParamSize::Medium;
     size_t poly_modulus_degree;
     int dnum;
 
     if (prmsize == ParamSize::Small) {
         poly_modulus_degree = 1 << 15;
         dnum = 9;
+        // L = 18
         parms.set_coeff_modulus(CoeffModulus::Create(
             poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
                                   40, 40, 40, 40, 40, 40, 40, 40, 60, 60}));
-        parms.set_special_modulus_size(2);
+        parms.set_special_modulus_size(2); // alpha = (L + 1) / dnum
 
     } else if (prmsize == ParamSize::Medium) {
         poly_modulus_degree = 1 << 16;
@@ -348,6 +353,15 @@ int main(int argc, char **argv) {
              40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
              40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60, 60}));
         parms.set_special_modulus_size(6);
+    } else if (prmsize == ParamSize::Large) {
+        poly_modulus_degree = 1 << 16;
+        dnum = 9;
+        parms.set_coeff_modulus(CoeffModulus::Create(
+            poly_modulus_degree,
+            {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+             40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+             40, 40, 40, 40, 40, 40, 40, 40, 60, 60, 60, 60}));
+        parms.set_special_modulus_size(4); // alpha = (L+ 1) / dnum
     }
 
     parms.set_poly_modulus_degree(poly_modulus_degree);

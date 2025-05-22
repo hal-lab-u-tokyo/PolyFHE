@@ -12,6 +12,7 @@
 #include "polyfhe/engine/pass/check_edge_same_pass.hpp"
 #include "polyfhe/engine/pass/check_subgraph_dependencies_pass.hpp"
 #include "polyfhe/engine/pass/data_reuse_pass.hpp"
+#include "polyfhe/engine/pass/extract_l2reuse_pass.hpp"
 #include "polyfhe/engine/pass/extract_subgraph_pass.hpp"
 #include "polyfhe/engine/pass/kernel_launch_config_pass.hpp"
 #include "polyfhe/engine/pass/lowering_ckks_to_poly_pass.hpp"
@@ -133,7 +134,7 @@ int main(int argc, char** argv) {
         LOG_INFO("Do not optimize graph\n");
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::ExtractSubgraphPass>());
-    } else {
+    } else if (args.opt_level == OptLevel::Reg) {
         LOG_INFO("Optimize graph\n");
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::AnalyzeIntraNodePass>());
@@ -153,6 +154,17 @@ int main(int argc, char** argv) {
             std::make_shared<polyfhe::engine::CheckEdgeSamePass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::CheckEdgeOverwritePass>());
+    } else if (args.opt_level == OptLevel::L2) {
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::ExtractL2ReusePass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::AnalyzeIntraNodePass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::DataReusePass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::CalculateMemoryTrafficPass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::ExtractSubgraphPass>());
     }
     pass_manager.push_back(
         std::make_shared<polyfhe::engine::KernelLaunchConfigPass>());
