@@ -63,7 +63,7 @@ bool ExtractL2ReusePass::run_on_graph(
         assert(nodes_i[0]->get_op_type() == polyfhe::core::OpType::BConv);
         int beta_idx = nodes_i[0]->get_beta_idx();
         for (int j = 0; j < n_ops; j++) {
-            sorted_nodes[beta_idx * n_ops + j] = nodes_i[j];
+            sorted_nodes[j * n_beta + beta_idx] = nodes_i[j];
         }
     }
     for (auto node : sorted_nodes) {

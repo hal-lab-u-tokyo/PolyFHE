@@ -1136,6 +1136,8 @@ void CudaCodegen::generate_call_kernels(
     w << "// Call kernel\n";
     w << "// Timer start\n";
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
+    w << "const int current_limb = params_h->L;\n";
+    w << "const int modup_limb = params_h->KL;\n";
     for (auto subgraph : graph->get_subgraphs()) {
         if (subgraph->get_subgraph_type() ==
             polyfhe::core::SubgraphType::NoAccess) {
@@ -1145,6 +1147,11 @@ void CudaCodegen::generate_call_kernels(
         core::KernelLaunchConfig kconfig = subgraph->get_kernel_launch_config();
 
         if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
+            w << "const int limb_per = params_h->alpha;\n";
+            w << "int n_divide_ = modup_limb / limb_per;\n";
+            w << "for (int iter = 0; iter < n_divide_; iter++)\n";
+            w.block_begin();
+            w.block_end();
             continue;
         }
 
@@ -1445,6 +1452,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
             auto accum =
                 subgraph->get_nodes()[subgraph->get_nodes().size() - 1];
             assert(accum->get_op_type() == core::OpType::MultKeyAccum);
+            assert(accum->get_in_edges().size() == n_beta);
+            for (int j = 0; j < n_beta; j++) {
+                w << "accum_in_list[" << j << "] = ";
+                w << accum->get_in_edges()[j]->get_name() << "_d;\n";
+            }
             w << "uint64_t **d_accum_in_list;\n";
             w << "checkCudaErrors(cudaMalloc((void ***)&d_accum_in_list, "
                  "beta * sizeof(uint64_t *)));\n";
