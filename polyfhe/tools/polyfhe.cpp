@@ -156,8 +156,6 @@ int main(int argc, char** argv) {
             std::make_shared<polyfhe::engine::CheckEdgeOverwritePass>());
     } else if (args.opt_level == OptLevel::L2) {
         pass_manager.push_back(
-            std::make_shared<polyfhe::engine::ExtractL2ReusePass>());
-        pass_manager.push_back(
             std::make_shared<polyfhe::engine::AnalyzeIntraNodePass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::DataReusePass>());
@@ -165,6 +163,8 @@ int main(int argc, char** argv) {
             std::make_shared<polyfhe::engine::CalculateMemoryTrafficPass>());
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::ExtractSubgraphPass>());
+        pass_manager.push_back(
+            std::make_shared<polyfhe::engine::ExtractL2ReusePass>());
     }
     pass_manager.push_back(
         std::make_shared<polyfhe::engine::KernelLaunchConfigPass>());

@@ -18,6 +18,9 @@ bool ExtractL2ReusePass::run_on_graph(
         l2reuse_nodes;
 
     for (auto node : graph->get_nodes()) {
+        if (node == nullptr) {
+            continue;
+        }
         if (node->get_op_type() == polyfhe::core::OpType::MultConst) {
             for (auto outedge : node->get_out_edges()) {
                 std::shared_ptr<polyfhe::core::Node> nextnode =
@@ -52,10 +55,44 @@ bool ExtractL2ReusePass::run_on_graph(
         }
     }
     subgraph.set_subgraph_type(polyfhe::core::SubgraphType::L2);
+
+    for (auto subgraph : graph->get_subgraphs()) {
+        std::cout << "subgraph: " << subgraph->get_name() << std::endl;
+        if (subgraph->get_nodes().size() == 1) {
+        }
+    }
+
     graph->add_subgraph(std::make_shared<polyfhe::core::SubGraph>(subgraph));
 
-    polyfhe::frontend::export_graph_to_dot(
-        graph, "build/graph_extract_l2reuse_pass.dot");
+    // remove reuse node from subgraph
+    std::vector<std::shared_ptr<core::SubGraph>> erase_target;
+    for (auto reuse_nodes : l2reuse_nodes) {
+        for (auto node : reuse_nodes) {
+            bool found = false;
+            for (auto sgraph : graph->get_subgraphs()) {
+                if (sgraph->get_nodes().size() == 1) {
+                    if (sgraph->get_nodes()[0] == node) {
+                        erase_target.push_back(sgraph);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) {
+                LOG_ERROR("Cannot find subgraph for reuse node %s\n",
+                          node->get_op_name().c_str());
+            }
+        }
+    }
+    for (auto sgraph : erase_target) {
+        graph->get_subgraphs().erase(
+            std::remove(graph->get_subgraphs().begin(),
+                        graph->get_subgraphs().end(), sgraph),
+            graph->get_subgraphs().end());
+    }
+
+    // polyfhe::frontend::export_graph_to_dot(
+    //     new_graph, "build/graph_extract_l2reuse_pass.dot");
     return true;
 }
 } // namespace engine
