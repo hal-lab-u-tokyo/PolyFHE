@@ -23,8 +23,7 @@ using namespace phantom::util;
 
 void entry_kernel(Params *params_d, Params *params_h, PhantomContext &context,
                   uint64_t **relin_keys, uint64_t *in0, uint64_t *in1,
-                  uint64_t *out0, uint64_t *out2, bool if_benchmark,
-                  int n_divide);
+                  uint64_t *out0, uint64_t *out2, bool if_benchmark);
 
 inline bool operator==(const cuDoubleComplex &lhs, const cuDoubleComplex &rhs) {
     return fabs(lhs.x - rhs.x) < EPSINON;
@@ -158,7 +157,7 @@ void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
 
     // PolyFHE's HMult
     entry_kernel(params_d, &params_h, context, relin_keys.public_keys_ptr(),
-                 in1, in2, res, res_modup_polyfhe, true, n_divide);
+                 in1, in2, res, res_modup_polyfhe, true);
     checkCudaErrors(cudaDeviceSynchronize());
 
     // Phantom's HMult

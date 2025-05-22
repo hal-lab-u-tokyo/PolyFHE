@@ -593,9 +593,7 @@ void CudaCodegen::generate_kernel_defs(
                            << ", in_list"
                            << ", relin_keys"
                            << ", " << node->get_beta() << ", idx"
-                           << ", l_idx"
-                           << ", start_limb"
-                           << ", end_limb);\n";
+                           << ", l_idx);\n";
                 } else {
                     LOG_ERROR(
                         "Only Add, Sub, Mult, MultConst and Copy are "
