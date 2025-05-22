@@ -347,7 +347,7 @@ __global__ void NTTP2_MultKeyAccum_part(
         size_t t_idx = n_idx % (params->n2 / 8);
         const size_t n_init = m_idx * params->n2 + t_idx;
         // NTTPhase2
-        for (int beta_idx = 0; beta_idx < 5; beta_idx++) {
+        for (int beta_idx = 0; beta_idx < beta; beta_idx++) {
             size_t twr_idx2 =
                 (l_idx >= start_limb_original + end_limb_original - params->K
                      ? params->KL -
