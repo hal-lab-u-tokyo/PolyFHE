@@ -51,15 +51,28 @@ bool ExtractL2ReusePass::run_on_graph(
     }
 
     polyfhe::core::SubGraph new_subgraph;
+
     assert(l2reuse_nodes.size() > 0);
-    for (int i = 0; i < l2reuse_nodes[0].size(); i++) {
-        for (int j = 0; j < l2reuse_nodes.size(); j++) {
-            auto node = l2reuse_nodes[j][i];
-            new_subgraph.add_node(node);
+    int n_beta = l2reuse_nodes.size();
+    int n_ops = l2reuse_nodes[0].size();
+    std::vector<std::shared_ptr<polyfhe::core::Node>> sorted_nodes(
+        n_beta * n_ops, nullptr);
+    std::cout << "n_beta: " << n_beta << ", n_ops: " << n_ops << std::endl;
+    for (int i = 0; i < n_beta; i++) {
+        auto nodes_i = l2reuse_nodes[i];
+        assert(nodes_i[0]->get_op_type() == polyfhe::core::OpType::BConv);
+        int beta_idx = nodes_i[0]->get_beta_idx();
+        for (int j = 0; j < n_ops; j++) {
+            sorted_nodes[beta_idx * n_ops + j] = nodes_i[j];
         }
+    }
+    for (auto node : sorted_nodes) {
+        std::cout << node->get_op_name() << std::endl;
+        new_subgraph.add_node(node);
     }
     new_subgraph.add_node(accum_node);
     new_subgraph.set_subgraph_type(polyfhe::core::SubgraphType::L2);
+    new_subgraph.set_beta(n_beta);
 
     graph->add_subgraph(
         std::make_shared<polyfhe::core::SubGraph>(new_subgraph));
