@@ -23,7 +23,7 @@ $(BIN_EXAMPLE): $(COMPILER_OUT) example.cu
 $(COMPILER_OUT): $(DOT)
 	@echo "Generating GPU code using PolyFHE..."
 	@mkdir -p build
-	$(BIN_COMPILER) -i $(DOT) -p -c $(CONFIG) $(OPT_LEVEL)
+	$(BIN_COMPILER) -i $(DOT) -p -c $(CONFIG) --optlevel $(OPT_LEVEL)
 
 nsys: $(BIN_EXAMPLE)
 	nsys start -c cudaProfilerApi

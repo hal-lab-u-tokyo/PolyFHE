@@ -21,19 +21,24 @@
 #include "polyfhe/frontend/exporter.hpp"
 #include "polyfhe/frontend/parser.hpp"
 
+enum class OptLevel {
+    None,
+    Reg,
+    L2,
+};
 struct Args {
     std::string input_file;
     std::string config_file;
     polyfhe::core::GraphType type;
-    bool if_not_optimize;
+    OptLevel opt_level;
 };
 
 Args define_and_parse_arguments(int argc, char** argv) {
     Args args;
     boost::program_options::options_description desc("Hifive Options");
-    desc.add_options()("opt", "Optimize graph (default: ON)")(
-        "noopt,n", "Not optimize graph")("poly,p", "Input *.dot if poly graph")(
-        "help,h", "Print help message")(
+    desc.add_options()("optlevel", boost::program_options::value<int>(),
+                       "Optimization level (0: None, 1: Reg, 2: L2)")(
+        "poly,p", "Input *.dot if poly graph")("help,h", "Print help message")(
         "input,i", boost::program_options::value<std::string>(),
         "Input dot file")("config,c",
                           boost::program_options::value<std::string>(),
@@ -61,12 +66,25 @@ Args define_and_parse_arguments(int argc, char** argv) {
     }
     args.input_file = vm["input"].as<std::string>();
 
-    args.if_not_optimize = vm.count("noopt");
-
     if (vm.count("poly")) {
         args.type = polyfhe::core::GraphType::Poly;
     } else {
         args.type = polyfhe::core::GraphType::FHE;
+    }
+
+    switch (vm["optlevel"].as<int>()) {
+    case 0:
+        args.opt_level = OptLevel::None;
+        break;
+    case 1:
+        args.opt_level = OptLevel::Reg;
+        break;
+    case 2:
+        args.opt_level = OptLevel::L2;
+        break;
+    default:
+        LOG_ERROR("Invalid optimization level\n");
+        exit(1);
     }
 
     return args;
@@ -111,7 +129,7 @@ int main(int argc, char** argv) {
         std::make_shared<polyfhe::engine::SetBlockPhasePass>());
 
     // Pass: Data reuse
-    if (args.if_not_optimize) {
+    if (args.opt_level == OptLevel::None) {
         LOG_INFO("Do not optimize graph\n");
         pass_manager.push_back(
             std::make_shared<polyfhe::engine::ExtractSubgraphPass>());
@@ -146,8 +164,8 @@ int main(int argc, char** argv) {
     std::cout << "    Graph type: "
               << (args.type == polyfhe::core::GraphType::FHE ? "FHE" : "Poly")
               << std::endl;
-    std::cout << "    Optimize: " << (args.if_not_optimize ? "No" : "Yes")
-              << std::endl;
+    std::cout << "    Optlevel(0: None, 1: Reg, 2: L2) : "
+              << (int) args.opt_level << std::endl;
     std::cout << "    config.SharedMemKB: " << config.SharedMemKB << std::endl;
     pass_manager.display_passes();
     std::cout << "==================================================\n";
