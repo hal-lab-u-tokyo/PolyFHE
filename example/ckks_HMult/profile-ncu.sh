@@ -22,5 +22,5 @@ for NUM_DIVIDES in ${NUM_DIVIDES_LIST[@]}; do
     echo "NUM_DIVIDES=${NUM_DIVIDES}"
     rm -f cachehit.ncu-rep
     ncu -f -o cachehit --nvtx --nvtx-include "compute/" --csv --metrics "${METRICS}" ./build/example.out ${NUM_DIVIDES}
-    ncu --csv --import cachehit.ncu-rep > data/ncu-v25-${NUM_DIVIDES}.csv
+    ncu --csv --import cachehit.ncu-rep > data/ncu-v26-${NUM_DIVIDES}.csv
 done
