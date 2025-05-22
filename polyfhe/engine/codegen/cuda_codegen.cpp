@@ -371,6 +371,8 @@ void CudaCodegen::generate_kernel_defs(
         if (subgraph->get_subgraph_type() == core::SubgraphType::NoAccess) {
             // We don't need to generate kernel for NoAccess subgraph
             continue;
+        } else if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
+            continue;
         }
 
         w << "// Define kernel for subgraph[" << subgraph->get_idx() << "]";
@@ -1117,6 +1119,7 @@ void CudaCodegen::generate_kernel_defs(
             }
         } else if (s_type == polyfhe::core::SubgraphType::NoAccess) {
             // We don't need to generate kernel
+        } else if (s_type == polyfhe::core::SubgraphType::L2) {
         } else {
             LOG_ERROR("Not implemented\n");
         }
@@ -1143,6 +1146,10 @@ void CudaCodegen::generate_call_kernels(
             continue;
         }
         core::KernelLaunchConfig kconfig = subgraph->get_kernel_launch_config();
+
+        if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
+            continue;
+        }
 
         if (subgraph->get_subgraph_type() == core::SubgraphType::ElemSlot) {
             w.block_begin();

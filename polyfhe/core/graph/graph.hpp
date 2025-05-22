@@ -19,6 +19,7 @@ enum class SubgraphType {
     ElemSlot,
     ElemLimb1Slot,
     ElemLimb2Slot,
+    L2,
     NoAccess,
 };
 
