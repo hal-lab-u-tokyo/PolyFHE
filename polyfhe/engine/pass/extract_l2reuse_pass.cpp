@@ -16,6 +16,7 @@ bool ExtractL2ReusePass::run_on_graph(
 
     std::vector<std::vector<std::shared_ptr<polyfhe::core::Node>>>
         l2reuse_nodes;
+    std::shared_ptr<polyfhe::core::Node> accum_node;
 
     for (auto node : graph->get_nodes()) {
         if (node == nullptr) {
@@ -26,12 +27,15 @@ bool ExtractL2ReusePass::run_on_graph(
                 std::shared_ptr<polyfhe::core::Node> nextnode =
                     outedge->get_dst();
                 std::vector<std::shared_ptr<polyfhe::core::Node>> reuse_nodes;
-                while (nextnode->get_op_type() !=
-                       polyfhe::core::OpType::MultKeyAccum) {
+                do {
                     reuse_nodes.push_back(nextnode);
                     assert(nextnode->get_out_edges().size() == 1);
                     nextnode = nextnode->get_out_edges()[0]->get_dst();
-                }
+                } while (nextnode->get_op_type() !=
+                         polyfhe::core::OpType::MultKeyAccum);
+                assert(nextnode->get_op_type() ==
+                       polyfhe::core::OpType::MultKeyAccum);
+                accum_node = nextnode;
                 l2reuse_nodes.push_back(reuse_nodes);
             }
         }
@@ -46,42 +50,36 @@ bool ExtractL2ReusePass::run_on_graph(
         std::cout << std::endl;
     }
 
-    polyfhe::core::SubGraph subgraph;
+    polyfhe::core::SubGraph new_subgraph;
     assert(l2reuse_nodes.size() > 0);
     for (int i = 0; i < l2reuse_nodes[0].size(); i++) {
         for (int j = 0; j < l2reuse_nodes.size(); j++) {
             auto node = l2reuse_nodes[j][i];
-            subgraph.add_node(node);
+            new_subgraph.add_node(node);
         }
     }
-    subgraph.set_subgraph_type(polyfhe::core::SubgraphType::L2);
+    new_subgraph.add_node(accum_node);
+    new_subgraph.set_subgraph_type(polyfhe::core::SubgraphType::L2);
 
-    for (auto subgraph : graph->get_subgraphs()) {
-        std::cout << "subgraph: " << subgraph->get_name() << std::endl;
-        if (subgraph->get_nodes().size() == 1) {
-        }
-    }
-
-    graph->add_subgraph(std::make_shared<polyfhe::core::SubGraph>(subgraph));
+    graph->add_subgraph(
+        std::make_shared<polyfhe::core::SubGraph>(new_subgraph));
 
     // remove reuse node from subgraph
     std::vector<std::shared_ptr<core::SubGraph>> erase_target;
-    for (auto reuse_nodes : l2reuse_nodes) {
-        for (auto node : reuse_nodes) {
-            bool found = false;
-            for (auto sgraph : graph->get_subgraphs()) {
-                if (sgraph->get_nodes().size() == 1) {
-                    if (sgraph->get_nodes()[0] == node) {
-                        erase_target.push_back(sgraph);
-                        found = true;
-                        break;
-                    }
+    for (auto node : new_subgraph.get_nodes()) {
+        bool found = false;
+        for (auto sgraph : graph->get_subgraphs()) {
+            if (sgraph->get_nodes().size() == 1) {
+                if (sgraph->get_nodes()[0] == node) {
+                    erase_target.push_back(sgraph);
+                    found = true;
+                    break;
                 }
             }
-            if (!found) {
-                LOG_ERROR("Cannot find subgraph for reuse node %s\n",
-                          node->get_op_name().c_str());
-            }
+        }
+        if (!found) {
+            LOG_ERROR("Cannot find subgraph for reuse node %s\n",
+                      node->get_op_name().c_str());
         }
     }
     for (auto sgraph : erase_target) {
