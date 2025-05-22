@@ -19,46 +19,56 @@
 
 extern "C" {
 
-__global__ void NTTPhase1_general(
-    Params *params, int start_limb, int end_limb, int start_limb_original,
-    int end_limb_original, int exclude_start, int exclude_end,
-    uint64_t *edge_BConv_23_0_NTTPhase1_24_0,
-    uint64_t *edge_NTTPhase1_24_0_NTTPhase2_25_0, const uint64_t *twiddles,
-    const uint64_t *twiddles_shoup, const DModulus *modulus);
+__global__ void NTTPhase1_general(Params *params, int start_limb, int end_limb,
+                                  int start_limb_original,
+                                  int end_limb_original, int exclude_start,
+                                  int exclude_end, uint64_t *in, uint64_t *out,
+                                  const uint64_t *twiddles,
+                                  const uint64_t *twiddles_shoup,
+                                  const DModulus *modulus);
+
 __global__ void NTTPhase1_general_part(Params *params, int start_limb,
                                        int end_limb, int start_limb_original,
                                        int end_limb_original, uint64_t *in,
                                        uint64_t *out, const uint64_t *twiddles,
                                        const uint64_t *twiddles_shoup,
                                        const DModulus *modulus);
+
 __global__ void NTTP1_part_allbeta(Params *params, int start_limb, int end_limb,
                                    int start_limb_original,
                                    int end_limb_original,
                                    const uint64_t *twiddles,
                                    const uint64_t *twiddles_shoup,
                                    const DModulus *modulus, uint64_t **in_list);
-__global__ void NTTPhase2_general(
-    Params *params, int start_limb, int end_limb, int start_limb_original,
-    int end_limb_original, int exclude_start, int exclude_end,
-    uint64_t *edge_NTTPhase1_24_0_NTTPhase2_25_0,
-    uint64_t *edge_NTTPhase2_25_0_MultKeyAccum_8_0, const uint64_t *twiddles,
-    const uint64_t *twiddles_shoup, const DModulus *modulus);
+
+__global__ void NTTPhase2_general(Params *params, int start_limb, int end_limb,
+                                  int start_limb_original,
+                                  int end_limb_original, int exclude_start,
+                                  int exclude_end, uint64_t *in, uint64_t *out,
+                                  const uint64_t *twiddles,
+                                  const uint64_t *twiddles_shoup,
+                                  const DModulus *modulus);
+
 __global__ void NTTPhase2_general_part(Params *params, int start_limb,
                                        int end_limb, int start_limb_original,
                                        int end_limb_original, uint64_t *in,
                                        uint64_t *out, const uint64_t *twiddles,
                                        const uint64_t *twiddles_shoup,
                                        const DModulus *modulus);
+
 __global__ void NTTP2_part_allbeta(Params *params, int start_limb, int end_limb,
                                    int start_limb_original,
                                    int end_limb_original,
                                    const uint64_t *twiddles,
                                    const uint64_t *twiddles_shoup,
                                    const DModulus *modulus, uint64_t **in_list);
+
 __global__ void iNTTPhase2_general(Params *params, int start_limb, int end_limb,
                                    uint64_t *in, uint64_t *out);
+
 __global__ void iNTTPhase1_general(Params *params, int start_limb, int end_limb,
                                    uint64_t *in, uint64_t *out);
+
 __global__ void BConv_general_part_allbeta(
     Params *params, uint64_t **in_list, uint64_t **out_list,
     uint64_t **qiHat_mod_pj_list, uint64_t ibase_size, uint64_t obase_start,
@@ -67,15 +77,14 @@ __global__ void BConv_general_part_allbeta(
 
 __global__ void NTTP2_MultKeyAccum_part(
     Params *params, int start_limb, int end_limb, int start_limb_original,
-    int end_limb_original, int beta,
-    uint64_t *edge_NTTPhase1_24_0_NTTPhase2_25_0, const uint64_t *twiddles,
+    int end_limb_original, int beta, const uint64_t *twiddles,
     const uint64_t *twiddles_shoup, const DModulus *modulus, uint64_t **in_list,
-    uint64_t *edge_MultKeyAccum_8_0_iNTTPhase2_12_0,
-    uint64_t *edge_MultKeyAccum_8_1_iNTTPhase2_9_0, uint64_t **relin_keys);
-__global__ void MultKeyAccum_part(
-    Params *params, int start_limb, int end_limb, int beta, uint64_t **in_list,
-    uint64_t *edge_MultKeyAccum_8_0_iNTTPhase2_12_0,
-    uint64_t *edge_MultKeyAccum_8_1_iNTTPhase2_9_0, uint64_t **relin_keys);
+    uint64_t *out_ax, uint64_t *out_bx, uint64_t **relin_keys);
+
+__global__ void MultKeyAccum_part(Params *params, int start_limb, int end_limb,
+                                  int beta, uint64_t **in_list,
+                                  uint64_t *out_ax, uint64_t *out_bx,
+                                  uint64_t **relin_keys);
 
 enum class ElemWiseOp { Add, Sub, Mult };
 

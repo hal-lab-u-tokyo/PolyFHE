@@ -18,7 +18,7 @@ all: $(BIN_EXAMPLE)
 $(BIN_EXAMPLE): $(COMPILER_OUT) example.cu
 	@echo "Compiling example code..."
 	@mkdir -p build
-	nvcc $(CXXFLAGS) $(LDFLAGS) -o $@ $(COMPILER_OUT) example.cu $(ROOT)/polyfhe/kernel/poly_global.cu 
+	nvcc $(CXXFLAGS) $(LDFLAGS) -o $@ $(COMPILER_OUT) example.cu $(ROOT)/polyfhe/kernel/polynomial.cu 
 
 $(COMPILER_OUT): $(DOT)
 	@echo "Generating GPU code using PolyFHE..."

@@ -1,15 +1,15 @@
 #include "polyfhe/kernel/ntt-phantom.hpp"
 #include "polyfhe/kernel/polynomial.cuh"
 
-__global__ void NTTPhase1_general(
-    Params *params, int start_limb, int end_limb, int start_limb_original,
-    int end_limb_original, int exclude_start, int exclude_end,
-    uint64_t *edge_BConv_23_0_NTTPhase1_24_0,
-    uint64_t *edge_NTTPhase1_24_0_NTTPhase2_25_0, const uint64_t *twiddles,
-    const uint64_t *twiddles_shoup, const DModulus *modulus) {
+__global__ void NTTPhase1_general(Params *params, int start_limb, int end_limb,
+                                  int start_limb_original,
+                                  int end_limb_original, int exclude_start,
+                                  int exclude_end, uint64_t *in, uint64_t *out,
+                                  const uint64_t *twiddles,
+                                  const uint64_t *twiddles_shoup,
+                                  const DModulus *modulus) {
     extern __shared__ uint64_t shared[];
     uint64_t reg[8];
-    uint64_t *in = edge_BConv_23_0_NTTPhase1_24_0;
     for (size_t i = blockIdx.x * blockDim.x + threadIdx.x;
          i < (params->N / 8 * (end_limb - start_limb));
          i += blockDim.x * gridDim.x) {
@@ -21,8 +21,6 @@ __global__ void NTTPhase1_general(
         const size_t pad_idx = threadIdx.x / params->pad;
         const size_t n_init = n_twr / group * pad_idx + pad_tid +
                               params->pad * (n_idx / (group * params->pad));
-        uint64_t *out;
-        // NTTPhase1_24
         if (twr_idx < exclude_end && twr_idx >= exclude_start) {
             continue;
         }
@@ -34,7 +32,6 @@ __global__ void NTTPhase1_general(
         }
         const uint64_t size_P = params->K;
         const uint64_t size_QP = params->KL;
-        out = edge_NTTPhase1_24_0_NTTPhase2_25_0;
         size_t twr_idx2 =
             (twr_idx >= start_limb_original + end_limb_original - size_P
                  ? size_QP - (start_limb_original + end_limb_original - twr_idx)
@@ -63,7 +60,6 @@ __global__ void NTTPhase1_general_part(Params *params, int start_limb,
         const size_t pad_idx = threadIdx.x / params->pad;
         const size_t n_init = n_twr / group * pad_idx + pad_tid +
                               params->pad * (n_idx / (group * params->pad));
-        // NTTPhase1_24
 // Load to register
 #pragma unroll
         for (int l = 0; l < 8; l++) {
@@ -120,12 +116,13 @@ __global__ void NTTP1_part_allbeta(Params *params, int start_limb, int end_limb,
     }
 }
 
-__global__ void NTTPhase2_general(
-    Params *params, int start_limb, int end_limb, int start_limb_original,
-    int end_limb_original, int exclude_start, int exclude_end,
-    uint64_t *edge_NTTPhase1_24_0_NTTPhase2_25_0,
-    uint64_t *edge_NTTPhase2_25_0_MultKeyAccum_8_0, const uint64_t *twiddles,
-    const uint64_t *twiddles_shoup, const DModulus *modulus) {
+__global__ void NTTPhase2_general(Params *params, int start_limb, int end_limb,
+                                  int start_limb_original,
+                                  int end_limb_original, int exclude_start,
+                                  int exclude_end, uint64_t *in, uint64_t *out,
+                                  const uint64_t *twiddles,
+                                  const uint64_t *twiddles_shoup,
+                                  const DModulus *modulus) {
     extern __shared__ uint64_t shared[];
     uint64_t reg[8];
     const size_t n_tower = params->N / 8;
@@ -146,12 +143,10 @@ __global__ void NTTPhase2_general(
             continue;
         }
         uint64_t n_init;
-        d_poly_fnwt_phase2_debug(params, edge_NTTPhase1_24_0_NTTPhase2_25_0,
-                                 shared, reg, twiddles, twiddles_shoup, modulus,
-                                 end_limb, start_limb, twr_idx, twr_idx2,
-                                 &n_init, tid);
-        uint64_t *out_ptr =
-            edge_NTTPhase2_25_0_MultKeyAccum_8_0 + twr_idx * params->N;
+        d_poly_fnwt_phase2_debug(params, in, shared, reg, twiddles,
+                                 twiddles_shoup, modulus, end_limb, start_limb,
+                                 twr_idx, twr_idx2, &n_init, tid);
+        uint64_t *out_ptr = out + twr_idx * params->N;
 #pragma unroll
         for (size_t j = 0; j < 8; j++) {
             *(out_ptr + n_init + params->n2 / 8 * j) = reg[j];
@@ -336,11 +331,9 @@ __global__ void BConv_general_part_allbeta(
 // Define kernel for subgraph[17], type: Elem
 __global__ void NTTP2_MultKeyAccum_part(
     Params *params, int start_limb, int end_limb, int start_limb_original,
-    int end_limb_original, int beta,
-    uint64_t *edge_NTTPhase1_24_0_NTTPhase2_25_0, const uint64_t *twiddles,
+    int end_limb_original, int beta, const uint64_t *twiddles,
     const uint64_t *twiddles_shoup, const DModulus *modulus, uint64_t **in_list,
-    uint64_t *edge_MultKeyAccum_8_0_iNTTPhase2_12_0,
-    uint64_t *edge_MultKeyAccum_8_1_iNTTPhase2_9_0, uint64_t **relin_keys) {
+    uint64_t *out_ax, uint64_t *out_bx, uint64_t **relin_keys) {
     extern __shared__ uint64_t shared[];
     uint64_t reg[8];
 
@@ -378,26 +371,23 @@ __global__ void NTTP2_MultKeyAccum_part(
             size_t idx = l_idx * params->N + n_init;
 #pragma unroll
             for (size_t j = 0; j < 8; j++) {
-                MulKeyAccumOp_opt(params, edge_MultKeyAccum_8_0_iNTTPhase2_12_0,
-                                  edge_MultKeyAccum_8_1_iNTTPhase2_9_0, in_list,
-                                  relin_keys, beta, idx, l_idx, shared, reg, j);
+                MulKeyAccumOp_opt(params, out_ax, out_bx, in_list, relin_keys,
+                                  beta, idx, l_idx, shared, reg, j);
                 idx += params->n2 / 8;
             }
         }
     }
 }
 
-__global__ void MultKeyAccum_part(
-    Params *params, int start_limb, int end_limb, int beta, uint64_t **in_list,
-    uint64_t *edge_MultKeyAccum_8_0_iNTTPhase2_12_0,
-    uint64_t *edge_MultKeyAccum_8_1_iNTTPhase2_9_0, uint64_t **relin_keys) {
+__global__ void MultKeyAccum_part(Params *params, int start_limb, int end_limb,
+                                  int beta, uint64_t **in_list,
+                                  uint64_t *out_ax, uint64_t *out_bx,
+                                  uint64_t **relin_keys) {
     for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
          tid < (params->N * (end_limb - start_limb));
          tid += blockDim.x * gridDim.x) {
         const size_t l_idx = tid / params->N + start_limb;
-        MulKeyAccumOp_opt2(params, edge_MultKeyAccum_8_0_iNTTPhase2_12_0,
-                           edge_MultKeyAccum_8_1_iNTTPhase2_9_0, in_list,
-                           relin_keys, beta, tid + params->N * start_limb,
-                           l_idx);
+        MulKeyAccumOp_opt2(params, out_ax, out_bx, in_list, relin_keys, beta,
+                           tid + params->N * start_limb, l_idx);
     }
 }
