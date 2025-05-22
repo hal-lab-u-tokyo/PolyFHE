@@ -69,7 +69,7 @@ void ConvertPhantomToParams(Params &params, const PhantomContext &context) {
     params.ntt_tables = &context.gpu_rns_tables();
 }
 
-void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
+void example_ckks(PhantomContext &context, const double &scale, int dnum) {
     // KeyGen
     PhantomSecretKey secret_key(context);
     PhantomPublicKey public_key = secret_key.gen_publickey(context);
@@ -124,7 +124,7 @@ void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
 
     std::cout << "coeff_mod_size: " << coeff_mod_size << std::endl;
 
-    Params params_h(std::log2(poly_degree), coeff_mod_size, 5);
+    Params params_h(std::log2(poly_degree), coeff_mod_size, dnum);
     ConvertPhantomToParams(params_h, context);
     Params *params_d;
     checkCudaErrors(cudaMalloc((void **) &params_d, sizeof(Params)));
@@ -136,6 +136,8 @@ void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
     xy_cipher_polyfhe.resize(3, coeff_mod_size, poly_degree, s);
     uint64_t *res = xy_cipher_polyfhe.data();
 
+    std::cout << "L: " << params_h.L << std::endl;
+    std::cout << "alpha: " << params_h.alpha << std::endl;
     const int beta = std::ceil((params_h.L + 1) / params_h.alpha);
     const int sizeQP = coeff_mod_size + params_h.alpha;
     const int sizeQPNBeta = poly_degree * sizeQP * beta;
@@ -308,6 +310,12 @@ void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
      */
 }
 
+enum class ParamSize {
+    Small,
+    Medium,
+    Large,
+};
+
 int main(int argc, char **argv) {
     // argv[1]: n_divide
     if (argc != 2) {
@@ -317,21 +325,34 @@ int main(int argc, char **argv) {
     int n_divide = atoi(argv[1]);
     srand(time(NULL));
     double scale = pow(2.0, 40);
-    size_t poly_modulus_degree = 1 << 16;
     EncryptionParameters parms(scheme_type::ckks);
+
+    ParamSize prmsize = ParamSize::Small;
+    size_t poly_modulus_degree;
+    int dnum;
+
+    if (prmsize == ParamSize::Small) {
+        poly_modulus_degree = 1 << 15;
+        dnum = 9;
+        parms.set_coeff_modulus(CoeffModulus::Create(
+            poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+                                  40, 40, 40, 40, 40, 40, 60, 60}));
+        parms.set_special_modulus_size(2);
+
+    } else if (prmsize == ParamSize::Medium) {
+        poly_modulus_degree = 1 << 16;
+        dnum = 5;
+        parms.set_coeff_modulus(CoeffModulus::Create(
+            poly_modulus_degree,
+            {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+             40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+             40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60, 60}));
+        parms.set_special_modulus_size(6);
+    }
+
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    /*
-    parms.set_coeff_modulus(CoeffModulus::Create(
-        poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-                              40, 40, 40, 40, 40, 40, 40, 40, 60, 60}));
-    parms.set_special_modulus_size(2);
-    */
-    parms.set_coeff_modulus(CoeffModulus::Create(
-        poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-                              40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-                              40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60, 60}));
-    parms.set_special_modulus_size(6);
+
     PhantomContext context(parms);
     print_parameters(context);
-    example_ckks(context, scale, n_divide);
+    example_ckks(context, scale, dnum);
 }
