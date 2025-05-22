@@ -309,12 +309,12 @@ __forceinline__ __device__ void MulKeyAccumOp_opt2(
     const int size_QP_n = params->N * params->KL;
     xxx_uint128_t prod0, prod1;
     xxx_uint128_t acc0, acc1;
-    acc0 = xxx_multiply_uint64_uint64(in[0][tid],
-                                      load_global_nc_u64(&key[0][tid]));
+    acc0 = xxx_multiply_uint64_uint64(in[beta - 1][tid],
+                                      load_global_nc_u64(&key[beta - 1][tid]));
     acc1 = xxx_multiply_uint64_uint64(
-        in[0][tid], load_global_nc_u64(&key[0][tid + size_QP_n]));
+        in[beta - 1][tid], load_global_nc_u64(&key[beta - 1][tid + size_QP_n]));
 
-    for (int i = 1; i < beta; i++) {
+    for (int i = 0; i < beta - 1; i++) {
         prod0 = xxx_multiply_uint64_uint64(in[i][tid],
                                            load_global_nc_u64(&key[i][tid]));
         prod1 = xxx_multiply_uint64_uint64(
