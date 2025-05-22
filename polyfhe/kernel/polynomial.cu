@@ -77,7 +77,7 @@ __global__ void NTTPhase1_general_part(Params *params, int start_limb,
 
 __global__ void NTTP1_part_allbeta(Params *params, int start_limb, int end_limb,
                                    int start_limb_original,
-                                   int end_limb_original,
+                                   int end_limb_original, int alpha, int beta,
                                    const uint64_t *twiddles,
                                    const uint64_t *twiddles_shoup,
                                    const DModulus *modulus,
@@ -101,8 +101,9 @@ __global__ void NTTP1_part_allbeta(Params *params, int start_limb, int end_limb,
                        (start_limb_original + end_limb_original - twr_idx)
                  : twr_idx);
 
-        for (int beta_idx = 0; beta_idx < 5; beta_idx++) {
-            if (twr_idx >= (beta_idx + 1) * 6 || twr_idx < beta_idx * 6) {
+        for (int beta_idx = 0; beta_idx < beta; beta_idx++) {
+            if (twr_idx >= (beta_idx + 1) * alpha ||
+                twr_idx < beta_idx * alpha) {
 #pragma unroll
                 for (int l = 0; l < 8; l++) {
                     reg[l] = *(in_list[beta_idx] + twr_idx * params->N +
@@ -192,7 +193,7 @@ __global__ void NTTPhase2_general_part(Params *params, int start_limb,
 
 __global__ void NTTP2_part_allbeta(Params *params, int start_limb, int end_limb,
                                    int start_limb_original,
-                                   int end_limb_original,
+                                   int end_limb_original, int alpha, int beta,
                                    const uint64_t *twiddles,
                                    const uint64_t *twiddles_shoup,
                                    const DModulus *modulus,
@@ -209,13 +210,13 @@ __global__ void NTTP2_part_allbeta(Params *params, int start_limb, int end_limb,
         size_t t_idx = n_idx % (params->n2 / 8);
         const size_t n_init = m_idx * params->n2 + t_idx;
         // NTTPhase2
-        for (int beta_idx = 0; beta_idx < 5; beta_idx++) {
+        for (int beta_idx = 0; beta_idx < beta; beta_idx++) {
             size_t twr_idx2 =
                 (l_idx >= start_limb_original + end_limb_original - params->K
                      ? params->KL -
                            (start_limb_original + end_limb_original - l_idx)
                      : l_idx);
-            if (l_idx >= (beta_idx + 1) * 6 || l_idx < beta_idx * 6) {
+            if (l_idx >= (beta_idx + 1) * alpha || l_idx < beta_idx * alpha) {
                 d_poly_fnwt_phase2_debug2(params, in_list[beta_idx], shared,
                                           reg, twiddles, twiddles_shoup,
                                           modulus, end_limb, start_limb, l_idx,
@@ -253,7 +254,7 @@ __global__ void iNTTPhase2_general(Params *params, int start_limb, int end_limb,
         __syncthreads();
 
         // iNTTPhase2_9
-        d_poly_inwt_radix8_phase2(params, 30, shared, reg, tid);
+        d_poly_inwt_radix8_phase2(params, start_limb, shared, reg, tid);
 
         // Store data from register
         const size_t n_group = params->n2 / 8;
@@ -331,7 +332,7 @@ __global__ void BConv_general_part_allbeta(
 // Define kernel for subgraph[17], type: Elem
 __global__ void NTTP2_MultKeyAccum_part(
     Params *params, int start_limb, int end_limb, int start_limb_original,
-    int end_limb_original, int beta, const uint64_t *twiddles,
+    int end_limb_original, int alpha, int beta, const uint64_t *twiddles,
     const uint64_t *twiddles_shoup, const DModulus *modulus, uint64_t **in_list,
     uint64_t *out_ax, uint64_t *out_bx, uint64_t **relin_keys) {
     extern __shared__ uint64_t shared[];
@@ -352,7 +353,7 @@ __global__ void NTTP2_MultKeyAccum_part(
                      ? params->KL -
                            (start_limb_original + end_limb_original - l_idx)
                      : l_idx);
-            if (l_idx >= (beta_idx + 1) * 6 || l_idx < beta_idx * 6) {
+            if (l_idx >= (beta_idx + 1) * alpha || l_idx < beta_idx * alpha) {
                 d_poly_fnwt_phase2_debug2(params, in_list[beta_idx], shared,
                                           reg, twiddles, twiddles_shoup,
                                           modulus, end_limb, start_limb, l_idx,

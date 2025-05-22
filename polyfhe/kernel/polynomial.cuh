@@ -36,7 +36,7 @@ __global__ void NTTPhase1_general_part(Params *params, int start_limb,
 
 __global__ void NTTP1_part_allbeta(Params *params, int start_limb, int end_limb,
                                    int start_limb_original,
-                                   int end_limb_original,
+                                   int end_limb_original, int alpha, int beta,
                                    const uint64_t *twiddles,
                                    const uint64_t *twiddles_shoup,
                                    const DModulus *modulus, uint64_t **in_list);
@@ -58,7 +58,7 @@ __global__ void NTTPhase2_general_part(Params *params, int start_limb,
 
 __global__ void NTTP2_part_allbeta(Params *params, int start_limb, int end_limb,
                                    int start_limb_original,
-                                   int end_limb_original,
+                                   int end_limb_original, int alpha, int beta,
                                    const uint64_t *twiddles,
                                    const uint64_t *twiddles_shoup,
                                    const DModulus *modulus, uint64_t **in_list);
@@ -77,7 +77,7 @@ __global__ void BConv_general_part_allbeta(
 
 __global__ void NTTP2_MultKeyAccum_part(
     Params *params, int start_limb, int end_limb, int start_limb_original,
-    int end_limb_original, int beta, const uint64_t *twiddles,
+    int end_limb_original, int alpha, int beta, const uint64_t *twiddles,
     const uint64_t *twiddles_shoup, const DModulus *modulus, uint64_t **in_list,
     uint64_t *out_ax, uint64_t *out_bx, uint64_t **relin_keys);
 

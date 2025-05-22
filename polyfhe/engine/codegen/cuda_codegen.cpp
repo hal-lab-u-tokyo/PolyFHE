@@ -1163,12 +1163,13 @@ void CudaCodegen::generate_call_kernels(
             w << "NTTP1_part_allbeta<<<4096, 128, 128 * 8 * "
                  "sizeof(uint64_t)>>>("
               << "params_d, start_li, end_li, 0, modup_limb,"
+              << "params_h->K, beta, "
               << "params_h->ntt_tables->twiddle(),"
               << "params_h->ntt_tables->twiddle_shoup(),"
               << "params_h->ntt_tables->modulus(), d_accum_in_list);\n";
             w << "NTTP2_MultKeyAccum_part<<<4096, 128,"
                  "8 * 128 * sizeof(uint64_t)>>>("
-                 "params_d, start_li, end_li, 0, modup_limb, beta,"
+                 "params_d, start_li, end_li, 0, modup_limb, params_h->K, beta,"
                  "params_h->ntt_tables->twiddle(),"
                  "params_h->ntt_tables->twiddle_shoup(),"
                  "params_h->ntt_tables->modulus(), d_accum_in_list,"
@@ -1421,14 +1422,16 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     // w << "std::cout << \"n2: \" << params_h->n2 << std::endl;\n";
     w << "std::cout << \"L : \" << params_h->L << std::endl;\n";
     w << "std::cout << \"dnum : \" << params_h->dnum << std::endl;\n";
-    // w << "std::cout << \"K : \" << params_h->K << std::endl;\n";
+    w << "std::cout << \"K : \" << params_h->K << std::endl;\n";
+    w << "std::cout << \"KL : \" << params_h->KL << std::endl;\n";
     w << "std::cout << \"alpha : \" << params_h->alpha << std::endl;\n";
     // w << "std::cout << \"------------------------------\" <<
     // std::endl;\n";
 
     w << "phantom::DRNSTool *drns_tool = params_h->rns_tools[1];\n";
-    w << "const int beta = std::ceil((params_h->L + 1) / "
+    w << "const int beta = std::ceil(1.0 * params_h->L / "
          "params_h->alpha);\n";
+    w << "std::cout << \"beta: \" << beta << std::endl;\n";
 
     for (auto subgraph : graph->get_subgraphs()) {
         if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {

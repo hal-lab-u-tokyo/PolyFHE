@@ -4,7 +4,7 @@ import os
 pf = PolyFHE()
 # prm = Params(N=2**15, L=18, dnum=6)
 # prm = Params(N=2**16, L=30, dnum=5)
-prm = Params(N=2**16, L=29, dnum=5)
+prm = Params(N=2**16, L=35, dnum=7)
 print(prm)
 
 target = []
@@ -41,7 +41,7 @@ inttp1 = pf.ntt(
 )
 scale_for_bconv = pf.mul_const(inttp1, "ScaleForBConv", 0, prm.L)
 accum_list = []
-for beta_idx in range(prm.get_beta(prm.L)):
+for beta_idx in range(prm.get_beta(prm.L - 1)):
     print("beta_idx:", beta_idx)
     bconv = pf.bconv(scale_for_bconv, f"BConv{beta_idx}", prm.L, beta_idx, prm.alpha)
     nttp1_after_bconv = pf.ntt(

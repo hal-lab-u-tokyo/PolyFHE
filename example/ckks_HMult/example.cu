@@ -164,6 +164,7 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum) {
     entry_kernel(params_d, &params_h, context, relin_keys.public_keys_ptr(),
                  in1, in2, res, res_modup_polyfhe, true);
     checkCudaErrors(cudaDeviceSynchronize());
+    checkCudaErrors(cudaDeviceSynchronize());
 
     // Phantom's HMult
     std::cout << "Phantom" << std::endl;
@@ -355,15 +356,14 @@ int main(int argc, char **argv) {
         parms.set_special_modulus_size(6);
     } else if (prmsize == ParamSize::Large) {
         poly_modulus_degree = 1 << 16;
-        // L = 29
-        dnum = 5;
+        // L = 34
         parms.set_coeff_modulus(CoeffModulus::Create(
             poly_modulus_degree,
             {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
              40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-             40, 60, 60, 60, 60, 60,60}));
-
-        parms.set_special_modulus_size(6); // dnum = ceil((L+ 1) / alpha)
+             40, 40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60}));
+        dnum = 7;
+        parms.set_special_modulus_size(5); // dnum = ceil((L+ 1) / alpha)
     }
 
     parms.set_poly_modulus_degree(poly_modulus_degree);
