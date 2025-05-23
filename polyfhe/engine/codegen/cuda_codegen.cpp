@@ -1148,8 +1148,8 @@ void CudaCodegen::generate_call_kernels(
         core::KernelLaunchConfig kconfig = subgraph->get_kernel_launch_config();
 
         if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
-            w << "const int limb_per = params_h->alpha;\n";
-            w << "int n_divide_ = modup_limb / limb_per;\n";
+            w << "const int limb_per = params_h->alpha * n_opt;\n";
+            w << "int n_divide_ = std::ceil(1.0 * modup_limb / limb_per);\n";
             w << "for (int iter = 0; iter < n_divide_; iter++)\n";
             w.block_begin();
             w << "int start_li = iter * limb_per;\n";
@@ -1159,7 +1159,7 @@ void CudaCodegen::generate_call_kernels(
               << "d_qhat_modp_list, params_h->alpha, start_li, limb_per,"
               << "params_h->alpha, beta, params_h->ntt_tables->twiddle(),"
               << "params_h->ntt_tables->twiddle_shoup(),"
-              << "params_h->ntt_tables->modulus());\n";
+              << "params_h->ntt_tables->modulus(), n_opt);\n";
             w << "NTTP1_part_allbeta<<<4096, 128, 128 * 8 * "
                  "sizeof(uint64_t)>>>("
               << "params_d, start_li, end_li, 0, modup_limb,"
@@ -1310,7 +1310,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
          "uint64_t **relin_keys, "
          "uint64_t *in0, "
          "uint64_t *in1, "
-         "uint64_t *out0, uint64_t *out1, bool if_benchmark)";
+         "uint64_t *out0, uint64_t *out1, bool if_benchmark, int n_opt)";
     w.block_begin();
 
     // w << "const long N = params_h->N;\n";
