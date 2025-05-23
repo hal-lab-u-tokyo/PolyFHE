@@ -18,12 +18,12 @@ all: $(BIN_EXAMPLE)
 $(BIN_EXAMPLE): $(COMPILER_OUT) example.cu
 	@echo "Compiling example code..."
 	@mkdir -p build
-	nvcc $(CXXFLAGS) $(LDFLAGS) -o $@ $(COMPILER_OUT) example.cu 
+	nvcc $(CXXFLAGS) $(LDFLAGS) -o $@ $(COMPILER_OUT) example.cu $(ROOT)/polyfhe/kernel/polynomial.cu 
 
 $(COMPILER_OUT): $(DOT)
 	@echo "Generating GPU code using PolyFHE..."
 	@mkdir -p build
-	$(BIN_COMPILER) -i $(DOT) -p -c $(CONFIG) $(OPT_LEVEL)
+	$(BIN_COMPILER) -i $(DOT) -p -c $(CONFIG) --optlevel $(OPT_LEVEL)
 
 nsys: $(BIN_EXAMPLE)
 	nsys start -c cudaProfilerApi

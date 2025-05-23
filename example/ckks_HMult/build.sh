@@ -12,5 +12,5 @@ REPO_ROOT=$(git rev-parse --show-toplevel)
 cd $REPO_ROOT/example/ckks_HMult
 uv run ./example.py
 make clean
-make OPT_LEVEL=--$OPT_LEVEL
+make OPT_LEVEL=$OPT_LEVEL
 make dot

@@ -2,8 +2,10 @@ from pypolyfhe import PolyFHE, Params
 import os
 
 pf = PolyFHE()
-# prm = Params(N=2**15, L=18, dnum=9)
+# prm = Params(N=2**15, L=15, dnum=5)
 prm = Params(N=2**16, L=30, dnum=5)
+# prm = Params(N=2**16, L=35, dnum=7) 
+# prm = Params(N=2**14, L=6, dnum=3)
 print(prm)
 
 target = []
@@ -64,7 +66,6 @@ for beta_idx in range(prm.get_beta(prm.L - 1)):
         exclude_end=prm.alpha * (beta_idx + 1),
     )
     accum_list.append(nttp2_after_bconv)
-
 accum = pf.mul_key_accum(accum_list, "MultKeyAccum", start_limb=0, end_limb=prm.L + prm.K, beta=prm.get_beta(prm.L - 1))
 inttp2_ax = pf.ntt(
     accum,
@@ -108,10 +109,6 @@ inttp1_bx = pf.ntt(
 )
 res_ax = pf.end(inttp1_ax, 1, 0)
 res_bx = pf.end(inttp1_bx, 1, prm.N * (prm.L + prm.K))
-"""
-res_ax = pf.end(accum, 1, 0)
-res_bx = pf.end(accum, 1, prm.N * (prm.L + prm.K))
-"""
 res_axax = pf.end(mult_axax, 0, 0)
 res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)
 res_bxbx = pf.end(mult_bxbx, 0, prm.N * prm.L * 2)

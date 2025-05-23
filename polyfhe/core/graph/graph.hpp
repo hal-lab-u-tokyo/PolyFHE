@@ -19,6 +19,7 @@ enum class SubgraphType {
     ElemSlot,
     ElemLimb1Slot,
     ElemLimb2Slot,
+    L2,
     NoAccess,
 };
 
@@ -117,6 +118,16 @@ public:
     int get_start_limb() { return m_start_limb; }
     int get_end_limb() { return m_end_limb; }
 
+    int get_beta() {
+        assert(m_subgraph_type == SubgraphType::L2);
+        assert(m_beta != -1);
+        return m_beta;
+    }
+    void set_beta(int beta) {
+        assert(m_subgraph_type == SubgraphType::L2);
+        m_beta = beta;
+    }
+
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;
     int m_idx;
@@ -137,6 +148,8 @@ private:
 
     int m_start_limb = -1;
     int m_end_limb = -1;
+
+    int m_beta = -1;
 };
 
 class Graph {
@@ -187,6 +200,14 @@ public:
     // PolyFHE Config
     std::shared_ptr<Config> get_m_config() { return m_config; }
     std::shared_ptr<Config> m_config;
+
+    void set_subgraphs(std::vector<std::shared_ptr<SubGraph>> subgraph) {
+        LOG_WARN("set_subgraphs: replace subgraph\n");
+        m_subgraphs.clear();
+        for (auto s : subgraph) {
+            m_subgraphs.push_back(s);
+        }
+    }
 
 private:
     std::vector<std::shared_ptr<Node>> m_nodes;

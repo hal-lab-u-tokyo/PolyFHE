@@ -24,6 +24,8 @@ std::string to_string(SubgraphType subgraph_type) {
         return "ElemLimb2Slot";
     case SubgraphType::NoAccess:
         return "NoAccess";
+    case SubgraphType::L2:
+        return "L2";
     default:
         LOG_ERROR("Invalid SubgraphType\n");
         exit(1);
@@ -52,6 +54,9 @@ std::ostream &operator<<(std::ostream &os, const SubgraphType &subgraph_type) {
         break;
     case SubgraphType::NoAccess:
         os << "NoAccess";
+        break;
+    case SubgraphType::L2:
+        os << "L2";
         break;
     default:
         LOG_ERROR("Invalid SubgraphType\n");

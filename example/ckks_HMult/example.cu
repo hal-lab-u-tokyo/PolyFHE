@@ -23,8 +23,7 @@ using namespace phantom::util;
 
 void entry_kernel(Params *params_d, Params *params_h, PhantomContext &context,
                   uint64_t **relin_keys, uint64_t *in0, uint64_t *in1,
-                  uint64_t *out0, uint64_t *out2, bool if_benchmark,
-                  int n_divide);
+                  uint64_t *out0, uint64_t *out2, bool if_benchmark, int n_opt);
 
 inline bool operator==(const cuDoubleComplex &lhs, const cuDoubleComplex &rhs) {
     return fabs(lhs.x - rhs.x) < EPSINON;
@@ -70,7 +69,8 @@ void ConvertPhantomToParams(Params &params, const PhantomContext &context) {
     params.ntt_tables = &context.gpu_rns_tables();
 }
 
-void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
+void example_ckks(PhantomContext &context, const double &scale, int dnum,
+                  int n_opt) {
     // KeyGen
     PhantomSecretKey secret_key(context);
     PhantomPublicKey public_key = secret_key.gen_publickey(context);
@@ -125,7 +125,11 @@ void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
 
     std::cout << "coeff_mod_size: " << coeff_mod_size << std::endl;
 
-    Params params_h(std::log2(poly_degree), coeff_mod_size, 5);
+    Params params_h(std::log2(poly_degree), coeff_mod_size, dnum);
+    std::cout << "L: " << params_h.L << std::endl;
+    std::cout << "alpha: " << params_h.alpha << std::endl;
+    std::cout << "dnum: " << params_h.dnum << std::endl;
+
     ConvertPhantomToParams(params_h, context);
     Params *params_d;
     checkCudaErrors(cudaMalloc((void **) &params_d, sizeof(Params)));
@@ -157,11 +161,14 @@ void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
                                cudaMemcpyHostToDevice));
 
     // PolyFHE's HMult
+    std::cout << "Entry kernel" << std::endl;
     entry_kernel(params_d, &params_h, context, relin_keys.public_keys_ptr(),
-                 in1, in2, res, res_modup_polyfhe, true, n_divide);
+                 in1, in2, res, res_modup_polyfhe, true, n_opt);
+    checkCudaErrors(cudaDeviceSynchronize());
     checkCudaErrors(cudaDeviceSynchronize());
 
     // Phantom's HMult
+    std::cout << "Phantom" << std::endl;
     PhantomCiphertext xy_cipher = multiply(context, x_cipher, y_cipher);
     relinearize_inplace_debug(context, xy_cipher, relin_keys,
                               res_modup_phantom);
@@ -309,30 +316,66 @@ void example_ckks(PhantomContext &context, const double &scale, int n_divide) {
      */
 }
 
+enum class ParamSize {
+    Small,
+    Medium,
+    Large,
+    Large2,
+};
+
 int main(int argc, char **argv) {
     // argv[1]: n_divide
     if (argc != 2) {
         std::cerr << "Usage: " << argv[0] << " <n_divide>" << std::endl;
         return 1;
     }
-    int n_divide = atoi(argv[1]);
+    int n_opt = atoi(argv[1]);
     srand(time(NULL));
     double scale = pow(2.0, 40);
-    size_t poly_modulus_degree = 1 << 16;
     EncryptionParameters parms(scheme_type::ckks);
+
+    ParamSize prmsize = ParamSize::Medium;
+    size_t poly_modulus_degree;
+    int dnum;
+
+    if (prmsize == ParamSize::Small) {
+        poly_modulus_degree = 1 << 15;
+        // L = 14, dnum = 5, alpha = 3
+        dnum = 5;
+        parms.set_coeff_modulus(CoeffModulus::Create(
+            poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+                                  40, 40, 40, 40, 60, 60, 60}));
+        parms.set_special_modulus_size(3);
+    } else if (prmsize == ParamSize::Medium) {
+        poly_modulus_degree = 1 << 16;
+        dnum = 5;
+        parms.set_coeff_modulus(CoeffModulus::Create(
+            poly_modulus_degree,
+            {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+             40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+             40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60, 60}));
+        parms.set_special_modulus_size(6);
+    } else if (prmsize == ParamSize::Large) {
+        poly_modulus_degree = 1 << 16;
+        // L = 34
+        parms.set_coeff_modulus(CoeffModulus::Create(
+            poly_modulus_degree,
+            {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+             40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+             40, 40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60}));
+        dnum = 7;
+        parms.set_special_modulus_size(5); // dnum = ceil((L+ 1) / alpha)
+    } else if (prmsize == ParamSize::Large2) {
+        // L = 35, k = 4, dnum = 9
+        poly_modulus_degree = 1 << 14;
+        parms.set_coeff_modulus(CoeffModulus::Create(
+            poly_modulus_degree, {60, 40, 40, 40, 40, 40, 60, 60}));
+        dnum = 3;
+    }
+
     parms.set_poly_modulus_degree(poly_modulus_degree);
-    /*
-    parms.set_coeff_modulus(CoeffModulus::Create(
-        poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-                              40, 40, 40, 40, 40, 40, 40, 40, 60, 60}));
-    parms.set_special_modulus_size(2);
-    */
-    parms.set_coeff_modulus(CoeffModulus::Create(
-        poly_modulus_degree, {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-                              40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-                              40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60, 60}));
-    parms.set_special_modulus_size(6);
+
     PhantomContext context(parms);
     print_parameters(context);
-    example_ckks(context, scale, n_divide);
+    example_ckks(context, scale, dnum, n_opt);
 }
