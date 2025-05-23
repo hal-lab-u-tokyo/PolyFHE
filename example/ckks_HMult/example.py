@@ -2,9 +2,10 @@ from pypolyfhe import PolyFHE, Params
 import os
 
 pf = PolyFHE()
-# prm = Params(N=2**15, L=18, dnum=6)
-# prm = Params(N=2**16, L=30, dnum=5)
-prm = Params(N=2**16, L=35, dnum=7)
+# prm = Params(N=2**15, L=15, dnum=5)
+prm = Params(N=2**16, L=30, dnum=5)
+# prm = Params(N=2**16, L=35, dnum=7) 
+# prm = Params(N=2**14, L=6, dnum=3)
 print(prm)
 
 target = []

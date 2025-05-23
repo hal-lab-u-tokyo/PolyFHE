@@ -73,7 +73,7 @@ __global__ void BConv_general_part_allbeta(
     Params *params, uint64_t **in_list, uint64_t **out_list,
     uint64_t **qiHat_mod_pj_list, uint64_t ibase_size, uint64_t obase_start,
     uint64_t obase_size, size_t alpha, size_t beta, const uint64_t *twiddles,
-    const uint64_t *twiddles_shoup, const DModulus *modulus);
+    const uint64_t *twiddles_shoup, const DModulus *modulus, int n_merge);
 
 __global__ void NTTP2_MultKeyAccum_part(
     Params *params, int start_limb, int end_limb, int start_limb_original,

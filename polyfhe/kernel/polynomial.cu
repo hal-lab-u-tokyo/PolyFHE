@@ -303,29 +303,34 @@ __global__ void iNTTPhase1_general(Params *params, int start_limb, int end_limb,
 
 __global__ void BConv_general_part_allbeta(
     Params *params, uint64_t **in_list, uint64_t **out_list,
-    uint64_t **qiHat_mod_pj_list, uint64_t ibase_size, uint64_t obase_start,
-    uint64_t obase_size, size_t alpha, size_t beta, const uint64_t *twiddles,
-    const uint64_t *twiddles_shoup, const DModulus *modulus) {
-    for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-         tid < beta * (params->N * obase_size) / 2;
-         tid += blockDim.x * gridDim.x) {
-        const size_t beta_idx = tid / (params->N * obase_size / 2);
-        const size_t startPartIdx = alpha * beta_idx;
-        if (startPartIdx == obase_start) {
-            continue;
+    uint64_t **qiHat_mod_pj_list, uint64_t ibase_size, uint64_t obase_start_,
+    uint64_t obase_size_, size_t alpha, size_t beta, const uint64_t *twiddles,
+    const uint64_t *twiddles_shoup, const DModulus *modulus, int n_merge) {
+    int obase_size = alpha;
+    for (int idx_merge = 0; idx_merge < n_merge; idx_merge++) {
+        for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+             tid < beta * (params->N * obase_size) / 2;
+             tid += blockDim.x * gridDim.x) {
+            const size_t beta_idx = tid / (params->N * obase_size / 2);
+            const size_t startPartIdx = alpha * beta_idx;
+            int obase_start = obase_start_ + idx_merge * alpha;
+            if (startPartIdx == obase_start) {
+                continue;
+            }
+            uint64_t obase_start_in30 =
+                obase_start - obase_size * (obase_start > startPartIdx);
+            const size_t tid_in_beta = tid % (params->N * obase_size / 2);
+            const size_t n_idx = 2 * (tid_in_beta / obase_size);
+            const size_t o_idx = tid_in_beta % obase_size;
+            const size_t l_out_idx = o_idx + obase_start;
+            // BConv_5
+            BConvOpNoReg_debug2(
+                params, out_list[beta_idx],
+                in_list[beta_idx] + params->N * startPartIdx,
+                qiHat_mod_pj_list[beta_idx] + obase_start_in30 * ibase_size,
+                n_idx, o_idx, l_out_idx, ibase_size, twiddles, twiddles_shoup,
+                modulus);
         }
-        uint64_t obase_start_in30 =
-            obase_start - obase_size * (obase_start > startPartIdx);
-        const size_t tid_in_beta = tid % (params->N * obase_size / 2);
-        const size_t n_idx = 2 * (tid_in_beta / obase_size);
-        const size_t o_idx = tid_in_beta % obase_size;
-        const size_t l_out_idx = o_idx + obase_start;
-        // BConv_5
-        BConvOpNoReg_debug2(
-            params, out_list[beta_idx],
-            in_list[beta_idx] + params->N * startPartIdx,
-            qiHat_mod_pj_list[beta_idx] + obase_start_in30 * ibase_size, n_idx,
-            o_idx, l_out_idx, ibase_size, twiddles, twiddles_shoup, modulus);
     }
 }
 
