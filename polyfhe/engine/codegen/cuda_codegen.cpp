@@ -1160,7 +1160,8 @@ void CudaCodegen::generate_call_kernels(
               << "params_h->alpha, beta, params_h->ntt_tables->twiddle(),"
               << "params_h->ntt_tables->twiddle_shoup(),"
               << "params_h->ntt_tables->modulus(), n_opt);\n";
-            w << "NTTP1_part_allbeta<<<4096, 128, 128 * 8 * "
+            w << "NTTP1_part_allbeta<<<4096, 128, "
+              << "(params_h->n1 + params_h->pad + 1) * params_h->pad * "
                  "sizeof(uint64_t)>>>("
               << "params_d, start_li, end_li, 0, modup_limb,"
               << "params_h->K, beta, "
@@ -1550,7 +1551,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     w.block_begin();
     w << "std::cout << \"### Benchmark\" << std::endl;\n";
     w << "std::vector<double> elapsed_times;\n";
-    w << "for (int i = 0; i < 10; i++)\n";
+    w << "for (int i = 0; i < 100; i++)\n";
     w.block_begin();
 
     w << "\n";

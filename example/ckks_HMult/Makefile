@@ -9,11 +9,12 @@ BIN_EXAMPLE = build/example.out
 COMPILER_OUT = build/generated.cu
 DOT = output.dot
 CONFIG = config.csv
+N_OPT = 1
 
 all: $(BIN_EXAMPLE)
 	@echo "Running example..."
 	@mkdir -p build
-	./$(BIN_EXAMPLE) 1
+	./$(BIN_EXAMPLE) $(N_OPT)
 
 $(BIN_EXAMPLE): $(COMPILER_OUT) example.cu
 	@echo "Compiling example code..."

@@ -334,7 +334,7 @@ int main(int argc, char **argv) {
     double scale = pow(2.0, 40);
     EncryptionParameters parms(scheme_type::ckks);
 
-    ParamSize prmsize = ParamSize::Medium;
+    ParamSize prmsize = ParamSize::Small;
     size_t poly_modulus_degree;
     int dnum;
 
