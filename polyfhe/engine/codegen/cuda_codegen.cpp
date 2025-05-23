@@ -1268,6 +1268,7 @@ void CudaCodegen::generate_call_kernels(
         }
     }
     w << "// Timer Stop\n";
+    w << "checkCudaErrors(cudaDeviceSynchronize());\n";
     w << "auto end = std::chrono::high_resolution_clock::now();\n";
     w << "\n";
 }

@@ -255,7 +255,7 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
 
     std::vector<double> elapsed_list;
     std::vector<double> elapsed_list_cuda;
-    for (int iter = 0; iter < 10; iter++) {
+    for (int iter = 0; iter < 100; iter++) {
         auto start = std::chrono::high_resolution_clock::now();
         cudaEvent_t ce_start, ce_stop;
         cudaEventCreate(&ce_start);
@@ -267,11 +267,11 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
         checkCudaErrors(cudaDeviceSynchronize());
         cudaEventRecord(ce_stop);
         cudaEventSynchronize(ce_stop);
+        auto end = std::chrono::high_resolution_clock::now();
         float milliseconds = 0;
         cudaEventElapsedTime(&milliseconds, ce_start, ce_stop);
         cudaEventDestroy(ce_start);
         cudaEventDestroy(ce_stop);
-        auto end = std::chrono::high_resolution_clock::now();
         double elapsed =
             std::chrono::duration_cast<std::chrono::microseconds>(end - start)
                 .count();
@@ -334,7 +334,7 @@ int main(int argc, char **argv) {
     double scale = pow(2.0, 40);
     EncryptionParameters parms(scheme_type::ckks);
 
-    ParamSize prmsize = ParamSize::Small;
+    ParamSize prmsize = ParamSize::Medium;
     size_t poly_modulus_degree;
     int dnum;
 
