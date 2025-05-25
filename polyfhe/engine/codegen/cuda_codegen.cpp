@@ -403,8 +403,15 @@ void CudaCodegen::generate_kernel_defs(
             // Pre-computed constants
             core::OpType op_type = node->get_op_type();
             if (op_type == core::OpType::MultConst) {
-                w << ", uint64_t *partQlHatInv_mod_Ql_concat";
-                w << ", uint64_t *partQlHatInv_mod_Ql_concat_shoup";
+                switch (node->get_precomputed_value()) {
+                case core::PrecomputedValue::ModUp:
+                    w << ", uint64_t *modup_mult";
+                    w << ", uint64_t *modup_mult_shoup";
+                    break;
+                default:
+                    LOG_ERROR("Unsupported precomputed value for MultConst\n");
+                    assert(false);
+                }
             } else if (op_type == core::OpType::BConv) {
                 w << ", const uint64_t *qiHat_mod_pj";
                 w << ", const DModulus *ibase";
@@ -557,8 +564,16 @@ void CudaCodegen::generate_kernel_defs(
                         inedge, "n_idx",
                         std::to_string(inedge->get_offset_smem()) +
                             " + threadIdx.x");
-                    w_body << ", partQlHatInv_mod_Ql_concat[l_idx]";
-                    w_body << ", partQlHatInv_mod_Ql_concat_shoup[l_idx]";
+                    switch (node->get_precomputed_value()) {
+                    case core::PrecomputedValue::ModUp:
+                        w_body << ", modup_mult[l_idx]";
+                        w_body << ", modup_mult_shoup[l_idx]";
+                        break;
+                    default:
+                        LOG_ERROR(
+                            "Unsupported precomputed value for MultConst\n");
+                        assert(false);
+                    }
                     w_body << ", q);\n";
                     std::shared_ptr<core::Edge> g_store_to = nullptr;
                     for (auto outedge : node->get_out_edges()) {
@@ -670,8 +685,17 @@ void CudaCodegen::generate_kernel_defs(
                     w << "reg[l] = "
                          "xxx_multiply_and_reduce_shoup(";
                     w << "reg[l]";
-                    w << ", partQlHatInv_mod_Ql_concat[twr_idx]";
-                    w << ", partQlHatInv_mod_Ql_concat_shoup[twr_idx]";
+
+                    switch (node->get_precomputed_value()) {
+                    case core::PrecomputedValue::ModUp:
+                        w << ", modup_mult[twr_idx]";
+                        w << ", modup_mult_shoup[twr_idx]";
+                        break;
+                    default:
+                        LOG_ERROR(
+                            "Unsupported precomputed value for MultConst\n");
+                        assert(false);
+                    }
                     w << ", params->qVec[twr_idx]);\n";
                     w.block_end();
                     std::shared_ptr<core::Edge> g_store_to = nullptr;
@@ -1232,8 +1256,15 @@ void CudaCodegen::generate_call_kernels(
             // Pre-computed constants
             core::OpType op_type = node->get_op_type();
             if (op_type == core::OpType::MultConst) {
-                w << ", rns_tool->partQlHatInv_mod_Ql_concat()";
-                w << ", rns_tool->partQlHatInv_mod_Ql_concat_shoup()";
+                switch (node->get_precomputed_value()) {
+                case core::PrecomputedValue::ModUp:
+                    w << ", modup_mult";
+                    w << ", modup_mult_shoup";
+                    break;
+                default:
+                    LOG_ERROR("Unsupported precomputed value for MultConst\n");
+                    assert(false);
+                }
             } else if (op_type == core::OpType::BConv) {
                 w << ", bconv_pre.QHatModp()";
                 w << ", bconv_pre.ibase().base()";
