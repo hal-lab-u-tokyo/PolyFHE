@@ -15,7 +15,6 @@ bool KernelLaunchConfigPass::run_on_graph(
         core::SubgraphType s_type = subgraph->get_subgraph_type();
 
         core::KernelLaunchConfig k_config;
-        polyfhe::Config* config = graph->m_config.get();
         std::cout << "s_type: " << core::to_string(s_type) << std::endl;
 
         if (s_type == core::SubgraphType::Elem) {

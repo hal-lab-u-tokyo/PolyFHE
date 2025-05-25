@@ -1137,7 +1137,7 @@ void CudaCodegen::generate_call_kernels(
     w << "// Call kernel\n";
     w << "// Timer start\n";
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
-    w << "const int current_limb = params_h->L;\n";
+    w << "// const int current_limb = params_h->L;\n";
     w << "const int modup_limb = params_h->KL;\n";
     for (auto subgraph : graph->get_subgraphs()) {
         if (subgraph->get_subgraph_type() ==
@@ -1531,6 +1531,22 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                  "sizeof(uint64_t*) * beta,"
                  "cudaMemcpyHostToDevice));\n";
             w << "\n";
+
+            w << "// ModUp\n";
+            w << "uint64_t *modup_mult = "
+                 "rns_tool->partQlHatInv_mod_Ql_concat();\n";
+            w << "uint64_t *modup_mult_shoup = "
+                 "rns_tool->partQlHatInv_mod_Ql_concat_shoup();\n";
+
+            w << "// ModDown\n";
+            w << "const DBaseConverter moddown_converter = "
+                 "drns_tool->base_P_to_Ql_conv();\n";
+            w << "uint64_t *d_moddown_mult = "
+                 "moddown_converter.ibase().QHatInvModq();\n";
+            w << "uint64_t *d_moddown_mult_shoup = "
+                 "moddown_converter.ibase().QHatInvModq_shoup();\n";
+            w << "uint64_t *d_moddown_matmul = "
+                 "moddown_converter.QHatModp();\n";
         }
     }
     w << "\n";

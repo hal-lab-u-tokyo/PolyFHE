@@ -38,6 +38,18 @@ class PolyOpType(Enum):
     def __format__(self, format_spec):
         return self.name
 
+class PrecomputedValue(Enum):
+    ModUp = auto()
+    ModDown = auto()
+
+    def __str__(self):
+        return self.name
+
+    def __format__(self, format_spec):
+        return self.name
+
+    def __repr__(self):
+        return self.name
 
 class PolyOp:
     def __init__(
@@ -94,6 +106,18 @@ class MulKeyAccumOp(PolyOp):
     ) -> None:
         super().__init__(PolyOpType.MultKeyAccum, inputs, name, start_limb, end_limb, start_limb, end_limb)
         self.beta: int = beta
+
+class MultConstOp(PolyOp):
+    def __init__(
+        self,
+        inputs: list[PolyOp],
+        name: str,
+        pre_value: PrecomputedValue,
+        start_limb: int,
+        end_limb: int,
+    ) -> None:
+        super().__init__(PolyOpType.MultConst, inputs, name, start_limb, end_limb, start_limb, end_limb)
+        self.pre_value: PrecomputedValue = pre_value
 
 class NTTOp(PolyOp):
     def __init__(
@@ -153,9 +177,9 @@ class PolyFHE:
             PolyOpType.Mult, [a, b], name, start_limb, end_limb, start_limb, end_limb
         )
 
-    def mul_const(self, a: PolyOp, name: str, start_limb: int, end_limb: int):
-        return PolyOp(
-            PolyOpType.MultConst, [a], name, start_limb, end_limb, start_limb, end_limb
+    def mul_const(self, a: PolyOp, name: str, pre_value: PrecomputedValue, start_limb: int, end_limb: int):
+        return MultConstOp(
+            [a], name, pre_value, start_limb, end_limb
         )
 
     def mul_key(self, a: PolyOp, name: str, start_limb: int, end_limb: int):
@@ -281,6 +305,8 @@ class PolyFHE:
             label = f"{op.op_type}"
             if op.op_type == PolyOpType.BConv:
                 label += f"_{op.beta_idx}"
+            elif op.op_type == PolyOpType.MultConst:
+                label += f"_{op.pre_value}_{op.in_start_limb}_{op.in_end_limb}"
             elif isinstance(op, MulKeyAccumOp):
                 label += f"_{op.in_start_limb}_{op.in_end_limb}_{op.beta}"
             elif isinstance(op, NTTOp):

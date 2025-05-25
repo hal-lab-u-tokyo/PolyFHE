@@ -68,6 +68,17 @@ std::string toString(BlockPhase block_phase) {
     }
 }
 
+PrecomputedValue to_precomputed_value(std::string str) {
+    if (str == "ModUp") {
+        return PrecomputedValue::ModUp;
+    } else if (str == "ModDown") {
+        return PrecomputedValue::ModDown;
+    } else {
+        LOG_ERROR("Unknown PrecomputedValue: %s\n", str.c_str());
+        exit(1);
+    }
+}
+
 MemoryAccessPattern OpType_access_pattern(OpType op_type) {
     if (is_ntt_op(op_type)) {
         return MemoryAccessPattern::LimbWise;
@@ -128,6 +139,14 @@ Node::Node(std::string op_label) : m_id(-1) {
 
     if (m_op_type == OpType::Init || m_op_type == OpType::End) {
         // No label
+    } else if (m_op_type == OpType::MultConst) {
+        // {op_name}_{PrecomputedValue}_{start_idx}_{end_idx}
+        if (op_label_vec.size() != 4) {
+            LOG_ERROR("Illegal op_label: %s\n", op_label.c_str());
+        }
+        PrecomputedValue pre_value = to_precomputed_value(op_label_vec[1]);
+        set_precomputed_value(pre_value);
+        set_limb_range(std::stoi(op_label_vec[2]), std::stoi(op_label_vec[3]));
     } else if (m_op_type == OpType::MultKeyAccum) {
         // {op_name}_{start_idx}_{end_idx}_{beta}
         if (op_label_vec.size() != 4) {

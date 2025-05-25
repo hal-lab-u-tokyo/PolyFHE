@@ -1,2 +1,2 @@
-from .polyfhe import PolyFHE
+from .polyfhe import PolyFHE, PrecomputedValue
 from .params import Params

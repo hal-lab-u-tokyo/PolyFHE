@@ -1,4 +1,4 @@
-from pypolyfhe import PolyFHE, Params
+from pypolyfhe import PolyFHE, Params, PrecomputedValue
 import os
 
 pf = PolyFHE()
@@ -40,7 +40,7 @@ inttp1 = pf.ntt(
     exclude_start=0,
     exclude_end=0,
 )
-scale_for_bconv = pf.mul_const(inttp1, "ScaleForBConv", 0, prm.L)
+scale_for_bconv = pf.mul_const(inttp1, "ScaleForBConv", PrecomputedValue.ModUp, 0, prm.L)
 accum_list = []
 for beta_idx in range(prm.get_beta(prm.L - 1)):
     print("beta_idx:", beta_idx)

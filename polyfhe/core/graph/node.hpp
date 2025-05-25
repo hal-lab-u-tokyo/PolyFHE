@@ -76,6 +76,13 @@ std::string toString(BlockPhase block_phase);
 MemoryAccessPattern OpType_access_pattern(OpType op_type);
 bool is_ntt_op(OpType op_type);
 
+enum class PrecomputedValue {
+    ModUp,
+    ModDown,
+};
+
+PrecomputedValue to_precomputed_value(std::string str);
+
 class Node : public std::enable_shared_from_this<Node> {
 public:
     Node() {};
@@ -212,6 +219,16 @@ public:
         return m_beta;
     }
 
+    // Only for MultConst
+    void set_precomputed_value(PrecomputedValue precomputed_value) {
+        assert(m_op_type == OpType::MultConst);
+        m_precomputed_value = precomputed_value;
+    }
+    PrecomputedValue get_precomputed_value() {
+        assert(m_op_type == OpType::MultConst);
+        return m_precomputed_value;
+    }
+
 protected:
     OpType m_op_type;
     std::vector<std::shared_ptr<Edge>> m_in_edges;
@@ -233,6 +250,9 @@ protected:
 
     // Only for MulKeyAccum
     int m_beta;
+
+    // Only for MultConst
+    PrecomputedValue m_precomputed_value;
 
 private:
     // Only for lowerings
