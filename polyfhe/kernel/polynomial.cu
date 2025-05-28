@@ -42,6 +42,110 @@ __global__ void NTTPhase1_general(Params *params, int start_limb, int end_limb,
     }
 }
 
+__global__ void NTTPhase1_general_2(Params *params, uint64_t *in, uint64_t *out,
+                                    int start_limb, int end_limb,
+                                    const uint64_t *twiddles,
+                                    const uint64_t *twiddles_shoup,
+                                    const DModulus *modulus) {
+    extern __shared__ uint64_t buffer[];
+    const int pad = params->pad;
+    const size_t n = params->N;
+    const size_t n1 = params->n1;
+
+    for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+         tid < params->N / 8 * (end_limb - start_limb);
+         tid += blockDim.x * gridDim.x) {
+        // pad address
+        size_t pad_tid = threadIdx.x % pad;
+        size_t pad_idx = threadIdx.x / pad;
+
+        size_t group = n1 / 8;
+        // size of a block
+        uint64_t samples[8];
+        size_t t = n / 2;
+        // modulus idx
+        size_t twr_idx = tid / (n / 8) + start_limb;
+        // index in n/8 range (in each tower)
+        size_t n_idx = tid % (n / 8);
+        // base address
+        uint64_t *in_ptr = in + twr_idx * n;
+        uint64_t *out_ptr = out + twr_idx * n;
+        const uint64_t *psi = twiddles + twr_idx * n;
+        const uint64_t *psi_shoup = twiddles_shoup + twr_idx * n;
+        const DModulus *modulus_table = modulus;
+        uint64_t modulus = modulus_table[twr_idx].value();
+        size_t n_init =
+            t / 4 / group * pad_idx + pad_tid + pad * (n_idx / (group * pad));
+
+#pragma unroll
+        for (size_t j = 0; j < 8; j++) {
+            samples[j] = *(in_ptr + n_init + t / 4 * j);
+        }
+        size_t tw_idx = 1;
+        fntt8(samples, psi, psi_shoup, tw_idx, modulus);
+#pragma unroll
+        for (size_t j = 0; j < 8; j++) {
+            buffer[pad_tid * (n1 + pad) + pad_idx + group * j] = samples[j];
+        }
+        size_t remain_iters = 0;
+        __syncthreads();
+#pragma unroll
+        for (size_t j = 8, k = group / 2; j < group + 1; j *= 8, k >>= 3) {
+            size_t m_idx2 = pad_idx / (k / 4);
+            size_t t_idx2 = pad_idx % (k / 4);
+#pragma unroll
+            for (size_t l = 0; l < 8; l++) {
+                samples[l] = buffer[(n1 + pad) * pad_tid + 2 * m_idx2 * k +
+                                    t_idx2 + (k / 4) * l];
+            }
+            size_t tw_idx2 = j * tw_idx + m_idx2;
+            fntt8(samples, psi, psi_shoup, tw_idx2, modulus);
+#pragma unroll
+            for (size_t l = 0; l < 8; l++) {
+                buffer[(n1 + pad) * pad_tid + 2 * m_idx2 * k + t_idx2 +
+                       (k / 4) * l] = samples[l];
+            }
+            if (j == group / 2)
+                remain_iters = 1;
+            if (j == group / 4)
+                remain_iters = 2;
+            __syncthreads();
+        }
+
+        if (group < 8)
+            remain_iters = (group == 4) ? 2 : 1;
+#pragma unroll
+        for (size_t l = 0; l < 8; l++) {
+            samples[l] = buffer[(n1 + pad) * pad_tid + 8 * pad_idx + l];
+        }
+        if (remain_iters == 1) {
+            size_t tw_idx2 = 4 * group * tw_idx + 4 * pad_idx;
+            ct_butterfly(samples[0], samples[1], psi[tw_idx2],
+                         psi_shoup[tw_idx2], modulus);
+            ct_butterfly(samples[2], samples[3], psi[tw_idx2 + 1],
+                         psi_shoup[tw_idx2 + 1], modulus);
+            ct_butterfly(samples[4], samples[5], psi[tw_idx2 + 2],
+                         psi_shoup[tw_idx2 + 2], modulus);
+            ct_butterfly(samples[6], samples[7], psi[tw_idx2 + 3],
+                         psi_shoup[tw_idx2 + 3], modulus);
+        } else if (remain_iters == 2) {
+            size_t tw_idx2 = 2 * group * tw_idx + 2 * pad_idx;
+            fntt4(samples, psi, psi_shoup, tw_idx2, modulus);
+            fntt4(samples + 4, psi, psi_shoup, tw_idx2 + 1, modulus);
+        }
+#pragma unroll
+        for (size_t l = 0; l < 8; l++) {
+            buffer[(n1 + pad) * pad_tid + 8 * pad_idx + l] = samples[l];
+        }
+
+        __syncthreads();
+        for (size_t j = 0; j < 8; j++) {
+            *(out_ptr + n_init + t / 4 * j) =
+                buffer[pad_tid * (n1 + pad) + pad_idx + group * j];
+        }
+    }
+}
+
 __global__ void NTTPhase1_general_part(Params *params, int start_limb,
                                        int end_limb, int start_limb_original,
                                        int end_limb_original, uint64_t *in,

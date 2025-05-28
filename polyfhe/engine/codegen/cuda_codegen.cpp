@@ -746,19 +746,21 @@ void CudaCodegen::generate_kernel_defs(
                     if (inedge->get_level() == core::EdgeLevel::Global) {
                         const int exclude_start = node->get_exclude_start_idx();
                         const int exclude_end = node->get_exclude_end_idx();
-                        w << "const size_t exclude_end = " << exclude_end
-                          << ";\n";
-                        if (exclude_start != 0) {
+
+                        bool if_exclude = false;
+                        if (exclude_end - exclude_start > 0) {
+                            if_exclude = true;
                             w << "const size_t exclude_start = "
                               << exclude_start << ";\n";
+                            w << "const size_t exclude_end = " << exclude_end
+                              << ";\n";
+
                             w << "if (twr_idx >= exclude_start && twr_idx < "
                                  "exclude_end)";
-                        } else {
-                            w << "if (twr_idx < exclude_end)";
+                            w.block_begin();
+                            w << "continue;\n";
+                            w.block_end();
                         }
-                        w.block_begin();
-                        w << "continue;\n";
-                        w.block_end();
 
                         // TODO: merge with other operations
                         w << "\n// Load to register\n";
@@ -769,13 +771,16 @@ void CudaCodegen::generate_kernel_defs(
                              "n_twr * l);\n";
                         w.block_end();
 
-                        w << "const uint64_t size_P = params->K;\n";
-                        w << "const uint64_t size_QP = params->KL;\n";
                         w << "out = " << outedge->get_name() << ";\n";
-                        w << "size_t twr_idx2 = "
-                          << "(twr_idx >= start_limb + end_limb - size_P "
-                          << "? size_QP - (start_limb + end_limb - twr_idx)"
-                          << " : twr_idx);\n";
+
+                        if (if_exclude) {
+                            w << "const uint64_t size_P = params->K;\n";
+                            w << "const uint64_t size_QP = params->KL;\n";
+                            w << "size_t twr_idx2 = "
+                              << "(twr_idx >= start_limb + end_limb - size_P "
+                              << "? size_QP - (start_limb + end_limb - twr_idx)"
+                              << " : twr_idx);\n";
+                        }
                         w << "d_poly_fnwt_phase1(";
                         w << "params";
                         w << ", out";
@@ -785,7 +790,11 @@ void CudaCodegen::generate_kernel_defs(
                         w << ", twiddles_shoup";
                         w << ", modulus";
                         w << ", twr_idx";
-                        w << ", twr_idx2";
+                        if (if_exclude) {
+                            w << ", twr_idx2";
+                        } else {
+                            w << ", twr_idx";
+                        }
                         w << ", n_init";
                         w << ", i);\n";
                     }

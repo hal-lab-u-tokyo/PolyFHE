@@ -27,6 +27,12 @@ __global__ void NTTPhase1_general(Params *params, int start_limb, int end_limb,
                                   const uint64_t *twiddles_shoup,
                                   const DModulus *modulus);
 
+__global__ void NTTPhase1_general_2(Params *params, uint64_t *in, uint64_t *out,
+                                    int start_limb, int end_limb,
+                                    const uint64_t *twiddles,
+                                    const uint64_t *twiddles_shoup,
+                                    const DModulus *modulus);
+
 __global__ void NTTPhase1_general_part(Params *params, int start_limb,
                                        int end_limb, int start_limb_original,
                                        int end_limb_original, uint64_t *in,
