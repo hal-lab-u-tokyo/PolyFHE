@@ -303,20 +303,20 @@ __global__ void iNTTPhase1_general(Params *params, int start_limb, int end_limb,
 }
 
 __global__ void BConv_general(Params *params, uint64_t *in, uint64_t *out,
-                              uint64_t *qiHat_mod_pj, uint64_t ibase_size,
-                              uint64_t obase_start, uint64_t obase_size,
-                              size_t alpha, size_t beta,
-                              const uint64_t *twiddles,
+                              uint64_t *qiHat_mod_pj, uint64_t in_start,
+                              uint64_t in_size, uint64_t out_start,
+                              uint64_t out_size, const uint64_t *twiddles,
                               const uint64_t *twiddles_shoup,
                               const DModulus *modulus) {
     for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-         tid < obase_size * params->N / 2; tid += blockDim.x * gridDim.x) {
-        const size_t degree_idx = 2 * (tid / obase_size);
-        const size_t out_prime_idx = tid % obase_size;
+         tid < out_size * params->N / 2; tid += blockDim.x * gridDim.x) {
+        const size_t degree_idx = 2 * (tid / out_size);
+        const size_t out_prime_idx = tid % out_size;
 
-        BConvOpNoReg_debug(params, out, in, qiHat_mod_pj, degree_idx,
-                           out_prime_idx, out_prime_idx + obase_start,
-                           ibase_size, twiddles, twiddles_shoup, modulus);
+        BConvOpNoReg_debug(params, out + out_start * params->N,
+                           in + in_start * params->N, qiHat_mod_pj, degree_idx,
+                           out_prime_idx, out_prime_idx + out_start, in_size,
+                           twiddles, twiddles_shoup, modulus);
     }
 }
 
