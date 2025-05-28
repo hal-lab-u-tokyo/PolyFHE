@@ -466,43 +466,25 @@ __forceinline__ __device__ void BConvOpNoReg(
 }
 
 __forceinline__ __device__ void BConvOpNoReg_debug(
-    Params *params, uint64_t *res1, uint64_t *res2, const uint64_t *in,
-    const uint64_t *s_qiHat_mod_pj, const size_t degree_idx,
-    const size_t out_prime_idx, const size_t out_prime_idx2,
-    uint64_t ibase_size, size_t startPartIdx, size_t size_PartQl,
-    const uint64_t *twiddles, const uint64_t *twiddles_shoup,
-    const DModulus *modulus) {
-    xxx_uint128_t2 accum = xxx_base_convert_acc_unroll2(
-        in, s_qiHat_mod_pj, out_prime_idx, params->N, ibase_size, degree_idx);
-
-    uint64_t obase_value = modulus[out_prime_idx2].value();
-    uint64_t obase_ratio[2] = {modulus[out_prime_idx2].const_ratio()[0],
-                               modulus[out_prime_idx2].const_ratio()[1]};
-
-    *res1 =
-        xxx_barrett_reduce_uint128_uint64(accum.x, obase_value, obase_ratio);
-    *res2 =
-        xxx_barrett_reduce_uint128_uint64(accum.y, obase_value, obase_ratio);
-}
-
-__forceinline__ __device__ void BConvOpNoReg_debug2(
     Params *params, uint64_t *out, const uint64_t *in,
-    const uint64_t *s_qiHat_mod_pj, const size_t degree_idx, const size_t o_idx,
-    const size_t out_prime_idx2, uint64_t ibase_size, const uint64_t *twiddles,
+    const uint64_t *s_qiHat_mod_pj, const size_t degree_idx,
+    const size_t out_prime_idx_local, const size_t out_prime_idx,
+    uint64_t ibase_size, const uint64_t *twiddles,
     const uint64_t *twiddles_shoup, const DModulus *modulus) {
-    xxx_uint128_t2 accum = xxx_base_convert_acc_unroll2(
-        in, s_qiHat_mod_pj, o_idx, params->N, ibase_size, degree_idx);
+    xxx_uint128_t2 accum =
+        xxx_base_convert_acc_unroll2(in, s_qiHat_mod_pj, out_prime_idx_local,
+                                     params->N, ibase_size, degree_idx);
 
-    uint64_t obase_value = modulus[out_prime_idx2].value();
-    uint64_t obase_ratio[2] = {modulus[out_prime_idx2].const_ratio()[0],
-                               modulus[out_prime_idx2].const_ratio()[1]};
+    uint64_t obase_value = modulus[out_prime_idx].value();
+    uint64_t obase_ratio[2] = {modulus[out_prime_idx].const_ratio()[0],
+                               modulus[out_prime_idx].const_ratio()[1]};
 
     uint64_t res1 =
         xxx_barrett_reduce_uint128_uint64(accum.x, obase_value, obase_ratio);
     uint64_t res2 =
         xxx_barrett_reduce_uint128_uint64(accum.y, obase_value, obase_ratio);
     asm("st.cs.global.v2.u64 [%0], {%1, %2};" ::"l"(
-            out + out_prime_idx2 * params->N + degree_idx),
+            out + out_prime_idx * params->N + degree_idx),
         "l"(res1), "l"(res2));
 }
 

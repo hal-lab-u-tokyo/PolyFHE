@@ -87,7 +87,6 @@ inttp1_ax = pf.ntt(
     out_start_limb=0,
     out_end_limb=prm.L + prm.K,
 )
-moddown_scale_ax = pf.mul_const(inttp1_ax, "ModDownScaleAx", PrecomputedValue.ModDown, prm.L, prm.L + prm.K)
 inttp2_bx = pf.ntt(
     accum,
     "INTT_Bx",
@@ -108,7 +107,10 @@ inttp1_bx = pf.ntt(
     out_start_limb=0,
     out_end_limb=prm.L + prm.K,
 )
+moddown_scale_ax = pf.mul_const(inttp1_ax, "ModDownScaleAx", PrecomputedValue.ModDown, prm.L, prm.L + prm.K)
 moddown_scale_bx = pf.mul_const(inttp1_bx, "ModDownScaleBx", PrecomputedValue.ModDown, prm.L, prm.L + prm.K)
+bconv_ax = pf.bconv(moddown_scale_ax, f"BConv_ax", prm.L, beta_idx, prm.alpha)
+bconv_bx = pf.bconv(moddown_scale_bx, f"BConv_bx", prm.L, beta_idx, prm.alpha)
 res_ax = pf.end(moddown_scale_ax, 1, 0)
 res_bx = pf.end(moddown_scale_bx, 1, prm.N * (prm.L + prm.K))
 # res_ax = pf.end(inttp1_ax, 1, 0)

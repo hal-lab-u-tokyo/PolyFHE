@@ -1,5 +1,6 @@
 #include "polyfhe/kernel/ntt-phantom.hpp"
 #include "polyfhe/kernel/polynomial.cuh"
+#include "polynomial.cuh"
 
 __global__ void NTTPhase1_general(Params *params, int start_limb, int end_limb,
                                   int start_limb_original,
@@ -301,6 +302,24 @@ __global__ void iNTTPhase1_general(Params *params, int start_limb, int end_limb,
     }
 }
 
+__global__ void BConv_general(Params *params, uint64_t *in, uint64_t *out,
+                              uint64_t *qiHat_mod_pj, uint64_t ibase_size,
+                              uint64_t obase_start, uint64_t obase_size,
+                              size_t alpha, size_t beta,
+                              const uint64_t *twiddles,
+                              const uint64_t *twiddles_shoup,
+                              const DModulus *modulus) {
+    for (size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+         tid < obase_size * params->N / 2; tid += blockDim.x * gridDim.x) {
+        const size_t degree_idx = 2 * (tid / obase_size);
+        const size_t out_prime_idx = tid % obase_size;
+
+        BConvOpNoReg_debug(params, out, in, qiHat_mod_pj, degree_idx,
+                           out_prime_idx, out_prime_idx + obase_start,
+                           ibase_size, twiddles, twiddles_shoup, modulus);
+    }
+}
+
 __global__ void BConv_general_part_allbeta(
     Params *params, uint64_t **in_list, uint64_t **out_list,
     uint64_t **qiHat_mod_pj_list, uint64_t ibase_size, uint64_t obase_start_,
@@ -324,7 +343,7 @@ __global__ void BConv_general_part_allbeta(
             const size_t o_idx = tid_in_beta % obase_size;
             const size_t l_out_idx = o_idx + obase_start;
             // BConv_5
-            BConvOpNoReg_debug2(
+            BConvOpNoReg_debug(
                 params, out_list[beta_idx],
                 in_list[beta_idx] + params->N * startPartIdx,
                 qiHat_mod_pj_list[beta_idx] + obase_start_in30 * ibase_size,
