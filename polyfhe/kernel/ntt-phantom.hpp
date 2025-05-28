@@ -298,7 +298,8 @@ __device__ __forceinline__ void d_poly_inplace_inwt_radix8_phase1(
             samples[j], inv_degree_mod, inv_degree_mod_shoup, modulus_value);
     }
 
-    n_init = t / 4 / group * pad_idx + pad_tid + pad * (n_idx / (group * pad));
+    // n_init = t / 4 / group * pad_idx + pad_tid + pad * (n_idx / (group *
+    // pad));
 #pragma unroll
     for (size_t j = 0; j < 8; j++) {
         modsub(samples[j], modulus_value);

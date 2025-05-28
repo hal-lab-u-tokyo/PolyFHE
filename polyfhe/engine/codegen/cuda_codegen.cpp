@@ -574,8 +574,8 @@ void CudaCodegen::generate_kernel_defs(
                         w_body << ", modup_mult_shoup[l_idx]";
                         break;
                     case core::PrecomputedValue::ModDown:
-                        w_body << ", moddown_mult[l_idx]";
-                        w_body << ", moddown_mult_shoup[l_idx]";
+                        w_body << ", moddown_mult[l_idx - start_limb]";
+                        w_body << ", moddown_mult_shoup[l_idx - start_limb]";
                         break;
                     default:
                         LOG_ERROR(
@@ -700,8 +700,8 @@ void CudaCodegen::generate_kernel_defs(
                         w << ", modup_mult_shoup[twr_idx]";
                         break;
                     case core::PrecomputedValue::ModDown:
-                        w << ", moddown_mult[twr_idx]";
-                        w << ", moddown_mult_shoup[twr_idx]";
+                        w << ", moddown_mult[twr_idx - start_limb]";
+                        w << ", moddown_mult_shoup[twr_idx - start_limb]";
                         break;
                     default:
                         LOG_ERROR(

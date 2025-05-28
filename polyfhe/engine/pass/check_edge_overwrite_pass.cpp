@@ -5,6 +5,18 @@
 
 namespace polyfhe {
 namespace engine {
+
+std::shared_ptr<core::Edge> CanOverwriteOutEdge(
+    const std::shared_ptr<core::Node> node) {
+    if (node && node->get_out_edges().size() == 1) {
+        auto overwrite_to = node->get_out_edges()[0];
+        if (overwrite_to->get_level() == core::EdgeLevel::Global) {
+            return overwrite_to;
+        }
+    }
+    return nullptr;
+}
+
 bool CheckEdgeOverwritePass::run_on_graph(
     std::shared_ptr<polyfhe::core::Graph>& graph) {
     LOG_INFO("Running CheckEdgeOverwritePass\n");
@@ -20,11 +32,19 @@ bool CheckEdgeOverwritePass::run_on_graph(
                 auto dst_node = outedge->get_dst();
                 if (dst_node && dst_node->get_out_edges().size() == 1) {
                     auto overwrite_to = dst_node->get_out_edges()[0];
-                    if (overwrite_to->get_level() !=
+                    if (overwrite_to->get_level() ==
                         polyfhe::core::EdgeLevel::Global) {
-                        continue;
+                        outedge->set_overwrite_edge(overwrite_to);
+                    } else {
+                        // Check one hop further
+                        auto next_overwrite =
+                            CanOverwriteOutEdge(overwrite_to->get_dst());
+                        if (next_overwrite) {
+                            outedge->set_overwrite_edge(next_overwrite);
+                        } else {
+                            outedge->set_overwrite_edge(nullptr);
+                        }
                     }
-                    outedge->set_overwrite_edge(overwrite_to);
                 }
             }
         }
