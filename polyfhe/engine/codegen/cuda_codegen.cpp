@@ -1207,7 +1207,7 @@ void CudaCodegen::generate_call_kernels(
                   << "params_d, " << bconv_op->get_in_edges()[0]->get_name()
                   << "_d, " << bconv_op->get_out_edges()[0]->get_name()
                   << "_d, "
-                  << "moddown_mult, " << bconv_op->get_in_start_idx() << ", "
+                  << "moddown_matmul, " << bconv_op->get_in_start_idx() << ", "
                   << bconv_op->get_in_end_idx() - bconv_op->get_in_start_idx()
                   << ", " << bconv_op->get_out_start_idx() << ", "
                   << bconv_op->get_out_end_idx() - bconv_op->get_out_start_idx()
