@@ -5,8 +5,10 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "ace-tools>=0.0",
     "graphviz>=0.20.3",
     "matplotlib>=3.10.1",
+    "pandas>=2.2.3",
 ]
 
 [build-system]

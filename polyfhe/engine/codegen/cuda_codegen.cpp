@@ -408,6 +408,10 @@ void CudaCodegen::generate_kernel_defs(
                     w << ", uint64_t *modup_mult";
                     w << ", uint64_t *modup_mult_shoup";
                     break;
+                case core::PrecomputedValue::ModDown:
+                    w << ", uint64_t *moddown_mult";
+                    w << ", uint64_t *moddown_mult_shoup";
+                    break;
                 default:
                     LOG_ERROR("Unsupported precomputed value for MultConst\n");
                     assert(false);
@@ -569,6 +573,10 @@ void CudaCodegen::generate_kernel_defs(
                         w_body << ", modup_mult[l_idx]";
                         w_body << ", modup_mult_shoup[l_idx]";
                         break;
+                    case core::PrecomputedValue::ModDown:
+                        w_body << ", moddown_mult[l_idx]";
+                        w_body << ", moddown_mult_shoup[l_idx]";
+                        break;
                     default:
                         LOG_ERROR(
                             "Unsupported precomputed value for MultConst\n");
@@ -690,6 +698,10 @@ void CudaCodegen::generate_kernel_defs(
                     case core::PrecomputedValue::ModUp:
                         w << ", modup_mult[twr_idx]";
                         w << ", modup_mult_shoup[twr_idx]";
+                        break;
+                    case core::PrecomputedValue::ModDown:
+                        w << ", moddown_mult[twr_idx]";
+                        w << ", moddown_mult_shoup[twr_idx]";
                         break;
                     default:
                         LOG_ERROR(
@@ -1192,14 +1204,22 @@ void CudaCodegen::generate_call_kernels(
               << "params_h->ntt_tables->twiddle(),"
               << "params_h->ntt_tables->twiddle_shoup(),"
               << "params_h->ntt_tables->modulus(), d_accum_in_list);\n";
+
+            std::shared_ptr<core::Node> accum_op =
+                subgraph->search_op(core::OpType::MultKeyAccum, 1);
+            if (accum_op == nullptr) {
+                LOG_ERROR("MultKeyAccum operation not found in L2 subgraph\n");
+                assert(false);
+            }
             w << "NTTP2_MultKeyAccum_part<<<4096, 128,"
                  "8 * 128 * sizeof(uint64_t)>>>("
                  "params_d, start_li, end_li, 0, modup_limb, params_h->K, beta,"
                  "params_h->ntt_tables->twiddle(),"
                  "params_h->ntt_tables->twiddle_shoup(),"
                  "params_h->ntt_tables->modulus(), d_accum_in_list,"
-                 "edge_MultKeyAccum_8_0_iNTTPhase2_12_0_d,"
-                 "edge_MultKeyAccum_8_1_iNTTPhase2_9_0_d, relin_keys);\n";
+              << accum_op->get_out_edges()[0]->get_name() << "_d, "
+              << accum_op->get_out_edges()[1]->get_name()
+              << "_d, relin_keys);\n";
             w.block_end();
             continue;
         }
@@ -1260,6 +1280,10 @@ void CudaCodegen::generate_call_kernels(
                 case core::PrecomputedValue::ModUp:
                     w << ", modup_mult";
                     w << ", modup_mult_shoup";
+                    break;
+                case core::PrecomputedValue::ModDown:
+                    w << ", moddown_mult";
+                    w << ", moddown_mult_shoup";
                     break;
                 default:
                     LOG_ERROR("Unsupported precomputed value for MultConst\n");
@@ -1572,11 +1596,11 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
             w << "// ModDown\n";
             w << "const DBaseConverter moddown_converter = "
                  "drns_tool->base_P_to_Ql_conv();\n";
-            w << "uint64_t *d_moddown_mult = "
+            w << "uint64_t *moddown_mult = "
                  "moddown_converter.ibase().QHatInvModq();\n";
-            w << "uint64_t *d_moddown_mult_shoup = "
+            w << "uint64_t *moddown_mult_shoup = "
                  "moddown_converter.ibase().QHatInvModq_shoup();\n";
-            w << "uint64_t *d_moddown_matmul = "
+            w << "uint64_t *moddown_matmul = "
                  "moddown_converter.QHatModp();\n";
         }
     }
