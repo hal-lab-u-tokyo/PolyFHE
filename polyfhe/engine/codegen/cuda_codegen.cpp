@@ -913,16 +913,24 @@ void CudaCodegen::generate_kernel_defs(
 
                     const int exclude_start = node->get_exclude_start_idx();
                     const int exclude_end = node->get_exclude_end_idx();
-                    w_body << "const size_t exclude_end = " << exclude_end
-                           << ";\n";
-                    if (exclude_start != 0) {
+                    bool if_exclude = false;
+                    if (exclude_end - exclude_start > 0) {
+                        if_exclude = true;
+                        w_body << "const size_t exclude_end = " << exclude_end
+                               << ";\n";
                         w_body
                             << "const size_t exclude_start = " << exclude_start
                             << ";\n";
                         w_body << "if (twr_idx >= exclude_start && twr_idx < "
                                   "exclude_end){continue;}\n";
-                    } else {
-                        w_body << "if (twr_idx < exclude_end) {continue;}\n";
+                        w_body << "const uint64_t size_P = params->K;\n";
+                        w_body << "const uint64_t size_QP = params->KL;\n";
+                        w_body
+                            << "size_t twr_idx2 ="
+                               "(twr_idx >= start_limb + end_limb - "
+                               "size_P"
+                               "? size_QP - (start_limb + end_limb - twr_idx)"
+                               ": twr_idx);\n";
                     }
 
                     w_body << "uint64_t n_init;\n";
@@ -930,7 +938,13 @@ void CudaCodegen::generate_kernel_defs(
                     w_body << "params, " << inedge->get_name()
                            << ", shared, reg, twiddles,"
                            << "twiddles_shoup, modulus, end_limb,"
-                           << "start_limb, twr_idx, &n_init, tid);\n";
+                           << "start_limb, twr_idx";
+                    if (if_exclude) {
+                        w_body << ", twr_idx2";
+                    } else {
+                        w_body << ", twr_idx";
+                    }
+                    w_body << ", &n_init, tid);\n";
 
                     // define store here
                     std::shared_ptr<core::Edge> g_store_to = nullptr;
@@ -1151,7 +1165,8 @@ void CudaCodegen::generate_call_kernels(
 
         if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
             w << "const int limb_per = params_h->alpha * n_opt;\n";
-            w << "int n_divide_ = std::ceil(1.0 * modup_limb / limb_per);\n";
+            w << "int n_divide_ = std::ceil(1.0 * modup_limb / "
+                 "limb_per);\n";
             w << "for (int iter = 0; iter < n_divide_; iter++)\n";
             w.block_begin();
             w << "int start_li = iter * limb_per;\n";
@@ -1179,7 +1194,8 @@ void CudaCodegen::generate_call_kernels(
             }
             w << "NTTP2_MultKeyAccum_part<<<4096, 128,"
                  "8 * 128 * sizeof(uint64_t)>>>("
-                 "params_d, start_li, end_li, 0, modup_limb, params_h->K, beta,"
+                 "params_d, start_li, end_li, 0, modup_limb, params_h->K, "
+                 "beta,"
                  "params_h->ntt_tables->twiddle(),"
                  "params_h->ntt_tables->twiddle_shoup(),"
                  "params_h->ntt_tables->modulus(), d_accum_in_list,"
@@ -1202,7 +1218,8 @@ void CudaCodegen::generate_call_kernels(
                 w << "(params_h->L - params_h->alpha * (beta - 1))";
                 w << ": params_h->alpha;\n";
                 w << "auto &bconv_pre = "
-                     "drns_tool->v_base_part_Ql_to_compl_part_QlP_conv()[beta_"
+                     "drns_tool->v_base_part_Ql_to_compl_part_QlP_conv()["
+                     "beta_"
                      "idx];"
                      "\n";
                 w << "auto &ibase = bconv_pre.ibase();\n";

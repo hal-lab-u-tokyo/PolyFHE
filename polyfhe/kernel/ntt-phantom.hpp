@@ -395,20 +395,14 @@ __device__ __forceinline__ void d_poly_fnwt_phase2(
     Params* params, uint64_t* inout, uint64_t* buffer, uint64_t* samples,
     const uint64_t* twiddles, const uint64_t* twiddles_shoup,
     const DModulus* modulus_table, size_t coeff_mod_size, size_t start_mod_idx,
-    size_t twr_idx, size_t* n_init, size_t tid) {
+    size_t twr_idx, size_t twr_idx2, size_t* n_init, size_t tid) {
     const uint64_t n = params->N;
     const uint64_t n1 = params->n1;
     const uint64_t n2 = params->n2;
-    const uint64_t size_P = params->K;
-    const uint64_t size_QP = params->KL;
     size_t group = n2 / 8;
     size_t set = threadIdx.x / group;
     // size of a block
     size_t t = n2 / 2;
-    size_t twr_idx2 =
-        (twr_idx >= start_mod_idx + coeff_mod_size - size_P
-             ? size_QP - (start_mod_idx + coeff_mod_size - twr_idx)
-             : twr_idx);
     // index in n/2 range
     size_t n_idx = tid % (n / 8);
     // tid'th block
