@@ -56,6 +56,7 @@ enum class OpType {
     MultKeyAccum,
     Decomp,
     BConv,
+    BConvGeneral,
     ModDown,
     ModUp,
     NTT,
@@ -194,6 +195,32 @@ public:
         return m_beta_idx;
     }
 
+    // Only for BConvGeneral
+    void set_bconv_general_range(int in_start, int in_end, int out_start,
+                                 int out_end) {
+        assert(m_op_type == OpType::BConvGeneral);
+        m_in_start_idx = in_start;
+        m_in_end_idx = in_end;
+        m_out_start_idx = out_start;
+        m_out_end_idx = out_end;
+    }
+    int get_in_start_idx() {
+        assert(m_op_type == OpType::BConvGeneral);
+        return m_in_start_idx;
+    }
+    int get_in_end_idx() {
+        assert(m_op_type == OpType::BConvGeneral);
+        return m_in_end_idx;
+    }
+    int get_out_start_idx() {
+        assert(m_op_type == OpType::BConvGeneral);
+        return m_out_start_idx;
+    }
+    int get_out_end_idx() {
+        assert(m_op_type == OpType::BConvGeneral);
+        return m_out_end_idx;
+    }
+
     // Only for NTT
     void set_exclude_idx(int start, int end) {
         assert(is_ntt_op(m_op_type));
@@ -243,6 +270,12 @@ protected:
 
     // Only for BConv
     int m_beta_idx;
+
+    // Only for BConvGeneral
+    int m_in_start_idx;
+    int m_in_end_idx;
+    int m_out_start_idx;
+    int m_out_end_idx;
 
     // Only for NTT
     int m_exclude_start_idx;

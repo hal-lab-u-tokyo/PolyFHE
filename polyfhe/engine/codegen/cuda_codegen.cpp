@@ -373,6 +373,11 @@ void CudaCodegen::generate_kernel_defs(
             continue;
         } else if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
             continue;
+        } else if (subgraph->get_subgraph_type() ==
+                   core::SubgraphType::ElemSlot) {
+            if (subgraph->if_contains_op(core::OpType::BConvGeneral)) {
+                continue;
+            }
         }
 
         w << "// Define kernel for subgraph[" << subgraph->get_idx() << "]";
@@ -1073,6 +1078,13 @@ void CudaCodegen::generate_kernel_defs(
                         w << ", startPartIdx";
                         w << ", size_PartQl);\n";
                     }
+                } else if (op_type == core::OpType::BConvGeneral) {
+                    if (subgraph->get_nodes().size() > 1) {
+                        LOG_ERROR(
+                            "BConv operation is not supported in "
+                            "SubgraphType::ElemSlot with multiple nodes\n");
+                    }
+                    // Kernel for BConvGeneral is already generated
                 } else {
                     std::cerr << "op_type: " << core::to_str(op_type)
                               << std::endl;
@@ -1098,62 +1110,7 @@ void CudaCodegen::generate_kernel_defs(
             // ==============================
             // ElemLimb2Slot
             // ==============================
-            w << "extern __shared__ uint64_t shared[];\n";
-            bool has_defined_ntt = false;
-            for (auto node : subgraph->get_nodes()) {
-                w << "// " << node->get_op_name() << "\n";
-                core::OpType op_type = node->get_op_type();
-                if (op_type == core::OpType::Add ||
-                    op_type == core::OpType::Sub ||
-                    op_type == core::OpType::Mult) {
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 2);
-                    // TODO: limb range
-                    //
-                    auto inedge = node->get_in_edges()[0];
-                    w << "#pragma unroll\n";
-                    w << "for (int batch_idx = " << inedge->get_start_limb()
-                      << " + threadIdx.x / n_threads; ";
-                    w << "batch_idx < " << inedge->get_end_limb() << "; ";
-                    w << "batch_idx += n_group)";
-
-                    w.block_begin();
-                    w << "const uint64_t q = "
-                         "params->ntt_params->q[batch_idx];\n";
-                    generate_ElemWiseOp(node, w, node->get_out_edges(),
-                                        node->get_in_edges()[0],
-                                        node->get_in_edges()[1], s_type);
-                    w.block_end();
-                } else if (op_type == core::OpType::NTTPhase2) {
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 1);
-                    generate_NTT(node, w, true, false, has_defined_ntt);
-                    has_defined_ntt = true;
-                } else if (op_type == core::OpType::iNTTPhase2) {
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 1);
-                    generate_NTT(node, w, false, false, has_defined_ntt);
-                    has_defined_ntt = true;
-                } else if (op_type == core::OpType::ModUp) {
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 1);
-                    /*
-                    w << "for (int idx = threadIdx.x; ";
-                    w << "idx < params->n2; ";
-                    w << "idx += blockDim.x)";
-                    w.block_begin();
-                    generate_modup(node, w, "params->n2",
-                                   "blockIdx.x * params->n2 + idx", "idx");
-                    w.block_end();
-                    */
-                } else {
-                    LOG_ERROR(
-                        "Unsupported op for SubgraphType::ElemLimb2Slot\n");
-                    std::cerr << "op_type: " << core::to_str(op_type)
-                              << std::endl;
-                }
-                w << "__syncthreads();\n";
-            }
+            LOG_ERROR("Not implemented\n");
         } else if (s_type == polyfhe::core::SubgraphType::NoAccess) {
             // We don't need to generate kernel
         } else if (s_type == polyfhe::core::SubgraphType::L2) {
@@ -1166,7 +1123,7 @@ void CudaCodegen::generate_kernel_defs(
     }
 
     w.write_to_file(filename, if_append);
-}
+} // namespace engine
 
 void CudaCodegen::generate_call_kernels(
     std::shared_ptr<polyfhe::core::Graph>& graph, CodeWriter& w) {
@@ -1225,22 +1182,46 @@ void CudaCodegen::generate_call_kernels(
         }
 
         if (subgraph->get_subgraph_type() == core::SubgraphType::ElemSlot) {
-            w.block_begin();
-            auto bconv_op = subgraph->search_op(core::OpType::BConv, 1);
-            w << "const size_t beta_idx = " << bconv_op->get_beta_idx()
-              << ";\n";
-            w << "const size_t startPartIdx = params_h->alpha * "
-                 "beta_idx;\n";
-            w << "const size_t size_PartQl = (beta_idx == beta - 1)?";
-            w << "(params_h->L - params_h->alpha * (beta - 1))";
-            w << ": params_h->alpha;\n";
-            w << "auto &bconv_pre = "
-                 "drns_tool->v_base_part_Ql_to_compl_part_QlP_conv()[beta_"
-                 "idx];"
-                 "\n";
-            w << "auto &ibase = bconv_pre.ibase();\n";
-            w << "auto &obase = bconv_pre.obase();\n";
-            w << "constexpr int unroll_factor = 2;\n";
+            if (subgraph->if_contains_op(core::OpType::BConv)) {
+                auto bconv_op = subgraph->search_op(core::OpType::BConv, 1);
+                w.block_begin();
+                w << "const size_t beta_idx = " << bconv_op->get_beta_idx()
+                  << ";\n";
+                w << "const size_t startPartIdx = params_h->alpha * "
+                     "beta_idx;\n";
+                w << "const size_t size_PartQl = (beta_idx == beta - 1)?";
+                w << "(params_h->L - params_h->alpha * (beta - 1))";
+                w << ": params_h->alpha;\n";
+                w << "auto &bconv_pre = "
+                     "drns_tool->v_base_part_Ql_to_compl_part_QlP_conv()[beta_"
+                     "idx];"
+                     "\n";
+                w << "auto &ibase = bconv_pre.ibase();\n";
+                w << "auto &obase = bconv_pre.obase();\n";
+                w << "constexpr int unroll_factor = 2;\n";
+            } else if (subgraph->if_contains_op(core::OpType::BConvGeneral)) {
+                auto bconv_op =
+                    subgraph->search_op(core::OpType::BConvGeneral, 1);
+                assert(subgraph->get_nodes().size() == 1);
+                w << "BConv_general<<<4096, 128>>>("
+                  << "params_d, " << bconv_op->get_in_edges()[0]->get_name()
+                  << "_d, " << bconv_op->get_out_edges()[0]->get_name()
+                  << "_d, "
+                  << "moddown_mult, " << bconv_op->get_in_start_idx() << ", "
+                  << bconv_op->get_in_end_idx() - bconv_op->get_in_start_idx()
+                  << ", " << bconv_op->get_out_start_idx() << ", "
+                  << bconv_op->get_out_end_idx() - bconv_op->get_out_start_idx()
+                  << ", "
+                  << "params_h->ntt_tables->twiddle(), "
+                  << "params_h->ntt_tables->twiddle_shoup(), "
+                  << "params_h->ntt_tables->modulus()"
+                  << ");\n";
+                continue;
+            } else {
+                LOG_ERROR(
+                    "ElemSlot subgraph must contain BConv or "
+                    "BConvGeneral operation\n");
+            }
         }
         w << subgraph->get_name() << "<<<" << kconfig.grid_size << ", "
           << kconfig.block_size << ", " << kconfig.shared_mem_size << ">>>";
@@ -1319,7 +1300,9 @@ void CudaCodegen::generate_call_kernels(
         }
 
         if (subgraph->get_subgraph_type() == core::SubgraphType::ElemSlot) {
-            w.block_end();
+            if (subgraph->if_contains_op(core::OpType::BConv)) {
+                w.block_end();
+            }
         }
     }
     w << "// Timer Stop\n";

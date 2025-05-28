@@ -82,8 +82,8 @@ PrecomputedValue to_precomputed_value(std::string str) {
 MemoryAccessPattern OpType_access_pattern(OpType op_type) {
     if (is_ntt_op(op_type)) {
         return MemoryAccessPattern::LimbWise;
-    } else if (op_type == OpType::BConv || op_type == OpType::ModDown ||
-               op_type == OpType::ModUp) {
+    } else if (op_type == OpType::BConv || op_type == OpType::BConvGeneral ||
+               op_type == OpType::ModDown || op_type == OpType::ModUp) {
         return MemoryAccessPattern::SlotWise;
     } else if (op_type == OpType::Add || op_type == OpType::Sub ||
                op_type == OpType::Mult || op_type == OpType::MultConst ||
@@ -109,6 +109,7 @@ Node::Node(std::string op_label) : m_id(-1) {
         {"MultKeyAccum", OpType::MultKeyAccum},
         {"Decomp", OpType::Decomp},
         {"BConv", OpType::BConv},
+        {"BConvGeneral", OpType::BConvGeneral},
         {"ModDown", OpType::ModDown},
         {"ModUp", OpType::ModUp},
         {"NTT", OpType::NTT},
@@ -156,6 +157,14 @@ Node::Node(std::string op_label) : m_id(-1) {
         set_beta(std::stoi(op_label_vec[3]));
     } else if (m_op_type == OpType::BConv) {
         set_beta_idx(std::stoi(op_label_vec[1]));
+    } else if (m_op_type == OpType::BConvGeneral) {
+        // {op_name}_{in_start}_{in_end}_{out_start}_{out_end}
+        if (op_label_vec.size() != 5) {
+            LOG_ERROR("Illegal op_label: %s\n", op_label.c_str());
+        }
+        set_bconv_general_range(
+            std::stoi(op_label_vec[1]), std::stoi(op_label_vec[2]),
+            std::stoi(op_label_vec[3]), std::stoi(op_label_vec[4]));
     } else if (core::is_ntt_op(m_op_type)) {
         // {op_name}_{start_idx}_{end_idx}_{exclude_start_idx}_{exclude_end_idx}
         if (op_label_vec.size() != 5) {
