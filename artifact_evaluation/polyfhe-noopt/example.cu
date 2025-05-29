@@ -1,3 +1,5 @@
+#include <cuda_profiler_api.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
@@ -213,44 +215,6 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
         } else {
             cout << "  Fail" << endl;
         }
-    }
-
-    // Check t_modup_ptr
-    uint64_t *h_modup_polyfhe =
-        (uint64_t *) malloc(sizeQPNBeta * sizeof(uint64_t));
-    uint64_t *h_modup_phantom =
-        (uint64_t *) malloc(sizeQPNBeta * sizeof(uint64_t));
-    checkCudaErrors(cudaMemcpy(h_modup_polyfhe, res_modup_polyfhe,
-                               sizeQPNBeta * sizeof(uint64_t),
-                               cudaMemcpyDeviceToHost));
-    checkCudaErrors(cudaMemcpy(h_modup_phantom, res_modup_phantom,
-                               sizeQPNBeta * sizeof(uint64_t),
-                               cudaMemcpyDeviceToHost));
-    std::cout << "Modup result" << std::endl;
-    std::cout << "params_h.KL: " << params_h.KL << std::endl;
-    std::cout << "poly_degree: " << poly_degree << std::endl;
-    correctness = true;
-    for (int beta_idx = 0; beta_idx < 2; beta_idx++) {
-        std::cout << "beta_idx: " << beta_idx << std::endl;
-        for (int i = 0; i < params_h.L; i++) {
-            for (int j = 0; j < poly_degree; j++) {
-                int idx =
-                    beta_idx * params_h.KL * poly_degree + i * poly_degree + j;
-                if (h_modup_polyfhe[idx] != h_modup_phantom[idx]) {
-                    cout << "  PolyFHE != Phantom at index[" << beta_idx << "]["
-                         << i << "][" << j << "]" << endl;
-                    cout << "   PolyFHE: " << h_modup_polyfhe[idx] << endl;
-                    cout << "   Phantom: " << h_modup_phantom[idx] << endl;
-                    correctness = false;
-                    break;
-                }
-            }
-        }
-    }
-    if (correctness) {
-        cout << "  OK" << endl;
-    } else {
-        cout << "  Fail" << endl;
     }
 
     std::vector<double> elapsed_list;

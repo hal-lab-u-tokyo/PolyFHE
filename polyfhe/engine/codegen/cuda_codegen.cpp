@@ -94,7 +94,7 @@ std::string gen_ElemWiseOp_internal(polyfhe::core::OpType op_type,
                                     std::string in1) {
     std::string op = "";
     if (op_type == polyfhe::core::OpType::Add) {
-        op = out + " = (" + in0 + " + " + in1 + ") % q;\n";
+        op = out + " = (" + in0 + " + " + in1 + ") % params->qVec[twr_idx];\n";
     } else if (op_type == polyfhe::core::OpType::Sub) {
         op = out + " = (" + in0 + " + q - " + in1 + ") % q;\n";
     } else if (op_type == polyfhe::core::OpType::Mult) {
@@ -138,7 +138,6 @@ void CudaCodegen::generate_ElemWiseOp(
         w << "#pragma unroll\n";
         w << "for (int l = 0; l < 8; l++)";
         w.block_begin();
-        w << "uint64_t res;\n";
 
         std::vector<std::string> in_strs;
         // inedge
@@ -149,16 +148,13 @@ void CudaCodegen::generate_ElemWiseOp(
             }
             in_strs.push_back(gen_edge_access(in, "idx + l", "l"));
         }
-        w << gen_ElemWiseOp_internal(op_type, "res", in_strs[0], in_strs[1]);
+        w << gen_ElemWiseOp_internal(op_type, "reg[l]", in_strs[0], in_strs[1]);
 
         // outedge
         std::vector<std::shared_ptr<core::Edge>> g_outedges;
         for (auto out : out_vec) {
             // TODO: use Register in data_reuse_pass.cpp
-            if (out->get_level() == core::EdgeLevel::Shared) {
-                out->set_level(polyfhe::core::EdgeLevel::Register);
-                w << gen_edge_access(out, "idx + l", "l") << " = res;\n";
-            } else if (out->get_level() == core::EdgeLevel::Global) {
+            if (out->get_level() == core::EdgeLevel::Global) {
                 g_outedges.push_back(out);
             }
         }
@@ -1500,85 +1496,96 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     w << "std::cout << \"beta: \" << beta << std::endl;\n";
 
     for (auto subgraph : graph->get_subgraphs()) {
-        if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
+        if (subgraph->if_contains_op(core::OpType::MultKeyAccum)) {
+            auto accum = subgraph->search_op(core::OpType::MultKeyAccum, 1);
+            assert(accum != nullptr);
             int n_beta = subgraph->get_beta();
-            std::cout << "### subgraph beta: " << n_beta << std::endl;
-            w << "// BConv input\n";
-            w << "uint64_t **bconv_in_list = new uint64_t *[beta];\n";
-            for (int j = 0; j < n_beta; j++) {
-                w << "bconv_in_list[" << j << "] = ";
-                assert(subgraph->get_nodes()[j] != nullptr);
-                assert(subgraph->get_nodes()[j]->get_in_edges().size() == 1);
-                assert(subgraph->get_nodes()[j]->get_in_edges()[0] != nullptr);
-                w << subgraph->get_nodes()[j]->get_in_edges()[0]->get_name()
-                  << "_d;\n";
+            if (n_beta == -1) {
+                n_beta = accum->get_in_edges().size();
             }
-            w << "uint64_t **d_bconv_in_list;\n";
-            w << "checkCudaErrors(cudaMalloc((void ***)&d_bconv_in_list, "
-                 "beta * sizeof(uint64_t *)));\n";
-            w << "checkCudaErrors(cudaMemcpy(d_bconv_in_list, "
-                 "bconv_in_list, beta * sizeof(uint64_t *), "
-                 "cudaMemcpyHostToDevice));\n";
-            w << "\n";
+            if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
+                std::cout << "### subgraph beta: " << n_beta << std::endl;
+                w << "// BConv input\n";
+                w << "uint64_t **bconv_in_list = new uint64_t *[beta];\n";
+                for (int j = 0; j < n_beta; j++) {
+                    w << "bconv_in_list[" << j << "] = ";
+                    assert(subgraph->get_nodes()[j] != nullptr);
+                    assert(subgraph->get_nodes()[j]->get_in_edges().size() ==
+                           1);
+                    assert(subgraph->get_nodes()[j]->get_in_edges()[0] !=
+                           nullptr);
+                    w << subgraph->get_nodes()[j]->get_in_edges()[0]->get_name()
+                      << "_d;\n";
+                }
+                w << "uint64_t **d_bconv_in_list;\n";
+                w << "checkCudaErrors(cudaMalloc((void ***)&d_bconv_in_list, "
+                     "beta * sizeof(uint64_t *)));\n";
+                w << "checkCudaErrors(cudaMemcpy(d_bconv_in_list, "
+                     "bconv_in_list, beta * sizeof(uint64_t *), "
+                     "cudaMemcpyHostToDevice));\n";
+                w << "\n";
 
-            w << "// BConv output\n";
-            w << "uint64_t **bconv_out_list = new uint64_t *[beta];\n";
-            for (int j = 0; j < n_beta; j++) {
-                w << "bconv_out_list[" << j << "] = ";
-                assert(subgraph->get_nodes()[j] != nullptr);
-                assert(subgraph->get_nodes()[j]->get_out_edges().size() == 1);
-                assert(subgraph->get_nodes()[j]->get_out_edges()[0] != nullptr);
-                w << subgraph->get_nodes()[j]->get_out_edges()[0]->get_name()
-                  << "_d;\n";
-            }
-            w << "uint64_t **d_bconv_out_list;\n";
-            w << "checkCudaErrors(cudaMalloc((void ***)&d_bconv_out_list, "
-                 "beta * sizeof(uint64_t *)));\n";
-            w << "checkCudaErrors(cudaMemcpy(d_bconv_out_list, "
-                 "bconv_out_list, beta * sizeof(uint64_t *), "
-                 "cudaMemcpyHostToDevice));\n";
-            w << "\n";
+                w << "// BConv output\n";
+                w << "uint64_t **bconv_out_list = new uint64_t *[beta];\n";
+                for (int j = 0; j < n_beta; j++) {
+                    w << "bconv_out_list[" << j << "] = ";
+                    assert(subgraph->get_nodes()[j] != nullptr);
+                    assert(subgraph->get_nodes()[j]->get_out_edges().size() ==
+                           1);
+                    assert(subgraph->get_nodes()[j]->get_out_edges()[0] !=
+                           nullptr);
+                    w << subgraph->get_nodes()[j]
+                             ->get_out_edges()[0]
+                             ->get_name()
+                      << "_d;\n";
+                }
+                w << "uint64_t **d_bconv_out_list;\n";
+                w << "checkCudaErrors(cudaMalloc((void ***)&d_bconv_out_list, "
+                     "beta * sizeof(uint64_t *)));\n";
+                w << "checkCudaErrors(cudaMemcpy(d_bconv_out_list, "
+                     "bconv_out_list, beta * sizeof(uint64_t *), "
+                     "cudaMemcpyHostToDevice));\n";
+                w << "\n";
 
-            w << "// NTT inout\n";
-            w << "uint64_t **ntt_in_list = new uint64_t *[beta];\n";
-            for (int j = 0; j < n_beta; j++) {
-                w << "ntt_in_list[" << j << "] = ";
-                assert(subgraph->get_nodes()[n_beta + j] != nullptr);
-                assert(
-                    subgraph->get_nodes()[n_beta + j]->get_out_edges().size() ==
-                    1);
-                assert(subgraph->get_nodes()[n_beta + j]->get_out_edges()[0] !=
-                       nullptr);
-                w << subgraph->get_nodes()[n_beta + j]
-                         ->get_out_edges()[0]
-                         ->get_name()
-                  << "_d;\n";
-            }
-            w << "uint64_t **d_ntt_in_list;\n";
-            w << "checkCudaErrors(cudaMalloc((void ***)&d_ntt_in_list, "
-                 "beta * sizeof(uint64_t *)));\n";
-            w << "checkCudaErrors(cudaMemcpy(d_ntt_in_list, "
-                 "ntt_in_list, beta * sizeof(uint64_t *), "
-                 "cudaMemcpyHostToDevice));\n";
-            w << "\n";
+                w << "// NTT inout\n";
+                w << "uint64_t **ntt_in_list = new uint64_t *[beta];\n";
+                for (int j = 0; j < n_beta; j++) {
+                    w << "ntt_in_list[" << j << "] = ";
+                    assert(subgraph->get_nodes()[n_beta + j] != nullptr);
+                    assert(subgraph->get_nodes()[n_beta + j]
+                               ->get_out_edges()
+                               .size() == 1);
+                    assert(
+                        subgraph->get_nodes()[n_beta + j]->get_out_edges()[0] !=
+                        nullptr);
+                    w << subgraph->get_nodes()[n_beta + j]
+                             ->get_out_edges()[0]
+                             ->get_name()
+                      << "_d;\n";
+                }
+                w << "uint64_t **d_ntt_in_list;\n";
+                w << "checkCudaErrors(cudaMalloc((void ***)&d_ntt_in_list, "
+                     "beta * sizeof(uint64_t *)));\n";
+                w << "checkCudaErrors(cudaMemcpy(d_ntt_in_list, "
+                     "ntt_in_list, beta * sizeof(uint64_t *), "
+                     "cudaMemcpyHostToDevice));\n";
+                w << "\n";
 
-            w << "// Accum input\n";
-            w << "uint64_t **accum_in_list = new uint64_t *[beta];\n";
-            auto accum =
-                subgraph->get_nodes()[subgraph->get_nodes().size() - 1];
-            assert(accum->get_op_type() == core::OpType::MultKeyAccum);
-            assert(accum->get_in_edges().size() == n_beta);
-            for (int j = 0; j < n_beta; j++) {
-                w << "accum_in_list[" << j << "] = ";
-                w << accum->get_in_edges()[j]->get_name() << "_d;\n";
+                w << "// Accum input\n";
+                w << "uint64_t **accum_in_list = new uint64_t *[beta];\n";
+                assert(accum->get_in_edges().size() == n_beta);
+                for (int j = 0; j < n_beta; j++) {
+                    w << "accum_in_list[" << j << "] = ";
+                    w << accum->get_in_edges()[j]->get_name() << "_d;\n";
+                }
+                w << "uint64_t **d_accum_in_list;\n";
+                w << "checkCudaErrors(cudaMalloc((void ***)&d_accum_in_list, "
+                     "beta * sizeof(uint64_t *)));\n";
+                w << "checkCudaErrors(cudaMemcpy(d_accum_in_list, "
+                     "accum_in_list, beta * sizeof(uint64_t *), "
+                     "cudaMemcpyHostToDevice));\n";
+                w << "\n";
             }
-            w << "uint64_t **d_accum_in_list;\n";
-            w << "checkCudaErrors(cudaMalloc((void ***)&d_accum_in_list, "
-                 "beta * sizeof(uint64_t *)));\n";
-            w << "checkCudaErrors(cudaMemcpy(d_accum_in_list, "
-                 "accum_in_list, beta * sizeof(uint64_t *), "
-                 "cudaMemcpyHostToDevice));\n";
-            w << "\n";
 
             w << "// qHatModp\n";
             w << "uint64_t **qhat_modp_list = new uint64_t *[beta];\n";

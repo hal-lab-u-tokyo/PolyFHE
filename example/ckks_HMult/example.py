@@ -143,13 +143,23 @@ nttp2_bx = pf.ntt(
         start_limb=0,
         end_limb=prm.L,
 )
+res_ax = pf.end(nttp2_ax, 1, 0)
+res_bx = pf.end(nttp2_bx, 1, prm.N * (prm.L + prm.K))
+# sub_ax = pf.add(accum, nttp2_ax, "SubAx", start_limb=0, end_limb=prm.L)
+# sub_bx = pf.add(accum, nttp2_bx, "SubBx", start_limb=0, end_limb=prm.L)
+# res_ax = pf.end(sub_ax, 1, 0)
+# res_bx = pf.end(sub_bx, 1, prm.N * (prm.L + prm.K))
+
+# add_axax = pf.add(mult_axax, nttp2_ax, "AddAxAx", start_limb=0, end_limb=prm.L)
+# add_axbx = pf.add(mult_axbx, nttp2_bx, "AddAxBx", start_limb=0, end_limb=prm.L)
+# res_axax = pf.end(add_axax, 0, 0)
+# res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)
 res_axax = pf.end(mult_axax, 0, 0)
 res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)
 res_bxbx = pf.end(mult_bxbx, 0, prm.N * prm.L * 2)
-# res_ax = pf.end(bconv_ax, 1, 0)
-# res_bx = pf.end(bconv_bx, 1, prm.N * (prm.L + prm.K))
-res_ax = pf.end(nttp2_ax, 1, 0)
-res_bx = pf.end(nttp2_bx, 1, prm.N * (prm.L + prm.K))
+
+
+
 
 target.append(res_axax)
 target.append(res_axbx)
