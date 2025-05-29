@@ -1,3 +1,7 @@
+#include <cuda.h>
+#include <cuda_profiler_api.h>
+#include <nvToolsExt.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
@@ -162,9 +166,14 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
 
     // PolyFHE's HMult
     std::cout << "Entry kernel" << std::endl;
+    nvtxRangePushA("compute");
+    cudaProfilerStart();
     entry_kernel(params_d, &params_h, context, relin_keys.public_keys_ptr(),
                  in1, in2, res, res_modup_polyfhe, true, n_opt);
     checkCudaErrors(cudaDeviceSynchronize());
+    cudaProfilerStop();
+    nvtxRangePop();
+
     checkCudaErrors(cudaDeviceSynchronize());
 
     // Phantom's HMult

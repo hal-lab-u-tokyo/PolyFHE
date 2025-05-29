@@ -1,0 +1,20 @@
+Generating SQLite file ./artifact_evaluation/data/exectime-breakdown-l2opt.sqlite from ./artifact_evaluation/data/exectime-breakdown-l2opt.nsys-rep
+Processing [./artifact_evaluation/data/exectime-breakdown-l2opt.sqlite] with [/opt/nvidia/nsight-systems-cli/2024.7.1/target-linux-x64/reports/cuda_gpu_kern_sum.py]... 
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+37.7,41796275,300,139320.9,139328.0,136800,142272,1514.2,NTTP2_MultKeyAccum_part
+12.5,13921789,300,46406.0,46640.0,43360,49760,1940.6,BConv_general_part_allbeta
+9.9,10981950,300,36606.5,38384.0,30400,41792,3708.4,NTTP1_part_allbeta
+9.2,10202301,100,102023.0,101920.0,101024,104800,504.2,"Mult_1_iNTTPhase2_2(Params *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+7.7,8565599,100,85656.0,85632.0,85248,86432,218.9,"Mult_36_Mult_34_Add_35(Params *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+4.9,5416382,200,27081.9,27072.0,26080,27872,369.8,BConv_general
+4.0,4391422,100,43914.2,43904.0,43552,44704,222.2,"NTTPhase2_14(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+2.6,2937566,100,29375.7,29328.0,28736,30240,310.8,"Mult_37(Params *, unsigned long *, unsigned long *, unsigned long *)"
+2.5,2738431,100,27384.3,27360.0,26464,28512,402.0,"iNTTPhase1_3_MultConst_4(Params *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+2.0,2215456,100,22154.6,22176.0,21536,22912,217.1,"NTTPhase2_21(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+1.9,2109280,100,21092.8,21120.0,20416,21632,251.1,"NTTPhase1_13(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+1.9,2095936,100,20959.4,20976.0,20320,21504,247.3,"NTTPhase1_20(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+1.2,1364256,100,13642.6,13632.0,13344,13920,116.8,"iNTTPhase2_9(Params *, unsigned long *, unsigned long *)"
+0.7,770143,100,7701.4,7680.0,7488,8160,139.4,"iNTTPhase2_16(Params *, unsigned long *, unsigned long *)"
+0.7,768384,100,7683.8,7680.0,7392,7936,125.1,"iNTTPhase1_10_MultConst_11(Params *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+0.7,722720,100,7227.2,7232.0,6944,7360,82.2,"iNTTPhase1_17_MultConst_18(Params *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+

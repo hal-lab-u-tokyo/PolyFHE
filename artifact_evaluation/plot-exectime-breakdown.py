@@ -95,6 +95,9 @@ tab10 = cm.tab10.colors
 # }
 
 data = read_data(fname_csv)
+
+print(data)
+
 # colors = [label_colors[label] for label in data.keys()]
 labels = data.keys()
 
@@ -102,6 +105,5 @@ labels = data.keys()
 fig, ax = plt.subplots(figsize=(10, 10))
 ax.pie(data.values(), labels=filter_labels(data.values(), data.keys()), autopct=filter_autopct, startangle=90, textprops={'fontsize': 28}, colors=cm.tab20.colors)
 ax.axis('equal')
-ax.tight_layout()
 plt.savefig(f"{directory_path}/data/figure/{fname}.pdf", dpi=500, bbox_inches='tight', pad_inches=0)
 print(f"Figure saved at {directory_path}/data/figure/{fname}.pdf")

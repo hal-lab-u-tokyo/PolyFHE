@@ -1,0 +1,177 @@
+Kernel: Mult_1
+  dram__bytes_read.sum : 31.46 MB (std: 0.00)
+  dram__bytes_write.sum : 0.04 MB (std: 0.11)
+  l1tex__t_sector_hit_rate.pct : 16.82 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 50.22 % (std: 0.01)
+Kernel: iNTTPhase2_2
+  dram__bytes_read.sum : 46.57 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 64.23 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 26.46 % (std: 0.01)
+Kernel: iNTTPhase1_3
+  dram__bytes_read.sum : 15.88 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 38.70 % (std: 0.23)
+  lts__t_sector_hit_rate.pct : 59.41 % (std: 0.13)
+Kernel: MultConst_4
+  dram__bytes_read.sum : 15.73 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 25.44 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 50.43 % (std: 0.00)
+Kernel: BConv_5
+  dram__bytes_read.sum : 3.16 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.18 % (std: 0.04)
+  lts__t_sector_hit_rate.pct : 90.79 % (std: 0.00)
+Kernel: NTTPhase1_6
+  dram__bytes_read.sum : 15.88 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 42.68 % (std: 0.06)
+  lts__t_sector_hit_rate.pct : 57.75 % (std: 0.03)
+Kernel: NTTPhase2_7
+  dram__bytes_read.sum : 47.10 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 53.98 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.24 % (std: 0.01)
+Kernel: BConv_22
+  dram__bytes_read.sum : 3.16 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.21 % (std: 0.03)
+  lts__t_sector_hit_rate.pct : 90.78 % (std: 0.01)
+Kernel: NTTPhase1_23
+  dram__bytes_read.sum : 15.88 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 42.72 % (std: 0.13)
+  lts__t_sector_hit_rate.pct : 57.79 % (std: 0.08)
+Kernel: NTTPhase2_24
+  dram__bytes_read.sum : 47.10 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 53.96 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.26 % (std: 0.02)
+Kernel: BConv_25
+  dram__bytes_read.sum : 3.16 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.36 % (std: 0.02)
+  lts__t_sector_hit_rate.pct : 90.70 % (std: 0.01)
+Kernel: NTTPhase1_26
+  dram__bytes_read.sum : 15.88 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 43.84 % (std: 0.18)
+  lts__t_sector_hit_rate.pct : 57.37 % (std: 0.08)
+Kernel: NTTPhase2_27
+  dram__bytes_read.sum : 47.10 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 53.99 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.22 % (std: 0.02)
+Kernel: BConv_28
+  dram__bytes_read.sum : 3.16 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.02 % (std: 0.03)
+  lts__t_sector_hit_rate.pct : 90.79 % (std: 0.00)
+Kernel: NTTPhase1_29
+  dram__bytes_read.sum : 15.88 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 41.89 % (std: 0.11)
+  lts__t_sector_hit_rate.pct : 58.25 % (std: 0.07)
+Kernel: NTTPhase2_30
+  dram__bytes_read.sum : 47.10 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 53.97 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.24 % (std: 0.02)
+Kernel: BConv_31
+  dram__bytes_read.sum : 3.16 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.39 % (std: 0.05)
+  lts__t_sector_hit_rate.pct : 90.68 % (std: 0.01)
+Kernel: NTTPhase1_32
+  dram__bytes_read.sum : 15.88 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 41.77 % (std: 0.08)
+  lts__t_sector_hit_rate.pct : 58.30 % (std: 0.06)
+Kernel: NTTPhase2_33
+  dram__bytes_read.sum : 47.10 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 53.97 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.25 % (std: 0.02)
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 283.14 MB (std: 0.02)
+  dram__bytes_write.sum : 26.99 MB (std: 0.03)
+  l1tex__t_sector_hit_rate.pct : 8.35 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 11.86 % (std: 0.00)
+Kernel: iNTTPhase2_9
+  dram__bytes_read.sum : 9.44 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 64.68 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 27.43 % (std: 0.07)
+Kernel: iNTTPhase1_10
+  dram__bytes_read.sum : 3.20 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 55.10 % (std: 0.08)
+  lts__t_sector_hit_rate.pct : 56.22 % (std: 0.03)
+Kernel: MultConst_11
+  dram__bytes_read.sum : 3.15 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 32.04 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 51.23 % (std: 0.01)
+Kernel: BConv_general
+  dram__bytes_read.sum : 3.16 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 93.20 % (std: 0.22)
+  lts__t_sector_hit_rate.pct : 90.70 % (std: 0.01)
+Kernel: NTTPhase1_13
+  dram__bytes_read.sum : 15.88 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 36.97 % (std: 0.06)
+  lts__t_sector_hit_rate.pct : 59.96 % (std: 0.03)
+Kernel: NTTPhase2_14
+  dram__bytes_read.sum : 47.10 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 53.75 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.46 % (std: 0.02)
+Kernel: iNTTPhase2_16
+  dram__bytes_read.sum : 9.44 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 64.68 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 27.39 % (std: 0.03)
+Kernel: iNTTPhase1_17
+  dram__bytes_read.sum : 3.20 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 55.08 % (std: 0.09)
+  lts__t_sector_hit_rate.pct : 56.22 % (std: 0.03)
+Kernel: MultConst_18
+  dram__bytes_read.sum : 3.15 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 32.04 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 51.23 % (std: 0.01)
+Kernel: NTTPhase1_20
+  dram__bytes_read.sum : 15.88 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 36.99 % (std: 0.06)
+  lts__t_sector_hit_rate.pct : 59.94 % (std: 0.03)
+Kernel: NTTPhase2_21
+  dram__bytes_read.sum : 47.10 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 53.75 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.46 % (std: 0.02)
+Kernel: Mult_34
+  dram__bytes_read.sum : 31.46 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 21.23 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 33.72 % (std: 0.00)
+Kernel: Mult_36
+  dram__bytes_read.sum : 31.46 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 21.23 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 33.72 % (std: 0.00)
+Kernel: Add_35
+  dram__bytes_read.sum : 31.46 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 12.76 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 33.62 % (std: 0.00)
+Kernel: Mult_37
+  dram__bytes_read.sum : 31.46 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 21.23 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 33.72 % (std: 0.00)
+Figure saved at /opt/mount/PolyFHE/artifact_evaluation/data/figure/memaccess-noopt-l1.pdf
+Figure saved at /opt/mount/PolyFHE/artifact_evaluation/data/figure/memaccess-noopt-l2.pdf

@@ -18,6 +18,7 @@ fname_csv = f"{directory_path}/data/{fname}.csv"
 dic_metricname_unit = {}
 
 def format_kernel_name(kernel_name):
+    return kernel_name.split("(")[0].strip()
     if "iNTTPhase1" in kernel_name:
         return "iNTTPhase1"
     elif "NTTPhase1" in kernel_name:
@@ -32,6 +33,8 @@ def format_kernel_name(kernel_name):
         return "Add"
     elif "BConv" in kernel_name:
         return "BConv"
+    else:
+        return kernel_name.split("(")[0].strip()
 
 def read_csv(file):
     profiled_data = {}
@@ -115,6 +118,7 @@ def plot_bar_scatter(metric_name, profiled_data, label, fname, color='tab:blue')
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.scatter(kernels, values, label=metric_name, s=100, color=color, alpha=0.7)
     ax.set_ylabel(label, fontsize=24)
+    ax.set_ylim(0, 100)
     ax.tick_params(axis='both', which='major', labelsize=18)
     ax.tick_params(axis='x', rotation=30)
     ax.grid(True)
@@ -123,3 +127,4 @@ def plot_bar_scatter(metric_name, profiled_data, label, fname, color='tab:blue')
     
 plot_bar_scatter("l1tex__t_sector_hit_rate.pct", result, "L1 Cache Hit Rate(%)", f"{directory_path}/data/figure/{fname}-l1.pdf", cm.tab10.colors[0])
 plot_bar_scatter("lts__t_sector_hit_rate.pct", result, "L2 Cache Hit Rate(%)", f"{directory_path}/data/figure/{fname}-l2.pdf", cm.tab10.colors[2])
+# plot_bar_scatter("lts__t_sector_op_read_hit_rate.pct", result, "L2 Cache Hit Rate(%)", f"{directory_path}/data/figure/{fname}-l2.pdf", cm.tab10.colors[2])
