@@ -5,7 +5,7 @@ LIBPATH = $(ROOT)/build/thirdparty/phantom-fhe/lib
 LDFLAGS = -Xlinker -rpath -Xlinker $(LIBPATH) -L$(LIBPATH) -lPhantom -lpthread -lnvToolsExt
 
 BIN_EXAMPLE = build/example.out
-COMPILER_OUT = generated.cu
+COMPILER_OUT = compiler-output.cu
 
 all: $(BIN_EXAMPLE)
 	@echo "Running example..."

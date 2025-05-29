@@ -1,0 +1,108 @@
+=========================
+/opt/mount/PolyFHE/artifact_evaluation/data/memaccess.csv
+=========================
+Kernel: Mult_1
+  l1tex__t_sector_hit_rate.pct : 16.82 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 50.22 % (std: 0.00)
+Kernel: iNTTPhase2_2
+  l1tex__t_sector_hit_rate.pct : 64.23 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 26.46 % (std: 0.01)
+Kernel: iNTTPhase1_3
+  l1tex__t_sector_hit_rate.pct : 38.92 % (std: 0.22)
+  lts__t_sector_hit_rate.pct : 59.29 % (std: 0.13)
+Kernel: MultConst_4
+  l1tex__t_sector_hit_rate.pct : 25.44 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 50.43 % (std: 0.00)
+Kernel: BConv_5
+  l1tex__t_sector_hit_rate.pct : 83.18 % (std: 0.02)
+  lts__t_sector_hit_rate.pct : 90.79 % (std: 0.01)
+Kernel: NTTPhase1_6
+  l1tex__t_sector_hit_rate.pct : 42.73 % (std: 0.11)
+  lts__t_sector_hit_rate.pct : 57.75 % (std: 0.06)
+Kernel: NTTPhase2_7
+  l1tex__t_sector_hit_rate.pct : 53.97 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.24 % (std: 0.02)
+Kernel: BConv_22
+  l1tex__t_sector_hit_rate.pct : 83.21 % (std: 0.03)
+  lts__t_sector_hit_rate.pct : 90.78 % (std: 0.01)
+Kernel: NTTPhase1_23
+  l1tex__t_sector_hit_rate.pct : 42.54 % (std: 0.08)
+  lts__t_sector_hit_rate.pct : 57.82 % (std: 0.06)
+Kernel: NTTPhase2_24
+  l1tex__t_sector_hit_rate.pct : 53.96 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.26 % (std: 0.02)
+Kernel: BConv_25
+  l1tex__t_sector_hit_rate.pct : 83.34 % (std: 0.04)
+  lts__t_sector_hit_rate.pct : 90.70 % (std: 0.01)
+Kernel: NTTPhase1_26
+  l1tex__t_sector_hit_rate.pct : 43.82 % (std: 0.18)
+  lts__t_sector_hit_rate.pct : 57.37 % (std: 0.06)
+Kernel: NTTPhase2_27
+  l1tex__t_sector_hit_rate.pct : 53.99 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.22 % (std: 0.02)
+Kernel: BConv_28
+  l1tex__t_sector_hit_rate.pct : 83.19 % (std: 0.03)
+  lts__t_sector_hit_rate.pct : 90.77 % (std: 0.00)
+Kernel: NTTPhase1_29
+  l1tex__t_sector_hit_rate.pct : 41.83 % (std: 0.10)
+  lts__t_sector_hit_rate.pct : 58.29 % (std: 0.06)
+Kernel: NTTPhase2_30
+  l1tex__t_sector_hit_rate.pct : 53.97 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.24 % (std: 0.01)
+Kernel: BConv_31
+  l1tex__t_sector_hit_rate.pct : 83.37 % (std: 0.05)
+  lts__t_sector_hit_rate.pct : 90.67 % (std: 0.01)
+Kernel: NTTPhase1_32
+  l1tex__t_sector_hit_rate.pct : 41.84 % (std: 0.06)
+  lts__t_sector_hit_rate.pct : 58.30 % (std: 0.04)
+Kernel: NTTPhase2_33
+  l1tex__t_sector_hit_rate.pct : 53.97 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.25 % (std: 0.01)
+Kernel: MultKeyAccum_8
+  l1tex__t_sector_hit_rate.pct : 8.35 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 11.86 % (std: 0.00)
+Kernel: iNTTPhase2_9
+  l1tex__t_sector_hit_rate.pct : 64.68 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 27.38 % (std: 0.01)
+Kernel: iNTTPhase1_10
+  l1tex__t_sector_hit_rate.pct : 55.08 % (std: 0.10)
+  lts__t_sector_hit_rate.pct : 56.21 % (std: 0.01)
+Kernel: MultConst_11
+  l1tex__t_sector_hit_rate.pct : 32.04 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 51.23 % (std: 0.00)
+Kernel: BConv_general
+  l1tex__t_sector_hit_rate.pct : 93.20 % (std: 0.23)
+  lts__t_sector_hit_rate.pct : 90.69 % (std: 0.01)
+Kernel: NTTPhase1_13
+  l1tex__t_sector_hit_rate.pct : 36.97 % (std: 0.07)
+  lts__t_sector_hit_rate.pct : 59.95 % (std: 0.03)
+Kernel: NTTPhase2_14
+  l1tex__t_sector_hit_rate.pct : 53.75 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.47 % (std: 0.02)
+Kernel: iNTTPhase2_16
+  l1tex__t_sector_hit_rate.pct : 64.68 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 27.38 % (std: 0.01)
+Kernel: iNTTPhase1_17
+  l1tex__t_sector_hit_rate.pct : 55.07 % (std: 0.06)
+  lts__t_sector_hit_rate.pct : 56.20 % (std: 0.02)
+Kernel: MultConst_18
+  l1tex__t_sector_hit_rate.pct : 32.04 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 51.22 % (std: 0.01)
+Kernel: NTTPhase1_20
+  l1tex__t_sector_hit_rate.pct : 36.95 % (std: 0.07)
+  lts__t_sector_hit_rate.pct : 59.96 % (std: 0.04)
+Kernel: NTTPhase2_21
+  l1tex__t_sector_hit_rate.pct : 53.76 % (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.45 % (std: 0.02)
+Kernel: Mult_34
+  l1tex__t_sector_hit_rate.pct : 21.23 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 33.72 % (std: 0.00)
+Kernel: Mult_36
+  l1tex__t_sector_hit_rate.pct : 21.23 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 33.72 % (std: 0.00)
+Kernel: Add_35
+  l1tex__t_sector_hit_rate.pct : 12.76 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 33.62 % (std: 0.00)
+Kernel: Mult_37
+  l1tex__t_sector_hit_rate.pct : 21.23 % (std: 0.00)
+  lts__t_sector_hit_rate.pct : 33.72 % (std: 0.00)
