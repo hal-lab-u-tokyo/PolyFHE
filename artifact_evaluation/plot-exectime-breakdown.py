@@ -55,10 +55,14 @@ def read_data(fname_csv):
             # if there is "phantom::", eliminate it
             name = name.split("phantom::")[-1]
             # if name contains "fnwt", name = ntt
-            if "iNTT" in name:
-                name = "iNTT"
-            elif "NTT" in name:
-                name = "NTT"
+            if "iNTTPhase1" in name:
+                name = "iNTTPhase1"
+            elif "iNTTPhase2" in name:
+                name = "iNTTPhase2"
+            elif "NTTPhase1" in name:
+                name = "NTTPhase1"
+            elif "NTTPhase2" in name:
+                name = "NTTPhase2"
             elif "BConv"  in name:
                 name = "BConv"
             elif "Modup" in name:
@@ -82,22 +86,22 @@ def filter_autopct(pct):
     return f'{pct:.1f}%' if pct >= 5 else ''
 
 tab10 = cm.tab10.colors
-label_colors = {
-    "NTT": tab10[0],
-    "iNTT": tab10[9],
-    "BConv": tab10[2],
-    "Mult": tab10[1],
-    "Add": tab10[8],
-}
+# label_colors = {
+#     "NTT": tab10[0],
+#     "iNTT": tab10[9],
+#     "BConv": tab10[2],
+#     "Mult": tab10[1],
+#     "Add": tab10[8],
+# }
 
 data = read_data(fname_csv)
-colors = [label_colors[label] for label in data.keys()]
+# colors = [label_colors[label] for label in data.keys()]
 labels = data.keys()
 
 # Plot pie chart with font size 18
 fig, ax = plt.subplots(figsize=(10, 10))
-ax.pie(data.values(), labels=filter_labels(data.values(), data.keys()), autopct=filter_autopct, startangle=90, textprops={'fontsize': 28}, colors=colors)
+ax.pie(data.values(), labels=filter_labels(data.values(), data.keys()), autopct=filter_autopct, startangle=90, textprops={'fontsize': 28}, colors=cm.tab20.colors)
 ax.axis('equal')
-
+ax.tight_layout()
 plt.savefig(f"{directory_path}/data/figure/{fname}.pdf", dpi=500, bbox_inches='tight', pad_inches=0)
 print(f"Figure saved at {directory_path}/data/figure/{fname}.pdf")

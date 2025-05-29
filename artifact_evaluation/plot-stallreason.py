@@ -111,10 +111,10 @@ for i, (kernel_name, metrics_data) in enumerate(data.items()):
 
 # Plot pie chart
 def filter_labels(data, labels):
-    return [label if value >= 10 else '' for label, value in zip(labels, data)]
+    return [label if value >= 5 else '' for label, value in zip(labels, data)]
 
 def filter_autopct(pct):
-    return f'{pct:.1f}%' if pct >= 10 else ''
+    return f'{pct:.1f}%' if pct >= 6 else ''
 
 tab10 = cm.tab10.colors
 label_colors = {
