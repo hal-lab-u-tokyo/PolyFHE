@@ -1494,9 +1494,12 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
          "params_h->alpha);\n";
     w << "std::cout << \"beta: \" << beta << std::endl;\n";
 
+    bool has_defined_const = false;
     for (auto subgraph : graph->get_subgraphs()) {
         if (subgraph->if_contains_op(core::OpType::MultConst)) {
-            w << "// ModUp\n";
+            if (!has_defined_const){
+                has_defined_const = true;
+                w << "// ModUp\n";
             w << "uint64_t *modup_mult = "
                  "rns_tool->partQlHatInv_mod_Ql_concat();\n";
             w << "uint64_t *modup_mult_shoup = "
@@ -1511,6 +1514,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                  "moddown_converter.ibase().QHatInvModq_shoup();\n";
             w << "uint64_t *moddown_matmul = "
                  "moddown_converter.QHatModp();\n";
+            }
         }
         if (subgraph->if_contains_op(core::OpType::MultKeyAccum)) {
             auto accum = subgraph->search_op(core::OpType::MultKeyAccum, 1);
@@ -1639,7 +1643,7 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     w.block_begin();
     w << "std::cout << \"### Benchmark\" << std::endl;\n";
     w << "std::vector<double> elapsed_times;\n";
-    w << "for (int i = 0; i < 100; i++)\n";
+    w << "for (int i = 0; i < 10; i++)\n";
     w.block_begin();
 
     w << "\n";

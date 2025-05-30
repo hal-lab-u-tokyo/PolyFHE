@@ -2,8 +2,8 @@ from pypolyfhe import PolyFHE, Params, PrecomputedValue
 import os
 
 pf = PolyFHE()
-# prm = Params(N=2**15, L=15, dnum=5)
-prm = Params(N=2**16, L=30, dnum=5)
+prm = Params(N=2**15, L=15, dnum=5)
+# prm = Params(N=2**16, L=30, dnum=5)
 # prm = Params(N=2**16, L=35, dnum=7) 
 # prm = Params(N=2**14, L=6, dnum=3)
 # prm = Params(N=2**16, L=40, dnum=20)
@@ -72,9 +72,6 @@ accum_list = []
 for beta_idx in range(prm.get_beta(prm.L - 1)):
     print("beta_idx:", beta_idx)
     bconv = pf.bconv(scale_for_bconv, f"BConv{beta_idx}", prm.L, beta_idx, prm.alpha)
-    res_bconv = pf.end(bconv, 1, prm.N * (prm.L + prm.K) * beta_idx)
-    target.append(res_bconv)
-    """
     nttp1_after_bconv = pf.ntt(
         bconv,
         f"NTTP1{beta_idx}",
@@ -96,9 +93,7 @@ for beta_idx in range(prm.get_beta(prm.L - 1)):
         exclude_end=prm.alpha * (beta_idx + 1),
     )
     accum_list.append(nttp2_after_bconv)
-    """
 
-"""
 accum = pf.mul_key_accum(accum_list, "MultKeyAccum", start_limb=0, end_limb=prm.L + prm.K, beta=prm.get_beta(prm.L - 1))
 inttp2_ax = pf.ntt(
     accum,
@@ -177,8 +172,9 @@ nttp2_bx = pf.ntt(
         end_limb=prm.L,
 )
 """
-# res_ax = pf.end(nttp2_ax, 1, 0)
-# res_bx = pf.end(nttp2_bx, 1, prm.N * (prm.L + prm.K))
+"""
+res_ax = pf.end(nttp2_ax, 1, 0)
+res_bx = pf.end(nttp2_bx, 1, prm.N * (prm.L + prm.K))
 # sub_ax = pf.add(accum, nttp2_ax, "SubAx", start_limb=0, end_limb=prm.L)
 # sub_bx = pf.add(accum, nttp2_bx, "SubBx", start_limb=0, end_limb=prm.L)
 # res_ax = pf.end(sub_ax, 1, 0)
@@ -189,18 +185,16 @@ nttp2_bx = pf.ntt(
 # res_axax = pf.end(add_axax, 0, 0)
 # res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)
 
-# target.append(res_ax)
-# target.append(res_bx)
+target.append(res_ax)
+target.append(res_bx)
 
 res_axax = pf.end(mult_axax, 0, 0)
 res_axbx = pf.end(add_axbx, 0, prm.N * prm.L)
 res_bxbx = pf.end(mult_bxbx, 0, prm.N * prm.L * 2)
-# res_ks = pf.end(scale_for_bconv, 1, 0)
 
 target.append(res_axax)
 target.append(res_axbx)
 target.append(res_bxbx)
-# target.append(res_ks)
 
 # Compile
 current_dir = os.path.dirname(os.path.abspath(__file__))
