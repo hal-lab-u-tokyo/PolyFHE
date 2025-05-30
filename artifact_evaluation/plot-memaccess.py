@@ -18,7 +18,6 @@ fname_csv = f"{directory_path}/data/{fname}.csv"
 dic_metricname_unit = {}
 
 def format_kernel_name(kernel_name):
-    return kernel_name.split("(")[0].strip()
     if "iNTTPhase1" in kernel_name:
         return "iNTTPhase1"
     elif "NTTPhase1" in kernel_name:

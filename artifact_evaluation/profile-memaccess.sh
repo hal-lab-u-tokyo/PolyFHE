@@ -4,10 +4,10 @@ set -xe
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd ${REPO_ROOT}
 
-# PROFILE_NAME="memaccess-noopt"
-# BIN="${REPO_ROOT}/artifact_evaluation/polyfhe-noopt/build/example.out"
-PROFILE_NAME="memaccess-l2opt"
-BIN="${REPO_ROOT}/example/ckks_HMult/build/example.out"
+PROFILE_NAME="memaccess-noopt-A100"
+BIN="${REPO_ROOT}/artifact_evaluation/polyfhe-noopt/build/example.out"
+# PROFILE_NAME="memaccess-l2opt"
+# BIN="${REPO_ROOT}/example/ckks_HMult/build/example.out"
 OUTPUT_DIR="${REPO_ROOT}/artifact_evaluation/data"
 
 METRICS="l1tex__t_sector_hit_rate.pct"
