@@ -1,0 +1,150 @@
+/
+| Encryption parameters :
+|   scheme: CKKS
+|   poly_modulus_degree: 65536
+|   coeff_modulus size: 1580 (60 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 40 + 60 + 60 + 60 + 60 + 60 + 60) bits
+
+1152921504589938689 ,  1099460640769 ,  1099460902913 ,  1099461820417 ,  1099463786497 ,  1099465359361 ,  1099467194369 ,  1099468505089 ,  1099468767233 ,  1099469684737 ,  1099479121921 ,  1099480956929 ,  1099482923009 ,  1099484495873 ,  1099484889089 ,  1099486855169 ,  1099488428033 ,  1099489607681 ,  1099490000897 ,  1099498258433 ,  1099499175937 ,  1099499569153 ,  1099500617729 ,  1099502714881 ,  1099503370241 ,  1099503894529 ,  1099504549889 ,  1099506515969 ,  1099507695617 ,  1099510054913 ,  1152921504592429057 ,  1152921504592822273 ,  1152921504595968001 ,  1152921504597016577 ,  1152921504598720513 ,  1152921504606584833 ,  
+
+\
+Input vector 1: length = 32768
+
+    [ 0.1375002 + i * 0.2641672, 0.6929935 + i * 0.0347370, 0.9747569 + i * 0.2106006, ..., 0.1101215 + i * 0.6102201, 0.7486609 + i * 0.7812660, 0.8610105 + i * 0.3336209 ]
+
+Input vector 2: length = 32768
+
+    [ 0.0111304 + i * 0.9073955, 0.9371840 + i * 0.6475823, 0.5172352 + i * 0.2552527, ..., 0.3320028 + i * 0.9399561, 0.0101862 + i * 0.9113379, 0.9528834 + i * 0.4657046 ]
+
+x_plain.chain_index(): 1
+x_plain.chain_index(): 1
+x_cipher.chain_index(): 1
+coeff_mod_size: 30
+L: 30
+alpha: 6
+dnum: 5
+beta: 5
+Entry kernel
+### Warm up and Test
+N : 65536
+L : 30
+dnum : 5
+K : 6
+KL : 36
+alpha : 6
+beta: 5
+### Benchmark
+Elapsed time: 5282us
+Elapsed time: 3415us
+Elapsed time: 3392us
+Elapsed time: 3430us
+Elapsed time: 3408us
+Elapsed time: 3393us
+Elapsed time: 3405us
+Elapsed time: 3402us
+Elapsed time: 3401us
+Elapsed time: 3392us
+Elapsed time: 3387us
+Elapsed time: 3391us
+Elapsed time: 3386us
+Elapsed time: 3396us
+Elapsed time: 3383us
+Elapsed time: 3403us
+Elapsed time: 3413us
+Elapsed time: 3399us
+Elapsed time: 3434us
+Elapsed time: 3403us
+Elapsed time: 3409us
+Elapsed time: 3432us
+Elapsed time: 3389us
+Elapsed time: 3412us
+Elapsed time: 3379us
+Elapsed time: 3395us
+Elapsed time: 3383us
+Elapsed time: 3398us
+Elapsed time: 3410us
+Elapsed time: 3382us
+Elapsed time: 3379us
+Elapsed time: 3370us
+Elapsed time: 3402us
+Elapsed time: 3397us
+Elapsed time: 3394us
+Elapsed time: 3395us
+Elapsed time: 3401us
+Elapsed time: 3382us
+Elapsed time: 3405us
+Elapsed time: 3383us
+Elapsed time: 3385us
+Elapsed time: 3402us
+Elapsed time: 3380us
+Elapsed time: 3393us
+Elapsed time: 3382us
+Elapsed time: 3392us
+Elapsed time: 3384us
+Elapsed time: 3411us
+Elapsed time: 3411us
+Elapsed time: 3407us
+Elapsed time: 3423us
+Elapsed time: 3384us
+Elapsed time: 3421us
+Elapsed time: 3392us
+Elapsed time: 3344us
+Elapsed time: 3120us
+Elapsed time: 3105us
+Elapsed time: 3101us
+Elapsed time: 3107us
+Elapsed time: 3106us
+Elapsed time: 3069us
+Elapsed time: 3090us
+Elapsed time: 3106us
+Elapsed time: 3074us
+Elapsed time: 3080us
+Elapsed time: 3086us
+Elapsed time: 3087us
+Elapsed time: 3072us
+Elapsed time: 3051us
+Elapsed time: 3062us
+Elapsed time: 3071us
+Elapsed time: 3048us
+Elapsed time: 3071us
+Elapsed time: 3057us
+Elapsed time: 3078us
+Elapsed time: 3075us
+Elapsed time: 3053us
+Elapsed time: 3084us
+Elapsed time: 3078us
+Elapsed time: 3063us
+Elapsed time: 3141us
+Elapsed time: 3076us
+Elapsed time: 3089us
+Elapsed time: 3079us
+Elapsed time: 3094us
+Elapsed time: 3074us
+Elapsed time: 3061us
+Elapsed time: 3066us
+Elapsed time: 3041us
+Elapsed time: 3071us
+Elapsed time: 3053us
+Elapsed time: 3060us
+Elapsed time: 3060us
+Elapsed time: 3059us
+Elapsed time: 3059us
+Elapsed time: 3056us
+Elapsed time: 3047us
+Elapsed time: 3064us
+Elapsed time: 3062us
+Elapsed time: 3064us
+Average time[us]: 3250.62
+Phantom
+xy_cipher.chain_index(): 1
+idx: 0
+  OK
+idx: 1
+  OK
+idx: 2
+  OK
+Modup result
+params_h.KL: 36
+poly_degree: 65536
+beta_idx: 0
+beta_idx: 1
+  OK

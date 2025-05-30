@@ -1,4 +1,4 @@
-ROOT=$(realpath ../..)
+ROOT=../..
 CXXFLAGS = -std=c++17 -O3 -I. -I$(ROOT)/thirdparty -I$(ROOT)/thirdparty/phantom-fhe/include -I$(ROOT)/
 CXXFLAGS += -gencode=arch=compute_89,code=sm_89 -gencode=arch=compute_80,code=sm_80 -gencode=arch=compute_75,code=sm_75
 LIBPATH = $(ROOT)/build/thirdparty/phantom-fhe/lib

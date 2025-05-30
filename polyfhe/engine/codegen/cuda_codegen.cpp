@@ -875,9 +875,8 @@ void CudaCodegen::generate_kernel_defs(
 
             if (requires_load_to_reg) {
                 w_head << "\n// Load data to register\n";
-                w_head << "const int twr_idx = tid / params->N + start_limb;\n";
-                w_head << "uint64_t *in = " << inedge->get_name()
-                       << " + twr_idx * params->N;\n";
+                w_head << "const int twr_idx = tid / n_tower + start_limb;\n";
+                w_head << "uint64_t *in = " << inedge->get_name() << ";\n";
                 w_head << "#pragma unroll\n";
                 w_head << "for (int l = 0; l < 8; l++)";
                 w_head.block_begin();
@@ -1496,6 +1495,23 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
     w << "std::cout << \"beta: \" << beta << std::endl;\n";
 
     for (auto subgraph : graph->get_subgraphs()) {
+        if (subgraph->if_contains_op(core::OpType::MultConst)) {
+            w << "// ModUp\n";
+            w << "uint64_t *modup_mult = "
+                 "rns_tool->partQlHatInv_mod_Ql_concat();\n";
+            w << "uint64_t *modup_mult_shoup = "
+                 "rns_tool->partQlHatInv_mod_Ql_concat_shoup();\n";
+
+            w << "// ModDown\n";
+            w << "const DBaseConverter moddown_converter = "
+                 "drns_tool->base_P_to_Ql_conv();\n";
+            w << "uint64_t *moddown_mult = "
+                 "moddown_converter.ibase().QHatInvModq();\n";
+            w << "uint64_t *moddown_mult_shoup = "
+                 "moddown_converter.ibase().QHatInvModq_shoup();\n";
+            w << "uint64_t *moddown_matmul = "
+                 "moddown_converter.QHatModp();\n";
+        }
         if (subgraph->if_contains_op(core::OpType::MultKeyAccum)) {
             auto accum = subgraph->search_op(core::OpType::MultKeyAccum, 1);
             assert(accum != nullptr);
@@ -1602,22 +1618,6 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
                  "sizeof(uint64_t*) * beta,"
                  "cudaMemcpyHostToDevice));\n";
             w << "\n";
-
-            w << "// ModUp\n";
-            w << "uint64_t *modup_mult = "
-                 "rns_tool->partQlHatInv_mod_Ql_concat();\n";
-            w << "uint64_t *modup_mult_shoup = "
-                 "rns_tool->partQlHatInv_mod_Ql_concat_shoup();\n";
-
-            w << "// ModDown\n";
-            w << "const DBaseConverter moddown_converter = "
-                 "drns_tool->base_P_to_Ql_conv();\n";
-            w << "uint64_t *moddown_mult = "
-                 "moddown_converter.ibase().QHatInvModq();\n";
-            w << "uint64_t *moddown_mult_shoup = "
-                 "moddown_converter.ibase().QHatInvModq_shoup();\n";
-            w << "uint64_t *moddown_matmul = "
-                 "moddown_converter.QHatModp();\n";
         }
     }
     w << "\n";

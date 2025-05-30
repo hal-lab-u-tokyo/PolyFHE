@@ -119,6 +119,8 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
               << std::endl;
     std::cout << "x_cipher.chain_index(): " << x_cipher.chain_index()
               << std::endl;
+    PhantomCiphertext x_cipher_cp = x_cipher;
+    PhantomCiphertext y_cipher_cp = y_cipher;
 
     PhantomCiphertext xy_cipher_polyfhe = x_cipher;
     uint64_t poly_degree = context.gpu_rns_tables().n();
@@ -140,11 +142,6 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
     checkCudaErrors(cudaMemcpy(params_d, &params_h, sizeof(Params),
                                cudaMemcpyHostToDevice));
 
-    uint64_t *in1 = x_cipher.data();
-    uint64_t *in2 = y_cipher.data();
-    xy_cipher_polyfhe.resize(3, coeff_mod_size, poly_degree, s);
-    uint64_t *res = xy_cipher_polyfhe.data();
-
     const int beta = std::ceil((params_h.L + 1) / params_h.alpha);
     const int sizeQP = coeff_mod_size + params_h.alpha;
     const int sizeQPNBeta = poly_degree * sizeQP * beta;
@@ -153,7 +150,10 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
         zero_array[i] = 0;
     }
     std::cout << "beta: " << beta << std::endl;
+    uint64_t *res;
     uint64_t *res_modup_polyfhe, *res_modup_polyfhe2, *res_modup_phantom;
+    checkCudaErrors(cudaMalloc(
+        (void **) &res, poly_degree * coeff_mod_size * 3 * sizeof(uint64_t)));
     checkCudaErrors(cudaMalloc((void **) &res_modup_polyfhe,
                                sizeQPNBeta * sizeof(uint64_t)));
     checkCudaErrors(cudaMalloc((void **) &res_modup_polyfhe2,
@@ -166,6 +166,11 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
 
     // PolyFHE's HMult
     std::cout << "Entry kernel" << std::endl;
+    uint64_t *in1 = x_cipher.data();
+    uint64_t *in2 = y_cipher.data();
+    xy_cipher_polyfhe.resize(3, coeff_mod_size, poly_degree, s);
+    // uint64_t *res = xy_cipher_polyfhe.data();
+
     nvtxRangePushA("compute");
     cudaProfilerStart();
     entry_kernel(params_d, &params_h, context, relin_keys.public_keys_ptr(),
@@ -196,8 +201,7 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
     for (int idx = 0; idx < xy_cipher.size(); idx++) {
         std::cout << "idx: " << idx << std::endl;
         correctness = true;
-        uint64_t *d_res_polyfhe =
-            xy_cipher_polyfhe.data() + idx * poly_degree * coeff_mod_size;
+        uint64_t *d_res_polyfhe = res + idx * poly_degree * coeff_mod_size;
         uint64_t *d_res_phantom =
             xy_cipher.data() + idx * poly_degree * coeff_mod_size;
         checkCudaErrors(
@@ -239,7 +243,7 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
     std::cout << "params_h.KL: " << params_h.KL << std::endl;
     std::cout << "poly_degree: " << poly_degree << std::endl;
     correctness = true;
-    for (int beta_idx = 0; beta_idx < 2; beta_idx++) {
+    for (int beta_idx = 0; beta_idx < 1; beta_idx++) {
         std::cout << "beta_idx: " << beta_idx << std::endl;
         for (int i = 0; i < params_h.L; i++) {
             for (int j = 0; j < poly_degree; j++) {
@@ -264,7 +268,7 @@ void example_ckks(PhantomContext &context, const double &scale, int dnum,
 
     std::vector<double> elapsed_list;
     std::vector<double> elapsed_list_cuda;
-    for (int iter = 0; iter < 100; iter++) {
+    for (int iter = 0; iter < 10; iter++) {
         auto start = std::chrono::high_resolution_clock::now();
         cudaEvent_t ce_start, ce_stop;
         cudaEventCreate(&ce_start);
@@ -365,15 +369,15 @@ int main(int argc, char **argv) {
              40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60, 60}));
         parms.set_special_modulus_size(6);
     } else if (prmsize == ParamSize::Large) {
+        // L = 41, k = 1, dnum = 42
         poly_modulus_degree = 1 << 16;
-        // L = 34
         parms.set_coeff_modulus(CoeffModulus::Create(
             poly_modulus_degree,
             {60, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
              40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
-             40, 40, 40, 40, 40, 40, 40, 60, 60, 60, 60, 60}));
-        dnum = 7;
-        parms.set_special_modulus_size(5); // dnum = ceil((L+ 1) / alpha)
+             40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 60, 60}));
+        parms.set_special_modulus_size(2);
+        dnum = 42;
     } else if (prmsize == ParamSize::Large2) {
         // L = 35, k = 4, dnum = 9
         poly_modulus_degree = 1 << 14;
