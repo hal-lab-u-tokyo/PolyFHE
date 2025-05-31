@@ -222,6 +222,48 @@ __global__ void NTTP1_part_allbeta(Params *params, int start_limb, int end_limb,
     }
 }
 
+__global__ void NTTP1_part_allbeta_smem(Params *params, int start_limb,
+                                        int end_limb, int start_limb_original,
+                                        int end_limb_original, int alpha,
+                                        int beta, const uint64_t *twiddles,
+                                        const uint64_t *twiddles_shoup,
+                                        const DModulus *modulus,
+                                        uint64_t **in_list) {
+    extern __shared__ uint64_t shared[];
+    uint64_t reg[8];
+    for (size_t i = blockIdx.x * blockDim.x + threadIdx.x;
+         i < (params->N / 8 * (end_limb - start_limb));
+         i += blockDim.x * gridDim.x) {
+        const size_t n_twr = params->N / 8;
+        const size_t n_idx = i % n_twr;
+        const size_t twr_idx = i / n_twr + start_limb;
+        const size_t group = params->n1 / 8;
+        const size_t pad_tid = threadIdx.x % params->pad;
+        const size_t pad_idx = threadIdx.x / params->pad;
+        const size_t n_init = n_twr / group * pad_idx + pad_tid +
+                              params->pad * (n_idx / (group * params->pad));
+        size_t twr_idx2 =
+            (twr_idx >= start_limb_original + end_limb_original - params->K
+                 ? params->KL -
+                       (start_limb_original + end_limb_original - twr_idx)
+                 : twr_idx);
+
+        for (int beta_idx = 0; beta_idx < beta; beta_idx++) {
+            if (twr_idx >= (beta_idx + 1) * alpha ||
+                twr_idx < beta_idx * alpha) {
+#pragma unroll
+                for (int l = 0; l < 8; l++) {
+                    reg[l] = *(in_list[beta_idx] + twr_idx * params->N +
+                               n_init + n_twr * l);
+                }
+                d_poly_fnwt_phase1(params, in_list[beta_idx], shared, reg,
+                                   twiddles, twiddles_shoup, modulus, twr_idx,
+                                   twr_idx2, n_init, i);
+            }
+        }
+    }
+}
+
 __global__ void NTTPhase2_general(Params *params, int start_limb, int end_limb,
                                   int start_limb_original,
                                   int end_limb_original, int exclude_start,

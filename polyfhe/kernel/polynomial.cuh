@@ -47,6 +47,14 @@ __global__ void NTTP1_part_allbeta(Params *params, int start_limb, int end_limb,
                                    const uint64_t *twiddles_shoup,
                                    const DModulus *modulus, uint64_t **in_list);
 
+__global__ void NTTP1_part_allbeta_smem(Params *params, int start_limb,
+                                        int end_limb, int start_limb_original,
+                                        int end_limb_original, int alpha,
+                                        int beta, const uint64_t *twiddles,
+                                        const uint64_t *twiddles_shoup,
+                                        const DModulus *modulus,
+                                        uint64_t **in_list);
+
 __global__ void NTTPhase2_general(Params *params, int start_limb, int end_limb,
                                   int start_limb_original,
                                   int end_limb_original, int exclude_start,

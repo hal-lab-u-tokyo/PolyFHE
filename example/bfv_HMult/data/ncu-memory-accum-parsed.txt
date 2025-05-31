@@ -1,0 +1,126 @@
+=========================
+data/ncu-memory-accum-0.csv
+=========================
+Kernel: BConv_5
+  dram__bytes_read.sum : 3236.15 (std: 1.75)
+  dram__bytes_write.sum : 0.04 (std: 0.27)
+  l1tex__t_sector_hit_rate.pct : 83.20 (std: 0.03)
+  lts__t_sector_hit_rate.pct : 90.79 (std: 0.01)
+Kernel: NTTPhase1_6
+  dram__bytes_read.sum : 16261.53 (std: 2.01)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 38.30 (std: 0.07)
+  lts__t_sector_hit_rate.pct : 59.31 (std: 0.04)
+Kernel: NTTPhase2_7
+  dram__bytes_read.sum : 48230.60 (std: 1.43)
+  dram__bytes_write.sum : 0.00 (std: 0.02)
+  l1tex__t_sector_hit_rate.pct : 53.99 (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.25 (std: 0.02)
+Kernel: BConv_14
+  dram__bytes_read.sum : 3236.45 (std: 2.43)
+  dram__bytes_write.sum : 0.01 (std: 0.09)
+  l1tex__t_sector_hit_rate.pct : 83.19 (std: 0.04)
+  lts__t_sector_hit_rate.pct : 90.78 (std: 0.01)
+Kernel: NTTPhase1_15
+  dram__bytes_read.sum : 16261.73 (std: 2.43)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 38.61 (std: 0.07)
+  lts__t_sector_hit_rate.pct : 59.17 (std: 0.04)
+Kernel: NTTPhase2_16
+  dram__bytes_read.sum : 48230.60 (std: 1.43)
+  dram__bytes_write.sum : 0.01 (std: 0.08)
+  l1tex__t_sector_hit_rate.pct : 53.98 (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.25 (std: 0.02)
+Kernel: BConv_17
+  dram__bytes_read.sum : 3236.04 (std: 1.43)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.23 (std: 0.04)
+  lts__t_sector_hit_rate.pct : 90.71 (std: 0.01)
+Kernel: NTTPhase1_18
+  dram__bytes_read.sum : 16261.63 (std: 2.23)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 38.11 (std: 0.09)
+  lts__t_sector_hit_rate.pct : 59.40 (std: 0.05)
+Kernel: NTTPhase2_19
+  dram__bytes_read.sum : 48230.50 (std: 1.02)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 53.99 (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.24 (std: 0.02)
+Kernel: BConv_20
+  dram__bytes_read.sum : 3236.04 (std: 1.43)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.17 (std: 0.03)
+  lts__t_sector_hit_rate.pct : 90.76 (std: 0.01)
+Kernel: NTTPhase1_general
+  dram__bytes_read.sum : 16246.43 (std: 15.41)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 37.33 (std: 0.17)
+  lts__t_sector_hit_rate.pct : 59.81 (std: 0.18)
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 48210.79 (std: 20.19)
+  dram__bytes_write.sum : 0.00 (std: 0.02)
+  l1tex__t_sector_hit_rate.pct : 53.99 (std: 0.02)
+  lts__t_sector_hit_rate.pct : 26.09 (std: 0.18)
+Kernel: BConv_23
+  dram__bytes_read.sum : 3236.15 (std: 1.75)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.35 (std: 0.04)
+  lts__t_sector_hit_rate.pct : 90.68 (std: 0.01)
+Kernel: MultKeyAccum_8
+  dram__bytes_read.sum : 289930.24 (std: 10.59)
+  dram__bytes_write.sum : 27893.66 (std: 30.87)
+  l1tex__t_sector_hit_rate.pct : 8.19 (std: 0.00)
+  lts__t_sector_hit_rate.pct : 11.88 (std: 0.00)
+=========================
+data/ncu-memory-accum-2.csv
+=========================
+Kernel: BConv_5
+  dram__bytes_read.sum : 3236.04 (std: 1.43)
+  dram__bytes_write.sum : 0.04 (std: 0.26)
+  l1tex__t_sector_hit_rate.pct : 83.20 (std: 0.04)
+  lts__t_sector_hit_rate.pct : 90.79 (std: 0.01)
+Kernel: NTTPhase1_6
+  dram__bytes_read.sum : 16261.73 (std: 2.43)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 38.32 (std: 0.08)
+  lts__t_sector_hit_rate.pct : 59.29 (std: 0.05)
+Kernel: BConv_14
+  dram__bytes_read.sum : 3235.94 (std: 1.02)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.21 (std: 0.04)
+  lts__t_sector_hit_rate.pct : 90.78 (std: 0.01)
+Kernel: NTTPhase1_15
+  dram__bytes_read.sum : 16261.94 (std: 2.78)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 38.63 (std: 0.07)
+  lts__t_sector_hit_rate.pct : 59.16 (std: 0.05)
+Kernel: BConv_17
+  dram__bytes_read.sum : 3235.94 (std: 1.02)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.37 (std: 0.03)
+  lts__t_sector_hit_rate.pct : 90.69 (std: 0.01)
+Kernel: NTTPhase1_18
+  dram__bytes_read.sum : 16261.43 (std: 1.75)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 38.10 (std: 0.09)
+  lts__t_sector_hit_rate.pct : 59.40 (std: 0.05)
+Kernel: BConv_20
+  dram__bytes_read.sum : 3235.94 (std: 1.02)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.18 (std: 0.04)
+  lts__t_sector_hit_rate.pct : 90.75 (std: 0.01)
+Kernel: NTTPhase1_general
+  dram__bytes_read.sum : 16246.32 (std: 15.69)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 37.40 (std: 0.18)
+  lts__t_sector_hit_rate.pct : 59.78 (std: 0.19)
+Kernel: BConv_23
+  dram__bytes_read.sum : 3235.94 (std: 1.02)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 83.28 (std: 0.04)
+  lts__t_sector_hit_rate.pct : 90.68 (std: 0.01)
+Kernel: MultKeyAccum_8_opt
+  dram__bytes_read.sum : 336924.26 (std: 68.00)
+  dram__bytes_write.sum : 102497.89 (std: 53.59)
+  l1tex__t_sector_hit_rate.pct : 39.81 (std: 0.02)
+  lts__t_sector_hit_rate.pct : 49.64 (std: 0.01)

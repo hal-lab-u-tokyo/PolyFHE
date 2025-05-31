@@ -11,8 +11,8 @@ cd ${REPO_ROOT}
 OUTPUT_DIR="${REPO_ROOT}/artifact_evaluation/data"
 
 PARAMSET=("setB" "setC")
-OPTLEVEL=("noopt" "reg" "l2")
-# OPTLEVEL=("noopt")
+# OPTLEVEL=("noopt" "reg" "l2" "shared")
+OPTLEVEL=("shared")
 
 METRICS="l1tex__t_sector_hit_rate.pct"
 METRICS+=",lts__t_sector_hit_rate.pct"

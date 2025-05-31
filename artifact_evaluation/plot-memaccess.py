@@ -18,6 +18,7 @@ fname_csv = f"{directory_path}/data/{fname}.csv"
 dic_metricname_unit = {}
 
 def format_kernel_name(kernel_name):
+    return kernel_name.split("(")[0].strip()
     if "iNTTPhase1" in kernel_name:
         return "iNTTPhase1"
     elif "NTTPhase1" in kernel_name:
@@ -116,6 +117,10 @@ def plot_bar_scatter(metric_name, profiled_data, label, fname, color='tab:blue')
     kernels, values = get_value(result, metric_name)
     fig, ax = plt.subplots(figsize=(8, 6))
     ax.scatter(kernels, values, label=metric_name, s=100, color=color, alpha=0.7)
+
+    # line for average
+    avg_value = np.mean(values)
+    ax.axhline(avg_value, color='blue', linestyle='--', label=f'Average: {avg_value:.2f}')
     ax.set_ylabel(label, fontsize=24)
     ax.set_ylim(0, 100)
     ax.tick_params(axis='both', which='major', labelsize=18)
