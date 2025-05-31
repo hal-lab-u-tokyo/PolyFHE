@@ -22,7 +22,8 @@ bool ExtractL2ReusePass::run_on_graph(
         if (node == nullptr) {
             continue;
         }
-        if (node->get_op_type() == polyfhe::core::OpType::MultConst) {
+        if (node->get_op_type() == polyfhe::core::OpType::MultConst &&
+            node->get_precomputed_value() == core::PrecomputedValue::ModUp) {
             for (auto outedge : node->get_out_edges()) {
                 std::shared_ptr<polyfhe::core::Node> nextnode =
                     outedge->get_dst();

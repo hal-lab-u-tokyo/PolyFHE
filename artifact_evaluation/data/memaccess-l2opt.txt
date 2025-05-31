@@ -1,0 +1,37 @@
+Kernel: iNTTPhase2
+  dram__bytes_read.sum : 27.24 MB (std: 25.17)
+  dram__bytes_write.sum : 1.33 MB (std: 1.89)
+  l1tex__t_sector_hit_rate.pct : 64.87 % (std: 2.64)
+  lts__t_sector_hit_rate.pct : 33.69 % (std: 8.91)
+Kernel: iNTTPhase1
+  dram__bytes_read.sum : 7.44 MB (std: 5.98)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 57.85 % (std: 13.42)
+  lts__t_sector_hit_rate.pct : 57.57 % (std: 1.57)
+Kernel: Mult
+  dram__bytes_read.sum : 87.37 MB (std: 34.29)
+  dram__bytes_write.sum : 11.95 MB (std: 9.70)
+  l1tex__t_sector_hit_rate.pct : 31.73 % (std: 10.20)
+  lts__t_sector_hit_rate.pct : 38.37 % (std: 10.22)
+Kernel: BConv
+  dram__bytes_read.sum : 10.71 MB (std: 6.17)
+  dram__bytes_write.sum : 0.00 MB (std: 0.05)
+  l1tex__t_sector_hit_rate.pct : 85.17 % (std: 6.38)
+  lts__t_sector_hit_rate.pct : 76.77 % (std: 11.42)
+Kernel: NTTP1_part_allbeta
+  dram__bytes_read.sum : 26.28 MB (std: 1.48)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 51.38 % (std: 0.36)
+  lts__t_sector_hit_rate.pct : 54.57 % (std: 0.12)
+Kernel: NTTPhase1
+  dram__bytes_read.sum : 15.88 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 36.97 % (std: 0.07)
+  lts__t_sector_hit_rate.pct : 59.95 % (std: 0.04)
+Kernel: NTTPhase2
+  dram__bytes_read.sum : 47.10 MB (std: 0.00)
+  dram__bytes_write.sum : 0.00 MB (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 53.75 % (std: 0.02)
+  lts__t_sector_hit_rate.pct : 26.48 % (std: 0.03)
+Figure saved at /opt/mount/PolyFHE/artifact_evaluation/data/figure/memaccess-l2opt-l1.pdf
+Figure saved at /opt/mount/PolyFHE/artifact_evaluation/data/figure/memaccess-l2opt-l2.pdf

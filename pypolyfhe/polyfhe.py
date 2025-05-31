@@ -17,6 +17,7 @@ class PolyOpType(Enum):
     MultKeyAccum = auto()
     Decomp = auto()
     BConv = auto()
+    BConvGeneral = auto()
     ModDown = auto()
     ModUp = auto()
     NTT = auto()
@@ -38,6 +39,18 @@ class PolyOpType(Enum):
     def __format__(self, format_spec):
         return self.name
 
+class PrecomputedValue(Enum):
+    ModUp = auto()
+    ModDown = auto()
+
+    def __str__(self):
+        return self.name
+
+    def __format__(self, format_spec):
+        return self.name
+
+    def __repr__(self):
+        return self.name
 
 class PolyOp:
     def __init__(
@@ -94,6 +107,30 @@ class MulKeyAccumOp(PolyOp):
     ) -> None:
         super().__init__(PolyOpType.MultKeyAccum, inputs, name, start_limb, end_limb, start_limb, end_limb)
         self.beta: int = beta
+
+class MultConstOp(PolyOp):
+    def __init__(
+        self,
+        inputs: list[PolyOp],
+        name: str,
+        pre_value: PrecomputedValue,
+        start_limb: int,
+        end_limb: int,
+    ) -> None:
+        super().__init__(PolyOpType.MultConst, inputs, name, start_limb, end_limb, start_limb, end_limb)
+        self.pre_value: PrecomputedValue = pre_value
+
+class BConvOp(PolyOp):
+    def __init__(
+        self,
+        inputs: list[PolyOp],
+        name: str,
+        in_start: int,
+        in_end: int,
+        out_start: int,
+        out_end: int,
+    ) -> None:
+       super().__init__(PolyOpType.BConvGeneral, inputs, name, in_start, in_end, out_start, out_end)
 
 class NTTOp(PolyOp):
     def __init__(
@@ -153,9 +190,9 @@ class PolyFHE:
             PolyOpType.Mult, [a, b], name, start_limb, end_limb, start_limb, end_limb
         )
 
-    def mul_const(self, a: PolyOp, name: str, start_limb: int, end_limb: int):
-        return PolyOp(
-            PolyOpType.MultConst, [a], name, start_limb, end_limb, start_limb, end_limb
+    def mul_const(self, a: PolyOp, name: str, pre_value: PrecomputedValue, start_limb: int, end_limb: int):
+        return MultConstOp(
+            [a], name, pre_value, start_limb, end_limb
         )
 
     def mul_key(self, a: PolyOp, name: str, start_limb: int, end_limb: int):
@@ -175,6 +212,11 @@ class PolyFHE:
         )
         op.set_bconv_info(beta_idx)
         return op
+    
+    def bconv_general(self, a: PolyOp, name: str, in_start: int, in_end: int, out_start: int, out_end: int):
+        return BConvOp(
+            [a], name, in_start, in_end, out_start, out_end
+        )
 
     def ntt(
         self,
@@ -281,6 +323,10 @@ class PolyFHE:
             label = f"{op.op_type}"
             if op.op_type == PolyOpType.BConv:
                 label += f"_{op.beta_idx}"
+            elif op.op_type == PolyOpType.BConvGeneral:
+                label += f"_{op.in_start_limb}_{op.in_end_limb}_{op.out_start_limb}_{op.out_end_limb}"
+            elif op.op_type == PolyOpType.MultConst:
+                label += f"_{op.pre_value}_{op.in_start_limb}_{op.in_end_limb}"
             elif isinstance(op, MulKeyAccumOp):
                 label += f"_{op.in_start_limb}_{op.in_end_limb}_{op.beta}"
             elif isinstance(op, NTTOp):

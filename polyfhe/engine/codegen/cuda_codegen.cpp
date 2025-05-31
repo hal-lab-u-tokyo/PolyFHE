@@ -94,7 +94,7 @@ std::string gen_ElemWiseOp_internal(polyfhe::core::OpType op_type,
                                     std::string in1) {
     std::string op = "";
     if (op_type == polyfhe::core::OpType::Add) {
-        op = out + " = (" + in0 + " + " + in1 + ") % q;\n";
+        op = out + " = (" + in0 + " + " + in1 + ") % params->qVec[twr_idx];\n";
     } else if (op_type == polyfhe::core::OpType::Sub) {
         op = out + " = (" + in0 + " + q - " + in1 + ") % q;\n";
     } else if (op_type == polyfhe::core::OpType::Mult) {
@@ -138,7 +138,6 @@ void CudaCodegen::generate_ElemWiseOp(
         w << "#pragma unroll\n";
         w << "for (int l = 0; l < 8; l++)";
         w.block_begin();
-        w << "uint64_t res;\n";
 
         std::vector<std::string> in_strs;
         // inedge
@@ -149,16 +148,13 @@ void CudaCodegen::generate_ElemWiseOp(
             }
             in_strs.push_back(gen_edge_access(in, "idx + l", "l"));
         }
-        w << gen_ElemWiseOp_internal(op_type, "res", in_strs[0], in_strs[1]);
+        w << gen_ElemWiseOp_internal(op_type, "reg[l]", in_strs[0], in_strs[1]);
 
         // outedge
         std::vector<std::shared_ptr<core::Edge>> g_outedges;
         for (auto out : out_vec) {
             // TODO: use Register in data_reuse_pass.cpp
-            if (out->get_level() == core::EdgeLevel::Shared) {
-                out->set_level(polyfhe::core::EdgeLevel::Register);
-                w << gen_edge_access(out, "idx + l", "l") << " = res;\n";
-            } else if (out->get_level() == core::EdgeLevel::Global) {
+            if (out->get_level() == core::EdgeLevel::Global) {
                 g_outedges.push_back(out);
             }
         }
@@ -373,6 +369,11 @@ void CudaCodegen::generate_kernel_defs(
             continue;
         } else if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
             continue;
+        } else if (subgraph->get_subgraph_type() ==
+                   core::SubgraphType::ElemSlot) {
+            if (subgraph->if_contains_op(core::OpType::BConvGeneral)) {
+                continue;
+            }
         }
 
         w << "// Define kernel for subgraph[" << subgraph->get_idx() << "]";
@@ -403,8 +404,19 @@ void CudaCodegen::generate_kernel_defs(
             // Pre-computed constants
             core::OpType op_type = node->get_op_type();
             if (op_type == core::OpType::MultConst) {
-                w << ", uint64_t *partQlHatInv_mod_Ql_concat";
-                w << ", uint64_t *partQlHatInv_mod_Ql_concat_shoup";
+                switch (node->get_precomputed_value()) {
+                case core::PrecomputedValue::ModUp:
+                    w << ", uint64_t *modup_mult";
+                    w << ", uint64_t *modup_mult_shoup";
+                    break;
+                case core::PrecomputedValue::ModDown:
+                    w << ", uint64_t *moddown_mult";
+                    w << ", uint64_t *moddown_mult_shoup";
+                    break;
+                default:
+                    LOG_ERROR("Unsupported precomputed value for MultConst\n");
+                    assert(false);
+                }
             } else if (op_type == core::OpType::BConv) {
                 w << ", const uint64_t *qiHat_mod_pj";
                 w << ", const DModulus *ibase";
@@ -557,8 +569,20 @@ void CudaCodegen::generate_kernel_defs(
                         inedge, "n_idx",
                         std::to_string(inedge->get_offset_smem()) +
                             " + threadIdx.x");
-                    w_body << ", partQlHatInv_mod_Ql_concat[l_idx]";
-                    w_body << ", partQlHatInv_mod_Ql_concat_shoup[l_idx]";
+                    switch (node->get_precomputed_value()) {
+                    case core::PrecomputedValue::ModUp:
+                        w_body << ", modup_mult[l_idx]";
+                        w_body << ", modup_mult_shoup[l_idx]";
+                        break;
+                    case core::PrecomputedValue::ModDown:
+                        w_body << ", moddown_mult[l_idx - start_limb]";
+                        w_body << ", moddown_mult_shoup[l_idx - start_limb]";
+                        break;
+                    default:
+                        LOG_ERROR(
+                            "Unsupported precomputed value for MultConst\n");
+                        assert(false);
+                    }
                     w_body << ", q);\n";
                     std::shared_ptr<core::Edge> g_store_to = nullptr;
                     for (auto outedge : node->get_out_edges()) {
@@ -670,8 +694,21 @@ void CudaCodegen::generate_kernel_defs(
                     w << "reg[l] = "
                          "xxx_multiply_and_reduce_shoup(";
                     w << "reg[l]";
-                    w << ", partQlHatInv_mod_Ql_concat[twr_idx]";
-                    w << ", partQlHatInv_mod_Ql_concat_shoup[twr_idx]";
+
+                    switch (node->get_precomputed_value()) {
+                    case core::PrecomputedValue::ModUp:
+                        w << ", modup_mult[twr_idx]";
+                        w << ", modup_mult_shoup[twr_idx]";
+                        break;
+                    case core::PrecomputedValue::ModDown:
+                        w << ", moddown_mult[twr_idx - start_limb]";
+                        w << ", moddown_mult_shoup[twr_idx - start_limb]";
+                        break;
+                    default:
+                        LOG_ERROR(
+                            "Unsupported precomputed value for MultConst\n");
+                        assert(false);
+                    }
                     w << ", params->qVec[twr_idx]);\n";
                     w.block_end();
                     std::shared_ptr<core::Edge> g_store_to = nullptr;
@@ -705,19 +742,21 @@ void CudaCodegen::generate_kernel_defs(
                     if (inedge->get_level() == core::EdgeLevel::Global) {
                         const int exclude_start = node->get_exclude_start_idx();
                         const int exclude_end = node->get_exclude_end_idx();
-                        w << "const size_t exclude_end = " << exclude_end
-                          << ";\n";
-                        if (exclude_start != 0) {
+
+                        bool if_exclude = false;
+                        if (exclude_end - exclude_start > 0) {
+                            if_exclude = true;
                             w << "const size_t exclude_start = "
                               << exclude_start << ";\n";
+                            w << "const size_t exclude_end = " << exclude_end
+                              << ";\n";
+
                             w << "if (twr_idx >= exclude_start && twr_idx < "
                                  "exclude_end)";
-                        } else {
-                            w << "if (twr_idx < exclude_end)";
+                            w.block_begin();
+                            w << "continue;\n";
+                            w.block_end();
                         }
-                        w.block_begin();
-                        w << "continue;\n";
-                        w.block_end();
 
                         // TODO: merge with other operations
                         w << "\n// Load to register\n";
@@ -728,13 +767,16 @@ void CudaCodegen::generate_kernel_defs(
                              "n_twr * l);\n";
                         w.block_end();
 
-                        w << "const uint64_t size_P = params->K;\n";
-                        w << "const uint64_t size_QP = params->KL;\n";
                         w << "out = " << outedge->get_name() << ";\n";
-                        w << "size_t twr_idx2 = "
-                          << "(twr_idx >= start_limb + end_limb - size_P "
-                          << "? size_QP - (start_limb + end_limb - twr_idx)"
-                          << " : twr_idx);\n";
+
+                        if (if_exclude) {
+                            w << "const uint64_t size_P = params->K;\n";
+                            w << "const uint64_t size_QP = params->KL;\n";
+                            w << "size_t twr_idx2 = "
+                              << "(twr_idx >= start_limb + end_limb - size_P "
+                              << "? size_QP - (start_limb + end_limb - twr_idx)"
+                              << " : twr_idx);\n";
+                        }
                         w << "d_poly_fnwt_phase1(";
                         w << "params";
                         w << ", out";
@@ -744,7 +786,11 @@ void CudaCodegen::generate_kernel_defs(
                         w << ", twiddles_shoup";
                         w << ", modulus";
                         w << ", twr_idx";
-                        w << ", twr_idx2";
+                        if (if_exclude) {
+                            w << ", twr_idx2";
+                        } else {
+                            w << ", twr_idx";
+                        }
                         w << ", n_init";
                         w << ", i);\n";
                     }
@@ -829,9 +875,8 @@ void CudaCodegen::generate_kernel_defs(
 
             if (requires_load_to_reg) {
                 w_head << "\n// Load data to register\n";
-                w_head << "const int twr_idx = tid / params->N + start_limb;\n";
-                w_head << "uint64_t *in = " << inedge->get_name()
-                       << " + twr_idx * params->N;\n";
+                w_head << "const int twr_idx = tid / n_tower + start_limb;\n";
+                w_head << "uint64_t *in = " << inedge->get_name() << ";\n";
                 w_head << "#pragma unroll\n";
                 w_head << "for (int l = 0; l < 8; l++)";
                 w_head.block_begin();
@@ -863,16 +908,24 @@ void CudaCodegen::generate_kernel_defs(
 
                     const int exclude_start = node->get_exclude_start_idx();
                     const int exclude_end = node->get_exclude_end_idx();
-                    w_body << "const size_t exclude_end = " << exclude_end
-                           << ";\n";
-                    if (exclude_start != 0) {
+                    bool if_exclude = false;
+                    if (exclude_end - exclude_start > 0) {
+                        if_exclude = true;
+                        w_body << "const size_t exclude_end = " << exclude_end
+                               << ";\n";
                         w_body
                             << "const size_t exclude_start = " << exclude_start
                             << ";\n";
                         w_body << "if (twr_idx >= exclude_start && twr_idx < "
                                   "exclude_end){continue;}\n";
-                    } else {
-                        w_body << "if (twr_idx < exclude_end) {continue;}\n";
+                        w_body << "const uint64_t size_P = params->K;\n";
+                        w_body << "const uint64_t size_QP = params->KL;\n";
+                        w_body
+                            << "size_t twr_idx2 ="
+                               "(twr_idx >= start_limb + end_limb - "
+                               "size_P"
+                               "? size_QP - (start_limb + end_limb - twr_idx)"
+                               ": twr_idx);\n";
                     }
 
                     w_body << "uint64_t n_init;\n";
@@ -880,7 +933,13 @@ void CudaCodegen::generate_kernel_defs(
                     w_body << "params, " << inedge->get_name()
                            << ", shared, reg, twiddles,"
                            << "twiddles_shoup, modulus, end_limb,"
-                           << "start_limb, twr_idx, &n_init, tid);\n";
+                           << "start_limb, twr_idx";
+                    if (if_exclude) {
+                        w_body << ", twr_idx2";
+                    } else {
+                        w_body << ", twr_idx";
+                    }
+                    w_body << ", &n_init, tid);\n";
 
                     // define store here
                     std::shared_ptr<core::Edge> g_store_to = nullptr;
@@ -1037,6 +1096,13 @@ void CudaCodegen::generate_kernel_defs(
                         w << ", startPartIdx";
                         w << ", size_PartQl);\n";
                     }
+                } else if (op_type == core::OpType::BConvGeneral) {
+                    if (subgraph->get_nodes().size() > 1) {
+                        LOG_ERROR(
+                            "BConv operation is not supported in "
+                            "SubgraphType::ElemSlot with multiple nodes\n");
+                    }
+                    // Kernel for BConvGeneral is already generated
                 } else {
                     std::cerr << "op_type: " << core::to_str(op_type)
                               << std::endl;
@@ -1062,62 +1128,7 @@ void CudaCodegen::generate_kernel_defs(
             // ==============================
             // ElemLimb2Slot
             // ==============================
-            w << "extern __shared__ uint64_t shared[];\n";
-            bool has_defined_ntt = false;
-            for (auto node : subgraph->get_nodes()) {
-                w << "// " << node->get_op_name() << "\n";
-                core::OpType op_type = node->get_op_type();
-                if (op_type == core::OpType::Add ||
-                    op_type == core::OpType::Sub ||
-                    op_type == core::OpType::Mult) {
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 2);
-                    // TODO: limb range
-                    //
-                    auto inedge = node->get_in_edges()[0];
-                    w << "#pragma unroll\n";
-                    w << "for (int batch_idx = " << inedge->get_start_limb()
-                      << " + threadIdx.x / n_threads; ";
-                    w << "batch_idx < " << inedge->get_end_limb() << "; ";
-                    w << "batch_idx += n_group)";
-
-                    w.block_begin();
-                    w << "const uint64_t q = "
-                         "params->ntt_params->q[batch_idx];\n";
-                    generate_ElemWiseOp(node, w, node->get_out_edges(),
-                                        node->get_in_edges()[0],
-                                        node->get_in_edges()[1], s_type);
-                    w.block_end();
-                } else if (op_type == core::OpType::NTTPhase2) {
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 1);
-                    generate_NTT(node, w, true, false, has_defined_ntt);
-                    has_defined_ntt = true;
-                } else if (op_type == core::OpType::iNTTPhase2) {
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 1);
-                    generate_NTT(node, w, false, false, has_defined_ntt);
-                    has_defined_ntt = true;
-                } else if (op_type == core::OpType::ModUp) {
-                    assert(node->get_out_edges().size() == 1);
-                    assert(node->get_in_edges().size() == 1);
-                    /*
-                    w << "for (int idx = threadIdx.x; ";
-                    w << "idx < params->n2; ";
-                    w << "idx += blockDim.x)";
-                    w.block_begin();
-                    generate_modup(node, w, "params->n2",
-                                   "blockIdx.x * params->n2 + idx", "idx");
-                    w.block_end();
-                    */
-                } else {
-                    LOG_ERROR(
-                        "Unsupported op for SubgraphType::ElemLimb2Slot\n");
-                    std::cerr << "op_type: " << core::to_str(op_type)
-                              << std::endl;
-                }
-                w << "__syncthreads();\n";
-            }
+            LOG_ERROR("Not implemented\n");
         } else if (s_type == polyfhe::core::SubgraphType::NoAccess) {
             // We don't need to generate kernel
         } else if (s_type == polyfhe::core::SubgraphType::L2) {
@@ -1130,14 +1141,14 @@ void CudaCodegen::generate_kernel_defs(
     }
 
     w.write_to_file(filename, if_append);
-}
+} // namespace engine
 
 void CudaCodegen::generate_call_kernels(
     std::shared_ptr<polyfhe::core::Graph>& graph, CodeWriter& w) {
     w << "// Call kernel\n";
     w << "// Timer start\n";
     w << "auto start = std::chrono::high_resolution_clock::now();\n";
-    w << "const int current_limb = params_h->L;\n";
+    w << "// const int current_limb = params_h->L;\n";
     w << "const int modup_limb = params_h->KL;\n";
     for (auto subgraph : graph->get_subgraphs()) {
         if (subgraph->get_subgraph_type() ==
@@ -1149,7 +1160,8 @@ void CudaCodegen::generate_call_kernels(
 
         if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
             w << "const int limb_per = params_h->alpha * n_opt;\n";
-            w << "int n_divide_ = std::ceil(1.0 * modup_limb / limb_per);\n";
+            w << "int n_divide_ = std::ceil(1.0 * modup_limb / "
+                 "limb_per);\n";
             w << "for (int iter = 0; iter < n_divide_; iter++)\n";
             w.block_begin();
             w << "int start_li = iter * limb_per;\n";
@@ -1160,42 +1172,77 @@ void CudaCodegen::generate_call_kernels(
               << "params_h->alpha, beta, params_h->ntt_tables->twiddle(),"
               << "params_h->ntt_tables->twiddle_shoup(),"
               << "params_h->ntt_tables->modulus(), n_opt);\n";
-            w << "NTTP1_part_allbeta<<<4096, 128, 128 * 8 * "
+            w << "NTTP1_part_allbeta<<<4096, 128, "
+              << "(params_h->n1 + params_h->pad + 1) * params_h->pad * "
                  "sizeof(uint64_t)>>>("
               << "params_d, start_li, end_li, 0, modup_limb,"
               << "params_h->K, beta, "
               << "params_h->ntt_tables->twiddle(),"
               << "params_h->ntt_tables->twiddle_shoup(),"
               << "params_h->ntt_tables->modulus(), d_accum_in_list);\n";
+
+            std::shared_ptr<core::Node> accum_op =
+                subgraph->search_op(core::OpType::MultKeyAccum, 1);
+            if (accum_op == nullptr) {
+                LOG_ERROR("MultKeyAccum operation not found in L2 subgraph\n");
+                assert(false);
+            }
             w << "NTTP2_MultKeyAccum_part<<<4096, 128,"
                  "8 * 128 * sizeof(uint64_t)>>>("
-                 "params_d, start_li, end_li, 0, modup_limb, params_h->K, beta,"
+                 "params_d, start_li, end_li, 0, modup_limb, params_h->K, "
+                 "beta,"
                  "params_h->ntt_tables->twiddle(),"
                  "params_h->ntt_tables->twiddle_shoup(),"
                  "params_h->ntt_tables->modulus(), d_accum_in_list,"
-                 "edge_MultKeyAccum_8_0_iNTTPhase2_12_0_d,"
-                 "edge_MultKeyAccum_8_1_iNTTPhase2_9_0_d, relin_keys);\n";
+              << accum_op->get_out_edges()[0]->get_name() << "_d, "
+              << accum_op->get_out_edges()[1]->get_name()
+              << "_d, relin_keys);\n";
             w.block_end();
             continue;
         }
 
         if (subgraph->get_subgraph_type() == core::SubgraphType::ElemSlot) {
-            w.block_begin();
-            auto bconv_op = subgraph->search_op(core::OpType::BConv, 1);
-            w << "const size_t beta_idx = " << bconv_op->get_beta_idx()
-              << ";\n";
-            w << "const size_t startPartIdx = params_h->alpha * "
-                 "beta_idx;\n";
-            w << "const size_t size_PartQl = (beta_idx == beta - 1)?";
-            w << "(params_h->L - params_h->alpha * (beta - 1))";
-            w << ": params_h->alpha;\n";
-            w << "auto &bconv_pre = "
-                 "drns_tool->v_base_part_Ql_to_compl_part_QlP_conv()[beta_"
-                 "idx];"
-                 "\n";
-            w << "auto &ibase = bconv_pre.ibase();\n";
-            w << "auto &obase = bconv_pre.obase();\n";
-            w << "constexpr int unroll_factor = 2;\n";
+            if (subgraph->if_contains_op(core::OpType::BConv)) {
+                auto bconv_op = subgraph->search_op(core::OpType::BConv, 1);
+                w.block_begin();
+                w << "const size_t beta_idx = " << bconv_op->get_beta_idx()
+                  << ";\n";
+                w << "const size_t startPartIdx = params_h->alpha * "
+                     "beta_idx;\n";
+                w << "const size_t size_PartQl = (beta_idx == beta - 1)?";
+                w << "(params_h->L - params_h->alpha * (beta - 1))";
+                w << ": params_h->alpha;\n";
+                w << "auto &bconv_pre = "
+                     "drns_tool->v_base_part_Ql_to_compl_part_QlP_conv()["
+                     "beta_"
+                     "idx];"
+                     "\n";
+                w << "auto &ibase = bconv_pre.ibase();\n";
+                w << "auto &obase = bconv_pre.obase();\n";
+                w << "constexpr int unroll_factor = 2;\n";
+            } else if (subgraph->if_contains_op(core::OpType::BConvGeneral)) {
+                auto bconv_op =
+                    subgraph->search_op(core::OpType::BConvGeneral, 1);
+                assert(subgraph->get_nodes().size() == 1);
+                w << "BConv_general<<<4096, 128>>>("
+                  << "params_d, " << bconv_op->get_in_edges()[0]->get_name()
+                  << "_d, " << bconv_op->get_out_edges()[0]->get_name()
+                  << "_d, "
+                  << "moddown_matmul, " << bconv_op->get_in_start_idx() << ", "
+                  << bconv_op->get_in_end_idx() - bconv_op->get_in_start_idx()
+                  << ", " << bconv_op->get_out_start_idx() << ", "
+                  << bconv_op->get_out_end_idx() - bconv_op->get_out_start_idx()
+                  << ", "
+                  << "params_h->ntt_tables->twiddle(), "
+                  << "params_h->ntt_tables->twiddle_shoup(), "
+                  << "params_h->ntt_tables->modulus()"
+                  << ");\n";
+                continue;
+            } else {
+                LOG_ERROR(
+                    "ElemSlot subgraph must contain BConv or "
+                    "BConvGeneral operation\n");
+            }
         }
         w << subgraph->get_name() << "<<<" << kconfig.grid_size << ", "
           << kconfig.block_size << ", " << kconfig.shared_mem_size << ">>>";
@@ -1231,8 +1278,19 @@ void CudaCodegen::generate_call_kernels(
             // Pre-computed constants
             core::OpType op_type = node->get_op_type();
             if (op_type == core::OpType::MultConst) {
-                w << ", rns_tool->partQlHatInv_mod_Ql_concat()";
-                w << ", rns_tool->partQlHatInv_mod_Ql_concat_shoup()";
+                switch (node->get_precomputed_value()) {
+                case core::PrecomputedValue::ModUp:
+                    w << ", modup_mult";
+                    w << ", modup_mult_shoup";
+                    break;
+                case core::PrecomputedValue::ModDown:
+                    w << ", moddown_mult";
+                    w << ", moddown_mult_shoup";
+                    break;
+                default:
+                    LOG_ERROR("Unsupported precomputed value for MultConst\n");
+                    assert(false);
+                }
             } else if (op_type == core::OpType::BConv) {
                 w << ", bconv_pre.QHatModp()";
                 w << ", bconv_pre.ibase().base()";
@@ -1263,10 +1321,13 @@ void CudaCodegen::generate_call_kernels(
         }
 
         if (subgraph->get_subgraph_type() == core::SubgraphType::ElemSlot) {
-            w.block_end();
+            if (subgraph->if_contains_op(core::OpType::BConv)) {
+                w.block_end();
+            }
         }
     }
     w << "// Timer Stop\n";
+    w << "checkCudaErrors(cudaDeviceSynchronize());\n";
     w << "auto end = std::chrono::high_resolution_clock::now();\n";
     w << "\n";
 }
@@ -1433,86 +1494,118 @@ void CudaCodegen::generate_entry(std::shared_ptr<polyfhe::core::Graph>& graph,
          "params_h->alpha);\n";
     w << "std::cout << \"beta: \" << beta << std::endl;\n";
 
+    bool has_defined_const = false;
     for (auto subgraph : graph->get_subgraphs()) {
-        if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
+        if (subgraph->if_contains_op(core::OpType::MultConst)) {
+            if (!has_defined_const){
+                has_defined_const = true;
+                w << "// ModUp\n";
+            w << "uint64_t *modup_mult = "
+                 "rns_tool->partQlHatInv_mod_Ql_concat();\n";
+            w << "uint64_t *modup_mult_shoup = "
+                 "rns_tool->partQlHatInv_mod_Ql_concat_shoup();\n";
+
+            w << "// ModDown\n";
+            w << "const DBaseConverter moddown_converter = "
+                 "drns_tool->base_P_to_Ql_conv();\n";
+            w << "uint64_t *moddown_mult = "
+                 "moddown_converter.ibase().QHatInvModq();\n";
+            w << "uint64_t *moddown_mult_shoup = "
+                 "moddown_converter.ibase().QHatInvModq_shoup();\n";
+            w << "uint64_t *moddown_matmul = "
+                 "moddown_converter.QHatModp();\n";
+            }
+        }
+        if (subgraph->if_contains_op(core::OpType::MultKeyAccum)) {
+            auto accum = subgraph->search_op(core::OpType::MultKeyAccum, 1);
+            assert(accum != nullptr);
             int n_beta = subgraph->get_beta();
-            std::cout << "### subgraph beta: " << n_beta << std::endl;
-            w << "// BConv input\n";
-            w << "uint64_t **bconv_in_list = new uint64_t *[beta];\n";
-            for (int j = 0; j < n_beta; j++) {
-                w << "bconv_in_list[" << j << "] = ";
-                assert(subgraph->get_nodes()[j] != nullptr);
-                assert(subgraph->get_nodes()[j]->get_in_edges().size() == 1);
-                assert(subgraph->get_nodes()[j]->get_in_edges()[0] != nullptr);
-                w << subgraph->get_nodes()[j]->get_in_edges()[0]->get_name()
-                  << "_d;\n";
+            if (n_beta == -1) {
+                n_beta = accum->get_in_edges().size();
             }
-            w << "uint64_t **d_bconv_in_list;\n";
-            w << "checkCudaErrors(cudaMalloc((void ***)&d_bconv_in_list, "
-                 "beta * sizeof(uint64_t *)));\n";
-            w << "checkCudaErrors(cudaMemcpy(d_bconv_in_list, "
-                 "bconv_in_list, beta * sizeof(uint64_t *), "
-                 "cudaMemcpyHostToDevice));\n";
-            w << "\n";
+            if (subgraph->get_subgraph_type() == core::SubgraphType::L2) {
+                std::cout << "### subgraph beta: " << n_beta << std::endl;
+                w << "// BConv input\n";
+                w << "uint64_t **bconv_in_list = new uint64_t *[beta];\n";
+                for (int j = 0; j < n_beta; j++) {
+                    w << "bconv_in_list[" << j << "] = ";
+                    assert(subgraph->get_nodes()[j] != nullptr);
+                    assert(subgraph->get_nodes()[j]->get_in_edges().size() ==
+                           1);
+                    assert(subgraph->get_nodes()[j]->get_in_edges()[0] !=
+                           nullptr);
+                    w << subgraph->get_nodes()[j]->get_in_edges()[0]->get_name()
+                      << "_d;\n";
+                }
+                w << "uint64_t **d_bconv_in_list;\n";
+                w << "checkCudaErrors(cudaMalloc((void ***)&d_bconv_in_list, "
+                     "beta * sizeof(uint64_t *)));\n";
+                w << "checkCudaErrors(cudaMemcpy(d_bconv_in_list, "
+                     "bconv_in_list, beta * sizeof(uint64_t *), "
+                     "cudaMemcpyHostToDevice));\n";
+                w << "\n";
 
-            w << "// BConv output\n";
-            w << "uint64_t **bconv_out_list = new uint64_t *[beta];\n";
-            for (int j = 0; j < n_beta; j++) {
-                w << "bconv_out_list[" << j << "] = ";
-                assert(subgraph->get_nodes()[j] != nullptr);
-                assert(subgraph->get_nodes()[j]->get_out_edges().size() == 1);
-                assert(subgraph->get_nodes()[j]->get_out_edges()[0] != nullptr);
-                w << subgraph->get_nodes()[j]->get_out_edges()[0]->get_name()
-                  << "_d;\n";
-            }
-            w << "uint64_t **d_bconv_out_list;\n";
-            w << "checkCudaErrors(cudaMalloc((void ***)&d_bconv_out_list, "
-                 "beta * sizeof(uint64_t *)));\n";
-            w << "checkCudaErrors(cudaMemcpy(d_bconv_out_list, "
-                 "bconv_out_list, beta * sizeof(uint64_t *), "
-                 "cudaMemcpyHostToDevice));\n";
-            w << "\n";
+                w << "// BConv output\n";
+                w << "uint64_t **bconv_out_list = new uint64_t *[beta];\n";
+                for (int j = 0; j < n_beta; j++) {
+                    w << "bconv_out_list[" << j << "] = ";
+                    assert(subgraph->get_nodes()[j] != nullptr);
+                    assert(subgraph->get_nodes()[j]->get_out_edges().size() ==
+                           1);
+                    assert(subgraph->get_nodes()[j]->get_out_edges()[0] !=
+                           nullptr);
+                    w << subgraph->get_nodes()[j]
+                             ->get_out_edges()[0]
+                             ->get_name()
+                      << "_d;\n";
+                }
+                w << "uint64_t **d_bconv_out_list;\n";
+                w << "checkCudaErrors(cudaMalloc((void ***)&d_bconv_out_list, "
+                     "beta * sizeof(uint64_t *)));\n";
+                w << "checkCudaErrors(cudaMemcpy(d_bconv_out_list, "
+                     "bconv_out_list, beta * sizeof(uint64_t *), "
+                     "cudaMemcpyHostToDevice));\n";
+                w << "\n";
 
-            w << "// NTT inout\n";
-            w << "uint64_t **ntt_in_list = new uint64_t *[beta];\n";
-            for (int j = 0; j < n_beta; j++) {
-                w << "ntt_in_list[" << j << "] = ";
-                assert(subgraph->get_nodes()[n_beta + j] != nullptr);
-                assert(
-                    subgraph->get_nodes()[n_beta + j]->get_out_edges().size() ==
-                    1);
-                assert(subgraph->get_nodes()[n_beta + j]->get_out_edges()[0] !=
-                       nullptr);
-                w << subgraph->get_nodes()[n_beta + j]
-                         ->get_out_edges()[0]
-                         ->get_name()
-                  << "_d;\n";
-            }
-            w << "uint64_t **d_ntt_in_list;\n";
-            w << "checkCudaErrors(cudaMalloc((void ***)&d_ntt_in_list, "
-                 "beta * sizeof(uint64_t *)));\n";
-            w << "checkCudaErrors(cudaMemcpy(d_ntt_in_list, "
-                 "ntt_in_list, beta * sizeof(uint64_t *), "
-                 "cudaMemcpyHostToDevice));\n";
-            w << "\n";
+                w << "// NTT inout\n";
+                w << "uint64_t **ntt_in_list = new uint64_t *[beta];\n";
+                for (int j = 0; j < n_beta; j++) {
+                    w << "ntt_in_list[" << j << "] = ";
+                    assert(subgraph->get_nodes()[n_beta + j] != nullptr);
+                    assert(subgraph->get_nodes()[n_beta + j]
+                               ->get_out_edges()
+                               .size() == 1);
+                    assert(
+                        subgraph->get_nodes()[n_beta + j]->get_out_edges()[0] !=
+                        nullptr);
+                    w << subgraph->get_nodes()[n_beta + j]
+                             ->get_out_edges()[0]
+                             ->get_name()
+                      << "_d;\n";
+                }
+                w << "uint64_t **d_ntt_in_list;\n";
+                w << "checkCudaErrors(cudaMalloc((void ***)&d_ntt_in_list, "
+                     "beta * sizeof(uint64_t *)));\n";
+                w << "checkCudaErrors(cudaMemcpy(d_ntt_in_list, "
+                     "ntt_in_list, beta * sizeof(uint64_t *), "
+                     "cudaMemcpyHostToDevice));\n";
+                w << "\n";
 
-            w << "// Accum input\n";
-            w << "uint64_t **accum_in_list = new uint64_t *[beta];\n";
-            auto accum =
-                subgraph->get_nodes()[subgraph->get_nodes().size() - 1];
-            assert(accum->get_op_type() == core::OpType::MultKeyAccum);
-            assert(accum->get_in_edges().size() == n_beta);
-            for (int j = 0; j < n_beta; j++) {
-                w << "accum_in_list[" << j << "] = ";
-                w << accum->get_in_edges()[j]->get_name() << "_d;\n";
+                w << "// Accum input\n";
+                w << "uint64_t **accum_in_list = new uint64_t *[beta];\n";
+                assert(accum->get_in_edges().size() == n_beta);
+                for (int j = 0; j < n_beta; j++) {
+                    w << "accum_in_list[" << j << "] = ";
+                    w << accum->get_in_edges()[j]->get_name() << "_d;\n";
+                }
+                w << "uint64_t **d_accum_in_list;\n";
+                w << "checkCudaErrors(cudaMalloc((void ***)&d_accum_in_list, "
+                     "beta * sizeof(uint64_t *)));\n";
+                w << "checkCudaErrors(cudaMemcpy(d_accum_in_list, "
+                     "accum_in_list, beta * sizeof(uint64_t *), "
+                     "cudaMemcpyHostToDevice));\n";
+                w << "\n";
             }
-            w << "uint64_t **d_accum_in_list;\n";
-            w << "checkCudaErrors(cudaMalloc((void ***)&d_accum_in_list, "
-                 "beta * sizeof(uint64_t *)));\n";
-            w << "checkCudaErrors(cudaMemcpy(d_accum_in_list, "
-                 "accum_in_list, beta * sizeof(uint64_t *), "
-                 "cudaMemcpyHostToDevice));\n";
-            w << "\n";
 
             w << "// qHatModp\n";
             w << "uint64_t **qhat_modp_list = new uint64_t *[beta];\n";

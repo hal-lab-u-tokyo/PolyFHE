@@ -1,0 +1,104 @@
+=========================
+./data/ncu-ntt-1.csv
+=========================
+Kernel: NTTPhase1_general
+  dram__bytes_read.sum : 16247.22 (std: 17.14)
+  dram__bytes_write.sum : 0.01 (std: 0.03)
+  l1tex__t_sector_hit_rate.pct : 37.40 (std: 0.17)
+  lts__t_sector_hit_rate.pct : 59.76 (std: 0.20)
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 48209.92 (std: 20.48)
+  dram__bytes_write.sum : 0.03 (std: 0.10)
+  l1tex__t_sector_hit_rate.pct : 54.02 (std: 0.01)
+  lts__t_sector_hit_rate.pct : 26.09 (std: 0.18)
+=========================
+./data/ncu-ntt-2.csv
+=========================
+Kernel: NTTPhase1_general
+  dram__bytes_read.sum : 8124.34 (std: 1616.87)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 41.71 (std: 1.22)
+  lts__t_sector_hit_rate.pct : 57.91 (std: 0.40)
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 24107.52 (std: 4810.25)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 54.31 (std: 0.03)
+  lts__t_sector_hit_rate.pct : 26.11 (std: 0.46)
+=========================
+./data/ncu-ntt-4.csv
+=========================
+Kernel: NTTPhase1_general
+  dram__bytes_read.sum : 4065.83 (std: 1145.50)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 49.53 (std: 1.54)
+  lts__t_sector_hit_rate.pct : 55.54 (std: 0.54)
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 12053.21 (std: 3405.25)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 56.19 (std: 1.19)
+  lts__t_sector_hit_rate.pct : 26.12 (std: 0.56)
+=========================
+./data/ncu-ntt-6.csv
+=========================
+Kernel: NTTPhase1_general
+  dram__bytes_read.sum : 2732.61 (std: 1210.01)
+  dram__bytes_write.sum : 2935.34 (std: 1905.17)
+  l1tex__t_sector_hit_rate.pct : 59.46 (std: 17.55)
+  lts__t_sector_hit_rate.pct : 62.40 (std: 13.30)
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 8058.45 (std: 3591.60)
+  dram__bytes_write.sum : 1835.61 (std: 1184.85)
+  l1tex__t_sector_hit_rate.pct : 64.43 (std: 15.59)
+  lts__t_sector_hit_rate.pct : 38.15 (std: 24.37)
+=========================
+./data/ncu-ntt-9.csv
+=========================
+Kernel: NTTPhase1_general
+  dram__bytes_read.sum : 1831.73 (std: 720.13)
+  dram__bytes_write.sum : 924.64 (std: 1304.72)
+  l1tex__t_sector_hit_rate.pct : 56.15 (std: 15.11)
+  lts__t_sector_hit_rate.pct : 61.61 (std: 10.61)
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 5389.80 (std: 2143.21)
+  dram__bytes_write.sum : 523.03 (std: 842.69)
+  l1tex__t_sector_hit_rate.pct : 62.44 (std: 13.03)
+  lts__t_sector_hit_rate.pct : 35.79 (std: 19.68)
+=========================
+./data/ncu-ntt-12.csv
+=========================
+Kernel: NTTPhase1_general
+  dram__bytes_read.sum : 1357.99 (std: 607.25)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 59.71 (std: 17.54)
+  lts__t_sector_hit_rate.pct : 62.99 (std: 16.29)
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 4020.71 (std: 1798.01)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 64.88 (std: 15.37)
+  lts__t_sector_hit_rate.pct : 38.58 (std: 27.01)
+=========================
+./data/ncu-ntt-18.csv
+=========================
+Kernel: NTTPhase1_general
+  dram__bytes_read.sum : 905.67 (std: 404.97)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 60.87 (std: 17.07)
+  lts__t_sector_hit_rate.pct : 63.22 (std: 16.11)
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 2680.47 (std: 1198.68)
+  dram__bytes_write.sum : 0.00 (std: 0.00)
+  l1tex__t_sector_hit_rate.pct : 65.69 (std: 15.00)
+  lts__t_sector_hit_rate.pct : 38.75 (std: 27.09)
+=========================
+./data/ncu-ntt-36.csv
+=========================
+Kernel: NTTPhase1_general
+  dram__bytes_read.sum : 448.37 (std: 198.54)
+  dram__bytes_write.sum : 182.06 (std: 358.21)
+  l1tex__t_sector_hit_rate.pct : 63.82 (std: 15.78)
+  lts__t_sector_hit_rate.pct : 65.28 (std: 14.91)
+Kernel: NTTPhase2_general
+  dram__bytes_read.sum : 1347.96 (std: 600.37)
+  dram__bytes_write.sum : 151.46 (std: 301.15)
+  l1tex__t_sector_hit_rate.pct : 67.39 (std: 14.24)
+  lts__t_sector_hit_rate.pct : 40.83 (std: 25.79)

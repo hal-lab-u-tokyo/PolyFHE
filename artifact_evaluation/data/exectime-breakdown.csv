@@ -1,0 +1,43 @@
+
+NOTICE: Existing SQLite export found: /opt/mount/PolyFHE/artifact_evaluation/data/exectime-breakdown.sqlite
+        It is assumed file was previously exported from: /opt/mount/PolyFHE/artifact_evaluation/data/exectime-breakdown.nsys-rep
+        Consider using --force-export=true if needed.
+
+Processing [/opt/mount/PolyFHE/artifact_evaluation/data/exectime-breakdown.sqlite] with [/opt/nvidia/nsight-systems-cli/2024.7.1/target-linux-x64/reports/cuda_gpu_kern_sum.py]... 
+Time (%),Total Time (ns),Instances,Avg (ns),Med (ns),Min (ns),Max (ns),StdDev (ns),Name
+24.1,36822464,100,368224.6,368192.0,367904,369120,197.1,"MultKeyAccum_8(Params *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long **)"
+4.4,6673633,100,66736.3,66720.0,55488,69088,1426.9,"Mult_1(Params *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+4.2,6359808,200,31799.0,31824.0,30784,32864,411.6,BConv_general
+4.0,6117728,100,61177.3,61056.0,60160,63552,478.5,"iNTTPhase2_2(Params *, unsigned long *, unsigned long *)"
+3.3,5100096,100,51001.0,50960.0,50144,52224,317.2,"Mult_34(Params *, unsigned long *, unsigned long *, unsigned long *)"
+3.3,5075776,100,50757.8,50720.0,50048,52384,381.3,"Mult_36(Params *, unsigned long *, unsigned long *, unsigned long *)"
+3.3,4989504,100,49895.0,49840.0,49248,51168,357.5,"NTTPhase2_30(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+3.2,4967552,100,49675.5,49584.0,49088,50880,404.5,"NTTPhase2_21(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+3.2,4943392,100,49433.9,49440.0,48832,51072,392.3,"NTTPhase2_24(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+3.2,4896672,100,48966.7,48928.0,48352,50048,311.8,"NTTPhase2_33(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+3.2,4893280,100,48932.8,48896.0,48384,49696,285.0,"NTTPhase2_7(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+3.2,4862944,100,48629.4,48560.0,48032,50336,369.9,"NTTPhase2_14(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+3.1,4739328,100,47393.3,47328.0,46624,48416,378.0,"NTTPhase2_27(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+3.0,4551936,100,45519.4,45440.0,44992,46336,307.9,"Mult_37(Params *, unsigned long *, unsigned long *, unsigned long *)"
+2.2,3329152,100,33291.5,33312.0,32384,34048,308.9,"BConv_31(Params *, unsigned long *, unsigned long *, const unsigned long *, const DModulus *, unsigned long, const DModulus *, unsigned long, unsigned long, unsigned long)"
+2.1,3283648,100,32836.5,32800.0,32192,33504,268.7,"BConv_25(Params *, unsigned long *, unsigned long *, const unsigned long *, const DModulus *, unsigned long, const DModulus *, unsigned long, unsigned long, unsigned long)"
+2.1,3275904,100,32759.0,32752.0,32224,33312,231.7,"BConv_28(Params *, unsigned long *, unsigned long *, const unsigned long *, const DModulus *, unsigned long, const DModulus *, unsigned long, unsigned long, unsigned long)"
+2.1,3254720,100,32547.2,32512.0,32064,33216,238.7,"BConv_22(Params *, unsigned long *, unsigned long *, const unsigned long *, const DModulus *, unsigned long, const DModulus *, unsigned long, unsigned long, unsigned long)"
+2.1,3143616,100,31436.2,31424.0,30208,32640,503.9,"NTTPhase1_6(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+2.0,3122624,100,31226.2,31168.0,29824,33728,711.1,"NTTPhase1_29(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+2.0,3096128,100,30961.3,30928.0,29568,32448,580.9,"NTTPhase1_26(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+2.0,3067136,100,30671.4,30624.0,28960,32832,677.8,"NTTPhase1_32(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+2.0,3046400,100,30464.0,30384.0,29184,32352,660.5,"NTTPhase1_23(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+1.9,2963744,100,29637.4,29632.0,28896,30848,356.9,"NTTPhase1_20(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+1.8,2794848,100,27948.5,27936.0,26272,29728,592.9,"iNTTPhase1_3(Params *, unsigned long *, unsigned long *)"
+1.8,2684928,100,26849.3,26848.0,26592,27392,155.8,"BConv_5(Params *, unsigned long *, unsigned long *, const unsigned long *, const DModulus *, unsigned long, const DModulus *, unsigned long, unsigned long, unsigned long)"
+1.6,2422176,100,24221.8,24192.0,23296,25184,384.6,"NTTPhase1_13(Params *, unsigned long *, unsigned long *, const unsigned long *, const unsigned long *, const DModulus *)"
+1.3,1926656,100,19266.6,19264.0,18912,19776,180.6,"iNTTPhase2_16(Params *, unsigned long *, unsigned long *)"
+0.9,1442880,100,14428.8,14400.0,13728,15392,347.2,"Add_35(Params *, unsigned long *, unsigned long *, unsigned long *)"
+0.9,1388192,100,13881.9,13888.0,13600,14304,145.3,"iNTTPhase2_9(Params *, unsigned long *, unsigned long *)"
+0.7,1104928,100,11049.3,11008.0,10592,12224,258.8,"MultConst_4(Params *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+0.5,774272,100,7742.7,7744.0,7488,7968,109.0,"iNTTPhase1_17(Params *, unsigned long *, unsigned long *)"
+0.5,711424,100,7114.2,7072.0,6912,7360,113.1,"iNTTPhase1_10(Params *, unsigned long *, unsigned long *)"
+0.5,697856,100,6978.6,6976.0,6720,7232,84.9,"MultConst_18(Params *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+0.4,565600,100,5656.0,5664.0,5536,5792,68.4,"MultConst_11(Params *, unsigned long *, unsigned long *, unsigned long *, unsigned long *)"
+

@@ -56,6 +56,7 @@ enum class OpType {
     MultKeyAccum,
     Decomp,
     BConv,
+    BConvGeneral,
     ModDown,
     ModUp,
     NTT,
@@ -75,6 +76,13 @@ std::string to_str(OpType op_type);
 std::string toString(BlockPhase block_phase);
 MemoryAccessPattern OpType_access_pattern(OpType op_type);
 bool is_ntt_op(OpType op_type);
+
+enum class PrecomputedValue {
+    ModUp,
+    ModDown,
+};
+
+PrecomputedValue to_precomputed_value(std::string str);
 
 class Node : public std::enable_shared_from_this<Node> {
 public:
@@ -187,6 +195,32 @@ public:
         return m_beta_idx;
     }
 
+    // Only for BConvGeneral
+    void set_bconv_general_range(int in_start, int in_end, int out_start,
+                                 int out_end) {
+        assert(m_op_type == OpType::BConvGeneral);
+        m_in_start_idx = in_start;
+        m_in_end_idx = in_end;
+        m_out_start_idx = out_start;
+        m_out_end_idx = out_end;
+    }
+    int get_in_start_idx() {
+        assert(m_op_type == OpType::BConvGeneral);
+        return m_in_start_idx;
+    }
+    int get_in_end_idx() {
+        assert(m_op_type == OpType::BConvGeneral);
+        return m_in_end_idx;
+    }
+    int get_out_start_idx() {
+        assert(m_op_type == OpType::BConvGeneral);
+        return m_out_start_idx;
+    }
+    int get_out_end_idx() {
+        assert(m_op_type == OpType::BConvGeneral);
+        return m_out_end_idx;
+    }
+
     // Only for NTT
     void set_exclude_idx(int start, int end) {
         assert(is_ntt_op(m_op_type));
@@ -212,6 +246,16 @@ public:
         return m_beta;
     }
 
+    // Only for MultConst
+    void set_precomputed_value(PrecomputedValue precomputed_value) {
+        assert(m_op_type == OpType::MultConst);
+        m_precomputed_value = precomputed_value;
+    }
+    PrecomputedValue get_precomputed_value() {
+        assert(m_op_type == OpType::MultConst);
+        return m_precomputed_value;
+    }
+
 protected:
     OpType m_op_type;
     std::vector<std::shared_ptr<Edge>> m_in_edges;
@@ -227,12 +271,21 @@ protected:
     // Only for BConv
     int m_beta_idx;
 
+    // Only for BConvGeneral
+    int m_in_start_idx;
+    int m_in_end_idx;
+    int m_out_start_idx;
+    int m_out_end_idx;
+
     // Only for NTT
     int m_exclude_start_idx;
     int m_exclude_end_idx;
 
     // Only for MulKeyAccum
     int m_beta;
+
+    // Only for MultConst
+    PrecomputedValue m_precomputed_value;
 
 private:
     // Only for lowerings

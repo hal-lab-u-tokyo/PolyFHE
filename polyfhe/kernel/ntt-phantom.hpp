@@ -80,6 +80,36 @@ __device__ __forceinline__ void fntt8(uint64_t* s, const uint64_t* tw,
     ct_butterfly(s[6], s[7], tw[4 * tw_idx + 3], tw_shoup[4 * tw_idx + 3], mod);
 }
 
+__device__ __forceinline__ void fntt8_ldg(uint64_t* s, const uint64_t* tw,
+                                          const uint64_t* tw_shoup,
+                                          uint64_t tw_idx, uint64_t mod) {
+    // stage 1
+    ct_butterfly(s[0], s[4], __ldg(tw + tw_idx), __ldg(tw_shoup + tw_idx), mod);
+    ct_butterfly(s[1], s[5], __ldg(tw + tw_idx), __ldg(tw_shoup + tw_idx), mod);
+    ct_butterfly(s[2], s[6], __ldg(tw + tw_idx), __ldg(tw_shoup + tw_idx), mod);
+    ct_butterfly(s[3], s[7], __ldg(tw + tw_idx), __ldg(tw_shoup + tw_idx), mod);
+
+    // stage 2
+    ct_butterfly(s[0], s[2], __ldg(tw + 2 * tw_idx),
+                 __ldg(tw_shoup + 2 * tw_idx), mod);
+    ct_butterfly(s[1], s[3], __ldg(tw + 2 * tw_idx),
+                 __ldg(tw_shoup + 2 * tw_idx), mod);
+    ct_butterfly(s[4], s[6], __ldg(tw + 2 * tw_idx + 1),
+                 __ldg(tw_shoup + 2 * tw_idx + 1), mod);
+    ct_butterfly(s[5], s[7], __ldg(tw + 2 * tw_idx + 1),
+                 __ldg(tw_shoup + 2 * tw_idx + 1), mod);
+
+    // stage 3
+    ct_butterfly(s[0], s[1], __ldg(tw + 4 * tw_idx),
+                 __ldg(tw_shoup + 4 * tw_idx), mod);
+    ct_butterfly(s[2], s[3], __ldg(tw + 4 * tw_idx + 1),
+                 __ldg(tw_shoup + 4 * tw_idx + 1), mod);
+    ct_butterfly(s[4], s[5], __ldg(tw + 4 * tw_idx + 2),
+                 __ldg(tw_shoup + 4 * tw_idx + 2), mod);
+    ct_butterfly(s[6], s[7], __ldg(tw + 4 * tw_idx + 3),
+                 __ldg(tw_shoup + 4 * tw_idx + 3), mod);
+}
+
 __device__ __forceinline__ void fntt4(uint64_t* s, const uint64_t* tw,
                                       const uint64_t* tw_shoup, uint64_t tw_idx,
                                       uint64_t mod) {
@@ -298,7 +328,8 @@ __device__ __forceinline__ void d_poly_inplace_inwt_radix8_phase1(
             samples[j], inv_degree_mod, inv_degree_mod_shoup, modulus_value);
     }
 
-    n_init = t / 4 / group * pad_idx + pad_tid + pad * (n_idx / (group * pad));
+    // n_init = t / 4 / group * pad_idx + pad_tid + pad * (n_idx / (group *
+    // pad));
 #pragma unroll
     for (size_t j = 0; j < 8; j++) {
         modsub(samples[j], modulus_value);
@@ -390,24 +421,103 @@ __device__ __forceinline__ void d_poly_fnwt_phase1(
     }
 }
 
+__device__ __forceinline__ void d_poly_fnwt_phase1_smemopt(
+    Params* params, uint64_t* out, uint64_t* buffer, uint64_t* samples,
+    const uint64_t* twiddles, const uint64_t* twiddles_shoup,
+    const DModulus* modulus_table, size_t twr_idx, size_t twr_idx2,
+    size_t n_init, const size_t tid) {
+    const uint64_t n = params->N;
+    const uint64_t n1 = params->n1;
+    // pad address
+    const size_t pad = params->per_block_pad;
+    size_t pad_tid = threadIdx.x % pad;
+    size_t pad_idx = threadIdx.x / pad;
+
+    size_t group = n1 / 8;
+    // size of a block
+    size_t t = n / 2;
+    // base address
+    uint64_t* out_data_ptr = out + twr_idx * n;
+    const uint64_t* psi = twiddles + twr_idx2 * n;
+    const uint64_t* psi_shoup = twiddles_shoup + twr_idx2 * n;
+    uint64_t modulus = modulus_table[twr_idx2].value();
+
+    size_t tw_idx = 1;
+    fntt8_ldg(samples, psi, psi_shoup, tw_idx, modulus);
+#pragma unroll
+    for (size_t j = 0; j < 8; j++) {
+        buffer[pad_tid * (n1 + pad) + pad_idx + group * j] = samples[j];
+    }
+    size_t remain_iters = 0;
+    __syncthreads();
+#pragma unroll
+    for (size_t j = 8, k = group / 2; j < group + 1; j *= 8, k >>= 3) {
+        size_t m_idx2 = pad_idx / (k / 4);
+        size_t t_idx2 = pad_idx % (k / 4);
+#pragma unroll
+        for (size_t l = 0; l < 8; l++) {
+            samples[l] = buffer[(n1 + pad) * pad_tid + 2 * m_idx2 * k + t_idx2 +
+                                (k / 4) * l];
+        }
+        size_t tw_idx2 = j * tw_idx + m_idx2;
+        fntt8_ldg(samples, psi, psi_shoup, tw_idx2, modulus);
+#pragma unroll
+        for (size_t l = 0; l < 8; l++) {
+            buffer[(n1 + pad) * pad_tid + 2 * m_idx2 * k + t_idx2 +
+                   (k / 4) * l] = samples[l];
+        }
+        if (j == group / 2)
+            remain_iters = 1;
+        if (j == group / 4)
+            remain_iters = 2;
+        __syncthreads();
+    }
+
+    if (group < 8)
+        remain_iters = (group == 4) ? 2 : 1;
+#pragma unroll
+    for (size_t l = 0; l < 8; l++) {
+        samples[l] = buffer[(n1 + pad) * pad_tid + 8 * pad_idx + l];
+    }
+    if (remain_iters == 1) {
+        size_t tw_idx2 = 4 * group * tw_idx + 4 * pad_idx;
+        ct_butterfly(samples[0], samples[1], psi[tw_idx2], psi_shoup[tw_idx2],
+                     modulus);
+        ct_butterfly(samples[2], samples[3], psi[tw_idx2 + 1],
+                     psi_shoup[tw_idx2 + 1], modulus);
+        ct_butterfly(samples[4], samples[5], psi[tw_idx2 + 2],
+                     psi_shoup[tw_idx2 + 2], modulus);
+        ct_butterfly(samples[6], samples[7], psi[tw_idx2 + 3],
+                     psi_shoup[tw_idx2 + 3], modulus);
+    } else if (remain_iters == 2) {
+        size_t tw_idx2 = 2 * group * tw_idx + 2 * pad_idx;
+        fntt4(samples, psi, psi_shoup, tw_idx2, modulus);
+        fntt4(samples + 4, psi, psi_shoup, tw_idx2 + 1, modulus);
+    }
+#pragma unroll
+    for (size_t l = 0; l < 8; l++) {
+        buffer[(n1 + pad) * pad_tid + 8 * pad_idx + l] = samples[l];
+    }
+
+    __syncthreads();
+    for (size_t j = 0; j < 8; j++) {
+        *(out_data_ptr + n_init + t / 4 * j) =
+            buffer[pad_tid * (n1 + pad) + pad_idx + group * j];
+    }
+}
+
 __device__ __forceinline__ void d_poly_fnwt_phase2(
     Params* params, uint64_t* inout, uint64_t* buffer, uint64_t* samples,
     const uint64_t* twiddles, const uint64_t* twiddles_shoup,
     const DModulus* modulus_table, size_t coeff_mod_size, size_t start_mod_idx,
-    size_t twr_idx, size_t* n_init, size_t tid) {
+    size_t twr_idx, size_t twr_idx2, size_t* n_init, size_t tid) {
     const uint64_t n = params->N;
     const uint64_t n1 = params->n1;
     const uint64_t n2 = params->n2;
-    const uint64_t size_P = params->K;
-    const uint64_t size_QP = params->KL;
     size_t group = n2 / 8;
     size_t set = threadIdx.x / group;
     // size of a block
     size_t t = n2 / 2;
-    size_t twr_idx2 =
-        (twr_idx >= start_mod_idx + coeff_mod_size - size_P
-             ? size_QP - (start_mod_idx + coeff_mod_size - twr_idx)
-             : twr_idx);
     // index in n/2 range
     size_t n_idx = tid % (n / 8);
     // tid'th block

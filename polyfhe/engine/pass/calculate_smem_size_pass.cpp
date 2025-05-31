@@ -10,7 +10,7 @@ namespace polyfhe {
 namespace engine {
 
 bool CalculateSmemSizePass::run_on_graph(
-    std::shared_ptr<polyfhe::core::Graph>& graph) {
+    std::shared_ptr<polyfhe::core::Graph>& _graph) {
     LOG_INFO("Running CalculateSmemSizePass\n");
 
     return true;
