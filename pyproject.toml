@@ -3,12 +3,14 @@ name = "pypolyfhe"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.8"
 dependencies = [
     "ace-tools>=0.0",
     "graphviz>=0.20.3",
-    "matplotlib>=3.10.1",
-    "pandas>=2.2.3",
+    "matplotlib>=3.7.5",
+    "numba>=0.58.1",
+    "pandas>=2.0.3",
+    "typing>=3.10.0.0",
 ]
 
 [build-system]

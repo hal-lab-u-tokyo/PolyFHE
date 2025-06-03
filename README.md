@@ -37,4 +37,6 @@ In accordance with the terms of these licenses, all derivative code is distribut
 ## Memo
 ```
 nvcc -o ./build/bench build/generated.cu polyfhe/kernel/device_context.cu polyfhe/kernel/polynomial.cu -g -std=c++17 -O2 -I./  --relocatable-device-code true
+
+PYTHONPATH=./build uv run ./example/simple_poly_add/example.py
 ```
