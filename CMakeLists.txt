@@ -31,3 +31,14 @@ if (Boost_FOUND)
 else ()
     message(FATAL_ERROR "Boost not found")
 endif ()
+
+# pybind11
+set(PYTHON_VERSION 3.11)
+find_package(Python3 COMPONENTS Interpreter Development)
+if (NOT Python3_Development_FOUND)
+    message(FATAL_ERROR "Python3 development files not found")
+endif ()
+add_subdirectory(thirdparty/pybind)
+pybind11_add_module(polygraph example/simple_poly_add/generated.cu)
+target_compile_definitions(polygraph
+                           PRIVATE VERSION_INFO=${PYTHON_VERSION})
