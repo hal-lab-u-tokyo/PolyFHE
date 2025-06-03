@@ -35,7 +35,7 @@ class CompiledGraph:
     def __init__(self, name: str):
         self.name = name
 
-    def run(self, build_dir: str = "build"):
+    def run(self, a: list[int], b: list[int], n: int, build_dir: str = "build"):
         """
         Run the compiled graph.
         This method is a placeholder for the actual implementation of running the compiled graph.
@@ -54,11 +54,6 @@ class CompiledGraph:
         # import the compiled graph module
         import polygraph
 
-        n = 4
-        a = [2 * i for i in range(n)]
-        b = [3 * i for i in range(n)]
-        print(f"Input a: {a}")
-        print(f"Input b: {b}")
         a_gpu = cuda.to_device(a)
         b_gpu = cuda.to_device(b)
         c_gpu = cuda.device_array_like(a_gpu)
@@ -71,7 +66,13 @@ class CompiledGraph:
             f"b: {b_gpu_ptr:#016x}, "
             f"c: {c_gpu_ptr:#016x}"
         )
-        polygraph.entry_kernel(a_gpu_ptr, b_gpu_ptr, c_gpu_ptr, n)
+        arg_dict = {
+            "a": a_gpu_ptr,
+            "b": b_gpu_ptr,
+            "c": c_gpu_ptr,
+            "n": n,
+        }
+        polygraph.entry_kernel(arg_dict)
         result = c_gpu.copy_to_host()
         print(f"Result: {result}")
 

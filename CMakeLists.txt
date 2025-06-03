@@ -39,6 +39,6 @@ if (NOT Python3_Development_FOUND)
     message(FATAL_ERROR "Python3 development files not found")
 endif ()
 add_subdirectory(thirdparty/pybind)
-pybind11_add_module(polygraph example/simple_poly_add/generated.cu)
+pybind11_add_module(polygraph example/simple_poly_add/compiler-out.cu)
 target_compile_definitions(polygraph
                            PRIVATE VERSION_INFO=${PYTHON_VERSION})

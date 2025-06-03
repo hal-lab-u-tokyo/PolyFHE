@@ -16,7 +16,12 @@ def compile_and_run():
 
     compiled = context.compile(add_poly)
 
-    compiled.run()
+    n = 4
+    a = [2 * i for i in range(n)]
+    b = [3 * i for i in range(n)]
+    print(f"Input a: {a}")
+    print(f"Input b: {b}")
+    compiled.run(a, b, n)
 
 
 if __name__ == "__main__":
