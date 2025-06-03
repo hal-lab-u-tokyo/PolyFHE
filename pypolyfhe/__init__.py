@@ -1,4 +1,4 @@
-from .context import Device, Context
+from .context import Context, Device, DeviceType
 from .params import Params
 from .poly import Poly
 

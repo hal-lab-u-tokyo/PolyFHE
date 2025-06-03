@@ -1,4 +1,4 @@
-from pypolyfhe import Context, Device, Poly
+from pypolyfhe import Context, Device, DeviceType, Poly
 import logging
 
 logger = logging.getLogger(__name__)
@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 
 def compile_and_run():
     logger.info("compileing and running the example...")
-    device = Device(0)
+    device = Device(DeviceType.GPU)
     context = Context(device)
 
     def add_poly(input: dict[str, Poly]) -> dict[str, Poly]:
@@ -14,11 +14,9 @@ def compile_and_run():
         poly_b = input["b"]
         return {"res": poly_a}
 
-    context.compile(add_poly)
+    compiled = context.compile(add_poly)
 
-    import polygraph  # gerated by PolyFHE and binded py pybind
-
-    print(polygraph.add(2, 303))
+    compiled.run()
 
 
 if __name__ == "__main__":
